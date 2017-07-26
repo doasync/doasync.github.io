@@ -21,10 +21,25 @@
 <body>
   <div class="container">
     <iframe
+      id="iframe"
       src="ViewerJS/index.html#../MongoDB-Performance-Best-Practices.pdf"
       mozallowfullscreen allowfullscreen webkitallowfullscreen>
     </iframe>
   <div>
+  <script>
+    const iframe = document.getElementById('iframe');
+    iframe.onload = () => {
+      const iframeDoc = iframe.contentWindow.document;
+      const css = `
+        #about {
+          display: none;
+        }
+      `;
+      style = iframeDoc.createElement('style');
+      style.appendChild(iframeDoc.createTextNode(css));
+      iframeDoc.head.appendChild(style);
+    }
+  </script>
 </body>
 
 </html>
