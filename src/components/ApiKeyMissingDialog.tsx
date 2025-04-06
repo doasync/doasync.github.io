@@ -1,20 +1,24 @@
-import * as React from 'react';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
-import Slide from '@mui/material/Slide';
-import Paper, { PaperProps } from '@mui/material/Paper';
-import Draggable from 'react-draggable';
-import { TransitionProps } from '@mui/material/transitions';
-import { useUnit } from 'effector-react';
-import { $isApiKeyDialogOpen, hideApiKeyDialog, openSettingsDrawer } from '@/model/ui';
+import * as React from "react";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Button from "@mui/material/Button";
+import Slide from "@mui/material/Slide";
+import Paper, { PaperProps } from "@mui/material/Paper";
+import Draggable from "react-draggable";
+import { TransitionProps } from "@mui/material/transitions";
+import { useUnit } from "effector-react";
+import {
+  $isApiKeyDialogOpen,
+  hideApiKeyDialog,
+  openSettingsDrawer,
+} from "@/model/ui";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & { children: React.ReactElement },
-  ref: React.Ref<unknown>,
+  ref: React.Ref<unknown>
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
@@ -54,12 +58,13 @@ export default function ApiKeyMissingDialog() {
       aria-labelledby="draggable-dialog-title"
       aria-describedby="alert-dialog-slide-description"
     >
-      <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">
+      <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
         API Key Required
       </DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-slide-description">
-          Your OpenRouter API key is missing. Please enter it in Chat Settings to enable sending messages.
+          Your OpenRouter API key is missing. Please enter it in Chat Settings
+          to enable sending messages.
         </DialogContentText>
       </DialogContent>
       <DialogActions>

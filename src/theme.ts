@@ -1,7 +1,7 @@
-'use client';
+"use client";
 // import { Roboto } from 'next/font/google'; // Temporarily comment out for debugging
-import { createTheme } from '@mui/material/styles';
-import { red } from '@mui/material/colors';
+import { createTheme } from "@mui/material/styles";
+import { red } from "@mui/material/colors";
 
 // const roboto = Roboto({ // Temporarily comment out for debugging
 //   weight: ['300', '400', '500', '700'],
@@ -12,12 +12,12 @@ import { red } from '@mui/material/colors';
 // Create a theme instance.
 const theme = createTheme({
   palette: {
-    mode: 'dark', // Start with dark mode, can be made dynamic later
+    mode: "dark", // Start with dark mode, can be made dynamic later
     primary: {
-      main: '#556cd6',
+      main: "#556cd6",
     },
     secondary: {
-      main: '#19857b',
+      main: "#19857b",
     },
     error: {
       main: red.A400,

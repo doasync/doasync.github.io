@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useUnit } from 'effector-react';
+import React, { useState, useMemo } from "react";
+import { useUnit } from "effector-react";
 import {
   Drawer,
   List,
@@ -14,21 +14,22 @@ import {
   Divider,
   ListItemIcon,
   Tooltip,
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import EditIcon from '@mui/icons-material/Edit';
-import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
-import InputAdornment from '@mui/material/InputAdornment';
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
+import SearchIcon from "@mui/icons-material/Search";
+import InputAdornment from "@mui/material/InputAdornment";
 import {
   $chatHistoryIndex,
   $isLoadingHistory,
-  chatSelected, ChatHistoryIndex,
+  chatSelected,
+  ChatHistoryIndex,
   deleteChat,
   // chatTitleEdited, // We'll add title editing UI later
   $currentChatId,
-} from '@/model/history';
-import { $isHistoryDrawerOpen, toggleHistoryDrawer } from '@/model/ui';
+} from "@/model/history";
+import { $isHistoryDrawerOpen, toggleHistoryDrawer } from "@/model/ui";
 
 const ChatHistoryDrawer: React.FC = () => {
   const [
@@ -49,9 +50,9 @@ const ChatHistoryDrawer: React.FC = () => {
     $currentChatId,
   ]);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedTitle, setEditedTitle] = useState('');
+  const [editedTitle, setEditedTitle] = useState("");
 
   const filteredHistory = useMemo(() => {
     if (!searchTerm) {
@@ -74,25 +75,29 @@ const ChatHistoryDrawer: React.FC = () => {
     removeChat(id);
   };
 
-  const handleStartEdit = (id: string, currentTitle: string, event: React.MouseEvent) => {
+  const handleStartEdit = (
+    id: string,
+    currentTitle: string,
+    event: React.MouseEvent
+  ) => {
     event.stopPropagation();
     setEditingId(id);
     setEditedTitle(currentTitle);
   };
 
   const handleSaveEdit = (id: string) => {
-    if (editedTitle.trim() !== '') {
-      import('@/model/history').then(({ chatTitleEdited }) => {
+    if (editedTitle.trim() !== "") {
+      import("@/model/history").then(({ chatTitleEdited }) => {
         chatTitleEdited({ id, newTitle: editedTitle.trim() });
       });
     }
     setEditingId(null);
-    setEditedTitle('');
+    setEditedTitle("");
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditedTitle('');
+    setEditedTitle("");
   };
 
   // TODO: Implement title editing functionality
@@ -102,20 +107,20 @@ const ChatHistoryDrawer: React.FC = () => {
       <Box
         sx={{
           width: 300, // Adjust width as needed
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
         }}
         role="presentation"
       >
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             p: 1,
             borderBottom: 1,
-            borderColor: 'divider',
+            borderColor: "divider",
           }}
         >
           <Typography variant="h6" sx={{ ml: 1 }}>
@@ -146,17 +151,28 @@ const ChatHistoryDrawer: React.FC = () => {
 
         <Divider />
 
-        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+        <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
           {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : (
             <List disablePadding>
               {filteredHistory.length === 0 && !isLoading && (
-                 <Typography sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
-                  {searchTerm ? 'No matching chats found.' : 'No chat history yet.'}
-                 </Typography>
+                <Typography
+                  sx={{ p: 2, textAlign: "center", color: "text.secondary" }}
+                >
+                  {searchTerm
+                    ? "No matching chats found."
+                    : "No chat history yet."}
+                </Typography>
               )}
               {filteredHistory.map((chat: ChatHistoryIndex) => (
                 <ListItem
@@ -171,7 +187,9 @@ const ChatHistoryDrawer: React.FC = () => {
                             aria-label="edit"
                             size="small"
                             sx={{ mr: 0.5 }}
-                            onClick={(e) => handleStartEdit(chat.id, chat.title, e)}
+                            onClick={(e) =>
+                              handleStartEdit(chat.id, chat.title, e)
+                            }
                           >
                             <EditIcon fontSize="inherit" />
                           </IconButton>
@@ -195,17 +213,23 @@ const ChatHistoryDrawer: React.FC = () => {
                     selected={chat.id === currentChatId}
                   >
                     {editingId === chat.id ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          width: "100%",
+                        }}
+                      >
                         <TextField
                           size="small"
                           value={editedTitle}
                           onChange={(e) => setEditedTitle(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === "Enter") {
                               e.preventDefault();
                               handleSaveEdit(chat.id);
-                            } else if (e.key === 'Escape') {
+                            } else if (e.key === "Escape") {
                               e.preventDefault();
                               handleCancelEdit();
                             }
@@ -222,9 +246,15 @@ const ChatHistoryDrawer: React.FC = () => {
                         secondary={new Date(chat.lastModified).toLocaleString()}
                         primaryTypographyProps={{
                           noWrap: true,
-                          sx: { fontWeight: chat.id === currentChatId ? 'bold' : 'normal' },
+                          sx: {
+                            fontWeight:
+                              chat.id === currentChatId ? "bold" : "normal",
+                          },
                         }}
-                        secondaryTypographyProps={{ noWrap: true, fontSize: '0.75rem' }}
+                        secondaryTypographyProps={{
+                          noWrap: true,
+                          fontSize: "0.75rem",
+                        }}
                       />
                     )}
                   </ListItemButton>
