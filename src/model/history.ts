@@ -316,6 +316,19 @@ export const $isSavingChat = saveChatFx.pending;
 export const $isLoadingChat = loadSpecificChatFx.pending;
 
 // --- Logic ---
+// Update current session title if it was the one edited
+sample({
+  clock: editChatTitleFx.doneData,
+  source: $currentChatSession,
+  filter: (session, updatedIndexEntry): session is ChatSession =>
+    !!session && !!updatedIndexEntry && session.id === updatedIndexEntry.id,
+  fn: (session, updatedIndexEntry) => ({
+    ...session!, // Add non-null assertion as filter guarantees session is not null
+    title: updatedIndexEntry!.title, // Use the updated title
+    lastModified: updatedIndexEntry!.lastModified, // Also update lastModified
+  }),
+  target: $currentChatSession,
+});
 
 // Type guard for filtering null chats
 const isChatSession = (chat: ChatSession | null): chat is ChatSession =>
