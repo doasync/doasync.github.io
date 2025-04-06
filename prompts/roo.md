@@ -1,4 +1,4 @@
-Review the Product Requirements Document (PRD) for the LLM Chat Interface.
+Review the Product Requirements Document (`PRD.md`) for the LLM Chat Interface.
 
 Gather a bit more context, primarily by looking into the existing documentation and potentially asking a few clarifying questions.
 
@@ -17,7 +17,7 @@ Here's a summary of what was done according to the `PLAN.md`:
 2.  Input Handling: The text field in `src/app/page.tsx` is now connected to `$messageText` and triggers `messageTextChanged` on changes. The Send button and Enter key trigger `messageSent`.
 3.  Message Display: The chat window now renders messages from the `$messages` store, aligning user messages to the right and model messages to the left with basic styling.
 4.  Auto-Scrolling: The chat window automatically scrolls to the bottom when new messages are added.
-5.  Mock Response: For now, sending a message adds the user's message and then automatically adds a simple "Echoing: ..." response from the model to test the display flow.
+5.  **Basic API Interaction Foundation:** Sending a message now triggers an API request to OpenRouter, displaying a loading indicator and handling basic API responses to test the display flow. Replaced the initial mock response with actual API calls.
 
 **Phase 3 (Settings):**
     *   Created `src/model/settings.ts` to manage API key, temperature, and system prompt using Effector, including loading from and saving to LocalStorage.
@@ -38,7 +38,7 @@ Here's a summary of what was done according to the `PLAN.md`:
     *   Triggered the model list fetch on application load in `src/app/page.tsx`.
     *   Updated `src/model/chat.ts` to use the `$selectedModelId` when making API calls.
 
-**Phase 6 (History Persistence Foundation):**
+**Phase 6 (History Persistence Foundation):** - **History Persistence Functionality is NOT Fully Implemented and Requires Further Debugging**
 
 1.  **`src/model/history.ts`:** Created this new file containing:
     *   IndexedDB setup using the `idb` library for storing chat sessions (`ChatSession` interface defined).
@@ -58,4 +58,12 @@ Here's a summary of what was done according to the `PLAN.md`:
     *   Added a `HistoryIcon` button to the header that triggers `toggleHistoryDrawer`.
     *   Connected the "New Chat" (`AddCommentIcon`) button to the `newChatCreated` event.
 
-Let's proceed with the implementation of properly working History Persistence.
+**Features NOT Fully Implemented (Beyond History Persistence):**
+
+*   **Auto-Title Generation:** While title generation logic is implemented, it might be issue-prone and not fully reliable in the current version.
+*   **Message Interaction and Actions:** Features like message editing, deletion, retry, copy, and copy as Markdown/Code are **not yet implemented** in the UI or logic.
+*   **File Attachments:** The "Attach File" button is present in the UI, but the functionality for attaching and sending files (text or images) is **not yet implemented**.
+
+---
+
+Let's proceed with the implementation of History Persistence, Auto-Title Generation, and Message Interaction and Actions according to the `PLAN.md` and `PRD.md`

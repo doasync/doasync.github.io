@@ -2,7 +2,7 @@
 
 **1. Goals Recap:**
 
-*   Build a static, responsive React/Next.js web app using TypeScript, MUI, Effector, and TanStack React Query.
+*   Build a static, responsive React/Next.js web app using TypeScript, MUI, Effector, and fetch API.
 *   Interface with OpenRouter API for LLM interactions using user-provided keys (stored locally).
 *   Support multiple chat histories (IndexedDB), model selection, message editing/deletion/retry, basic settings (LocalStorage), and file attachments (text/image).
 
@@ -12,13 +12,13 @@
 *   **Language:** TypeScript
 *   **UI:** React, Material UI (MUI) v5+
 *   **State Management:** Effector, effector-react
-*   **Data Fetching/Caching:** TanStack React Query
+*   **Data Fetching/Caching:** Effector Effects, fetch API
 *   **Local Storage:**
     *   IndexedDB (via `idb` library or similar wrapper) for chat history.
     *   LocalStorage for global settings (API Key, default temperature/system prompt).
 *   **Initial Setup:**
     *   Initialize Next.js project: `npx create-next-app@latest --ts`
-    *   Install dependencies: `@mui/material @emotion/react @emotion/styled @mui/icons-material effector effector-react @tanstack/react-query idb`
+    *   Install dependencies: `@mui/material @emotion/react @emotion/styled @mui/icons-material effector effector-react idb`
 
 **3. Architecture Overview:**
 
@@ -28,17 +28,14 @@ The application will be a client-side Single Page Application (SPA).
 graph TD
     User --> BrowserUI[Browser UI (React/MUI)];
     BrowserUI -- Interacts --> StateMgmt[State Management (Effector)];
-    BrowserUI -- Triggers Fetch --> DataFetching[Data Fetching (TanStack RQ)];
+    BrowserUI -- Triggers Fetch --> APIInteraction[API Interaction (Effector Effects)];
 
     StateMgmt -- Updates --> BrowserUI;
     StateMgmt -- Reads/Writes --> LocalPersistence[Local Persistence];
-    StateMgmt -- Triggers --> APIInteraction[API Interaction (Effector Effects)];
+    StateMgmt -- Triggers --> APIInteraction;
 
-    DataFetching -- Fetches --> OpenRouterModels[OpenRouter API /models];
-    DataFetching -- Caches --> StateMgmt;
-
-    APIInteraction -- Sends Request --> OpenRouterChat[OpenRouter API /chat/completions];
-    APIInteraction -- Handles Response --> StateMgmt;
+    APIInteraction -- Fetches Models --> OpenRouterModels[OpenRouter API /models];
+    APIInteraction -- Sends Chat Request --> OpenRouterChat[OpenRouter API /chat/completions];
 
     LocalPersistence --> IndexedDB[(IndexedDB - Chat History)];
     LocalPersistence --> LocalStorage[(LocalStorage - Settings)];
@@ -46,7 +43,6 @@ graph TD
     subgraph Client-Side Application
         BrowserUI
         StateMgmt
-        DataFetching
         APIInteraction
         LocalPersistence
     end
@@ -67,7 +63,7 @@ graph TD
     Layout --> InputArea[Message Input Area];
     Layout --> HistoryDrawer[Chat History Drawer (MUI Drawer)];
     Layout --> SettingsDrawer[Chat Settings Drawer (MUI Drawer)];
-    Layout --> ErrorDialog[Error Dialog (MUI Dialog)];
+    Layout --> ErrorDisplay[Error Display (MUI Alert)];
 
     Header --> HistoryButton(History Icon Button);
     Header --> ModelSelector[Model Selector Dropdown];
@@ -76,10 +72,10 @@ graph TD
 
     ChatArea --> MessageList[Scrollable Message List];
     MessageList --> MessageItem[Message Item];
-    MessageItem --> MessageActions[Message Action Icons (Copy, Edit, Delete, Retry)];
+    MessageItem --> MessageActions[Message Action Icons (Copy, Edit, Delete, Retry) (Not Implemented)];
 
     InputArea --> TextInput(Text Input Field);
-    InputArea --> AttachButton(Attach File Icon Button);
+    InputArea --> AttachButton(Attach File Icon Button)  -- "(Not Implemented)";
     InputArea --> SendButton(Send Icon Button);
 
     HistoryDrawer --> SearchInput(Chat Search Input);
@@ -134,7 +130,7 @@ graph TD
     *   `loadSpecificChatFx`: Load full message history for a selected chat from IndexedDB.
     *   `saveChatFx`: Save/update a chat (messages, title, settings) to IndexedDB.
     *   `deleteChatFx`: Delete a chat from IndexedDB.
-    *   `fetchModelsFx`: Fetch model list from OpenRouter API (using TanStack Query integration if desired, or pure effect).
+    *   `fetchModelsFx`: Fetch model list from OpenRouter API (using Effector Effects).
     *   `sendApiRequestFx`: Send chat completion request to OpenRouter.
     *   `generateTitleFx`: Send request to OpenRouter (`google/gemma-3-27b-it`) to generate chat title.
     *   `readFileFx`: Read file content client-side.
@@ -157,12 +153,12 @@ graph TD
         G --> J(saveChatFx Effect);
         J -- Saves --> K[(IndexedDB)];
         I --> L(Update $uiState Store - Show Error);
-        L --> M[Error Dialog Component];
+        L --> M[Error Display (MUI Alert) Component];
     ```
 
 **6. API Interaction (OpenRouter):**
 
-*   **Model List:** Use TanStack React Query's `useQuery` hook, triggered on app load, to fetch `https://openrouter.ai/api/v1/models`. Cache the result. Store in `$modelsList`.
+*   **Model List:** Use Effector Effects, triggered on app load, to fetch `https://openrouter.ai/api/v1/models`. Cache the result. Store in `$modelsList`.
 *   **Chat Completions:**
     *   Create `sendApiRequestFx` effect.
     *   Input: `{ messages: FormattedMessage[], apiKey: string, model: string, temperature: number, systemPrompt?: string }`.
@@ -196,7 +192,7 @@ graph TD
 *   **Message Edits/Deletes:** Update the `$currentChat.messages` array directly in the Effector store reducer. Trigger `saveChatFx`. Ensure `sendApiRequestFx` always reads the latest state from `$currentChat`.
 *   **Retry:** Get the relevant message index. Slice `$currentChat.messages` up to that point (or the preceding user message for LLM retry). Trigger `sendApiRequestFx` with the sliced history. Update the specific assistant message upon success.
 *   **File Attachments:** Use `<input type="file">`. Use `FileReader` API (`readAsDataURL` for images, `readAsText` for text). Check `$modelsList` for `architecture.input_modalities` of the selected model before allowing image attachment/sending. Show loading/preview state. Handle `FileReader` errors. Limit file size client-side (~20MB check).
-*   **Error Handling:** Trigger `showError` event with an error object/message. An Effector `sample` or `forward` updates `$uiState.error`. A React component reads this state and displays a responsive, draggable MUI Dialog when an error is present. Include a dismiss button triggering `dismissError`.
+*   **Error Handling:** User-facing errors (API, network, file) communicated via MUI Alert components. A dedicated Error Dialog component might be considered for future enhancement. Trigger `showError` event with an error object/message. An Effector `sample` or `forward` updates `$uiState.error`. A React component reads this state and displays a responsive MUI Alert when an error is present. Include a dismiss button triggering `dismissError`.
 
 **9. Development Phasing (Suggested):**
 
@@ -208,5 +204,7 @@ graph TD
 6.  **History Persistence:** IndexedDB setup (`idb`), `saveChatFx`, `loadChatHistoryIndexFx`, History Drawer UI, `loadSpecificChatFx`.
 7.  **Message Actions:** Implement Edit, Delete, Retry logic in Effector and UI.
 8.  **File Attachments:** File input, `readFileFx`, base64 encoding, multimodal check, update API request format.
-9.  **Advanced Features:** Auto title generation (`generateTitleFx`), responsiveness polish, error dialog implementation.
+9.  **Advanced Features:** Auto title generation (`generateTitleFx`) - Partially implemented, might have issues, responsiveness polish and basic error display (MUI Alert).
 10. **Testing & Refinement:** Unit/integration tests (using Effector's scope for isolation), UI testing, bug fixing.
+
+---
