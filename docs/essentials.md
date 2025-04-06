@@ -439,3 +439,4 @@ This extraction covers the core APIs and concepts from the provided docs relevan
 *   Utility types (`StoreValue`, `EventPayload`, `EffectParams`, etc.) help extract types from units.
 *   Use type guards in `sample({ filter: (data): data is Type => ... })` for type narrowing.
 *   Explicitly type arguments in `.prepend( (arg: Type) => ... )` and `createApi` reducers `(state, arg: Type) => ...`.
+

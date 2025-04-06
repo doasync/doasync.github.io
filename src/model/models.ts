@@ -1,0 +1,106 @@
+import { createDomain, createEffect, createEvent, createStore, sample } from 'effector';
+
+const modelsDomain = createDomain('models');
+
+// --- Types ---
+
+// Structure based on docs/essentials.md (OpenRouter /models response)
+export interface ModelInfo {
+    id: string; // Model ID (e.g., "openai/gpt-4o") - USE THIS
+    name: string; // Display name (e.g., "OpenAI: GPT-4o") - USE THIS
+    description: string;
+    context_length: number;
+    architecture: {
+        modality: string;
+        input_modalities: string[]; // Check this array for image support
+        output_modalities: string[];
+    };
+    // Add other fields if needed later (e.g., pricing)
+}
+
+interface ModelsApiResponse {
+    data: ModelInfo[];
+}
+
+// --- Stores ---
+// Holds the full list of models fetched from the API
+export const $availableModels = modelsDomain.store<ModelInfo[]>([], { name: 'availableModels' });
+// Holds the ID of the currently selected model
+// Initialize with a sensible default or the first model after fetch
+export const $selectedModelId = modelsDomain.store<string>('google/gemma-3-27b-it:free', { name: 'selectedModelId' }); // Default to free model initially
+// Loading state for the models fetch
+export const $isLoadingModels = modelsDomain.store<boolean>(false, { name: 'isLoadingModels' });
+// Error state for the models fetch
+export const $modelsError = modelsDomain.store<string | null>(null, { name: 'modelsError' });
+
+// --- Events ---
+// Triggered to initiate fetching the model list (e.g., on app start)
+export const fetchModels = modelsDomain.event('fetchModels');
+// Triggered by the UI when a user selects a different model
+export const modelSelected = modelsDomain.event<string>('modelSelected'); // Payload is the model ID
+
+// --- Effects ---
+const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
+    name: 'fetchModelsFx',
+    handler: async () => {
+        const response = await fetch('https://openrouter.ai/api/v1/models');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: ModelsApiResponse = await response.json();
+        // Sort models alphabetically by name for display
+        return data.data.sort((a, b) => a.name.localeCompare(b.name));
+    },
+});
+
+// --- Logic ---
+
+// Trigger fetch effect when fetchModels event is called
+sample({
+    clock: fetchModels,
+    target: fetchModelsFx,
+});
+
+// Update loading state
+$isLoadingModels
+    .on(fetchModelsFx, () => true)
+    .reset(fetchModelsFx.finally);
+
+// Update models list on successful fetch
+$availableModels.on(fetchModelsFx.doneData, (_, models) => models);
+
+// Set the initial selected model to the first one in the list after fetch, if current default isn't available
+// Or keep the default if it exists in the fetched list
+sample({
+    clock: fetchModelsFx.doneData,
+    source: $selectedModelId,
+    fn: (currentSelectedId, models) => {
+        if (models.length > 0) {
+            const currentExists = models.some(m => m.id === currentSelectedId);
+            if (currentExists) {
+                return currentSelectedId; // Keep current selection if it's valid
+            }
+            return models[0].id; // Default to the first model if current is invalid or list was empty
+        }
+        return currentSelectedId; // Keep current ID if fetch returned empty
+    },
+    target: $selectedModelId,
+});
+
+
+// Update selected model ID when user selects one
+$selectedModelId.on(modelSelected, (_, selectedId) => selectedId);
+
+// Handle fetch errors
+$modelsError
+    .on(fetchModelsFx.failData, (_, error) => error.message)
+    .reset(fetchModelsFx); // Clear error on new attempt
+
+// Clear error on success
+$modelsError.reset(fetchModelsFx.done);
+
+// --- Debugging ---
+// $availableModels.watch(models => console.log('Available Models:', models.length));
+// $selectedModelId.watch(id => console.log('Selected Model ID:', id));
+// $isLoadingModels.watch(loading => console.log('Loading Models:', loading));
+// $modelsError.watch(error => error && console.error('Models Error:', error));
