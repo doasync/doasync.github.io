@@ -296,13 +296,20 @@ export const $currentChatSession = createStore<ChatSession | null>(null, {
   skipVoid: false,
 })
   .on(loadSpecificChatFx.doneData, (_, chat) => chat)
-  .reset(newChatCreated) // Reset when starting a new chat
-  // Update the $currentChatSession store whenever a chat is saved successfully
-  .on(saveChatFx.doneData, (_, savedChat) => savedChat);
+  .reset(newChatCreated); // Reset when starting a new chat
+// Update the $currentChatSession store whenever a chat is saved successfully
+// Removed incorrect .on handler. Update is now handled by sample below.
 
 export const $currentChatId = $currentChatSession.map(
   (session) => session?.id ?? null
 );
+
+// Update $currentChatSession after a successful save
+sample({
+  clock: saveChatFx.done, // Use .done which carries { params, result }
+  fn: ({ params }) => params, // Extract params from the payload
+  target: $currentChatSession,
+});
 
 export const $isLoadingHistory = loadChatHistoryIndexFx.pending;
 export const $isSavingChat = saveChatFx.pending;
@@ -348,6 +355,11 @@ sample({
   target: $temperature, // Update temperature setting
 });
 
+sample({
+  clock: newChatCreated,
+  fn: () => 0, // Reset token count to 0
+  target: $currentChatTokens,
+});
 sample({
   clock: loadSpecificChatFx.doneData,
   filter: isChatSession,
@@ -416,6 +428,12 @@ sample({
 });
 
 // Save chat after message edit or delete
+// Update $currentChatSession after a successful save
+sample({
+  clock: saveChatFx.done, // Use .done which carries { params, result }
+  fn: ({ params }) => params, // Extract params from the payload
+  target: $currentChatSession,
+});
 sample({
   clock: [editMessage, deleteMessage],
   source: {

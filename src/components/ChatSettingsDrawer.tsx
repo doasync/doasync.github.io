@@ -21,7 +21,8 @@ import {
   temperatureChanged,
   systemPromptChanged,
   // We'll need UI state management later for open/close
-} from "@/model/settings"; // Assuming @ is configured for src path
+} from "@/model/settings";
+import { $currentChatTokens } from "@/model/chat";
 
 interface ChatSettingsDrawerProps {
   open: boolean;
@@ -40,6 +41,7 @@ export const ChatSettingsDrawer: React.FC<ChatSettingsDrawerProps> = ({
     apiKey,
     temperature,
     systemPrompt,
+    currentChatTokens,
     handleApiKeyChange,
     handleTemperatureChange,
     handleSystemPromptChange,
@@ -47,6 +49,7 @@ export const ChatSettingsDrawer: React.FC<ChatSettingsDrawerProps> = ({
     apiKey: $apiKey,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
+    currentChatTokens: $currentChatTokens,
     handleApiKeyChange: apiKeyChanged,
     handleTemperatureChange: temperatureChanged,
     handleSystemPromptChange: systemPromptChanged,
@@ -175,8 +178,7 @@ export const ChatSettingsDrawer: React.FC<ChatSettingsDrawerProps> = ({
         {/* Placeholder for Token Count - Logic will be added later */}
         <Box sx={{ mt: "auto", pt: 2, borderTop: 1, borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary">
-            Total Tokens (Current Chat):{" "}
-            {/* TODO: Connect to token count store */} 0
+            Total Tokens (Current Chat): {currentChatTokens}
           </Typography>
         </Box>
       </Box>
