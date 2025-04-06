@@ -1,4 +1,5 @@
 import { createDomain, createEvent, createStore } from 'effector';
+import { debug } from 'patronum/debug';
 
 const uiDomain = createDomain('ui');
 
@@ -18,3 +19,13 @@ export const $isHistoryDrawerOpen = uiDomain.store<boolean>(false, { name: 'isHi
     .on(openHistoryDrawer, () => true)
     .on(closeHistoryDrawer, () => false)
     .on(toggleHistoryDrawer, (isOpen) => !isOpen);
+
+debug(
+    openSettingsDrawer,
+    closeSettingsDrawer,
+    openHistoryDrawer,
+    closeHistoryDrawer,
+    toggleHistoryDrawer,
+    $isSettingsDrawerOpen,
+    $isHistoryDrawerOpen
+);

@@ -1,5 +1,6 @@
-import { createStore, createEvent, createEffect, sample, combine, createDomain } from 'effector';
+import { createStore, createEvent, createEffect, sample, combine, createDomain, attach } from 'effector';
 import { $apiKey, $temperature, $systemPrompt } from './settings';
+import { debug } from 'patronum/debug';
 import { $selectedModelId } from './models'; // Import selected model ID store
 // Removed import of saveCurrentChat from './history' to break circular dependency
 // Define the structure for a chat message
@@ -18,8 +19,21 @@ const chatDomain = createDomain('chat');
 // Store to hold the text currently in the input field
 export const $messageText = chatDomain.store<string>('', { name: 'messageText' });
 
+// New message actions events (move them up here to avoid TDZ error)
+export const editMessage = chatDomain.event<{ messageId: string; newContent: string }>('editMessage');
+export const deleteMessage = chatDomain.event<string>('deleteMessage');
+export const retryMessage = chatDomain.event<string>('retryMessage');
+
 // Store to hold the list of messages in the current chat session
-export const $messages = chatDomain.store<Message[]>([], { name: 'messages' });
+export const $messages = chatDomain.store<Message[]>([], { name: 'messages' })
+  .on(editMessage, (messages, { messageId, newContent }) =>
+    messages.map((msg) =>
+      msg.id === messageId ? { ...msg, content: newContent } : msg
+    )
+  )
+  .on(deleteMessage, (messages, messageId) =>
+    messages.filter((msg) => msg.id !== messageId)
+  );
 
 // Store for API loading state
 export const $isGenerating = chatDomain.store<boolean>(false, { name: 'isGenerating' });
@@ -264,17 +278,118 @@ $apiError.reset(apiRequestSuccess);
 
 
 // Handle API request failure
+/**
+ * Retry message logic
+ */
+
+// Effect to handle retry API call with truncated history
+const retryEffect = createEffect<{ params: SendApiRequestParams; replaceIdx: number }, { response: OpenRouterResponseBody; replaceIdx: number }>(async ({ params, replaceIdx }) => {
+  const response = await sendApiRequestFx(params);
+  return { response, replaceIdx };
+});
+
+const retryRequestPrepared = createEvent<{ params: SendApiRequestParams; replaceIdx: number } | null>();
+
+sample({
+  clock: retryMessage,
+  source: {
+    messages: $messages,
+    apiKey: $apiKey,
+    temperature: $temperature,
+    systemPrompt: $systemPrompt,
+    selectedModelId: $selectedModelId,
+  },
+  filter: ({ apiKey }) => !!apiKey,
+  fn: ({ messages, apiKey, temperature, systemPrompt, selectedModelId }, messageId) => {
+    const idx = messages.findIndex((m) => m.id === messageId);
+    if (idx === -1) return null;
+
+    const targetMsg = messages[idx];
+
+    let sliceEndIdx = idx + 1; // Default: include this message
+    let replaceIdx = -1;
+
+    if (targetMsg.role === 'user') {
+      // Retry after user message: include up to this user message
+      // Replace the *next* assistant message
+      replaceIdx = messages.findIndex(
+        (m, i) => i > idx && m.role === 'assistant'
+      );
+      sliceEndIdx = idx + 1; // include user message
+    } else if (targetMsg.role === 'assistant') {
+      // Retry this assistant message: include up to preceding user message
+      replaceIdx = idx;
+      for (let i = idx - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          sliceEndIdx = i + 1; // include user message
+          break;
+        }
+      }
+    } else {
+      return null; // Don't retry system or unknown roles
+    }
+
+    if (replaceIdx === -1) return null;
+
+    const truncatedMessages = messages.slice(0, sliceEndIdx);
+
+    return {
+      params: {
+        modelId: selectedModelId,
+        messages: truncatedMessages,
+        apiKey,
+        temperature,
+        systemPrompt,
+      },
+      replaceIdx,
+    };
+  },
+  target: retryRequestPrepared,
+});
+
+// Filter out nulls and call retryEffect
+sample({
+  source: retryRequestPrepared,
+  filter: (v): v is { params: SendApiRequestParams; replaceIdx: number } => v !== null,
+  target: retryEffect,
+});
+
+// Replace relevant assistant message on retryEffect success
+sample({
+  clock: retryEffect.doneData,
+  source: $messages,
+  fn: (messages, { response, replaceIdx }) => {
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) return messages;
+
+    const updated = [...messages];
+    updated[replaceIdx] = {
+      ...updated[replaceIdx],
+      content,
+    };
+    return updated;
+  },
+  target: $messages,
+});
+
 sample({
     clock: sendApiRequestFx.failData, // Event payload is Error
     fn: (error): string => error.message, // Extract error message
     target: $apiError,
 });
 
-
-// --- Debugging (Optional) ---
-$messageText.watch(text => console.log('Input Text:', text));
-$messages.watch(msgs => console.log('Messages:', msgs));
-$isGenerating.watch(loading => console.log('Generating:', loading));
-$currentChatTokens.watch(tokens => console.log('Tokens:', tokens));
-$apiError.watch(error => error && console.error('API Error:', error));
-sendApiRequestFx.fail.watch(fail => console.error('Effect Fail:', fail));
+// --- Debugging ---
+debug(
+  $messageText,
+  $messages,
+  $isGenerating,
+  $apiError,
+  $currentChatTokens,
+  messageTextChanged,
+  messageSent,
+  editMessage,
+  deleteMessage,
+  retryMessage,
+  sendApiRequestFx,
+  retryEffect
+);

@@ -1,6 +1,7 @@
 import { createStore, createEvent, createEffect, sample, attach } from 'effector';
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Message, $messages, $currentChatTokens, apiRequestSuccess, initialChatSaveNeeded } from './chat'; // Import apiRequestSuccess and initialChatSaveNeeded
+import { debug } from 'patronum/debug';
+import { Message, $messages, $currentChatTokens, apiRequestSuccess, initialChatSaveNeeded, editMessage, deleteMessage } from './chat'; // Import apiRequestSuccess and initialChatSaveNeeded
 import { $apiKey } from './settings';
 import { $selectedModelId } from './models';
 import { $temperature, $systemPrompt } from './settings';
@@ -341,6 +342,31 @@ sample({
   },
   target: saveChatFx,
 });
+
+// Save chat after message edit or delete
+sample({
+  clock: [editMessage, deleteMessage],
+  source: {
+    currentSession: $currentChatSession,
+    messages: $messages,
+    model: $selectedModelId,
+    temperature: $temperature,
+    systemPrompt: $systemPrompt,
+    tokens: $currentChatTokens,
+  },
+  filter: ({ messages }) => messages.length > 0,
+  fn: ({ currentSession, messages, model, temperature, systemPrompt, tokens }) => ({
+    id: currentSession?.id ?? crypto.randomUUID(),
+    title: currentSession?.title ?? new Date().toLocaleString(),
+    createdAt: currentSession?.createdAt ?? Date.now(),
+    lastModified: Date.now(),
+    messages,
+    settings: { model, temperature, systemPrompt },
+    totalTokens: tokens,
+  }),
+  target: saveChatFx,
+});
+
 // Reset chat state when newChatCreated is triggered
 sample({
   clock: newChatCreated,
@@ -353,6 +379,7 @@ sample({
   fn: () => 0, // Reset to 0
   target: $currentChatTokens,
 });
+
 // Edit chat title logic
 sample({
     clock: chatTitleEdited,
@@ -398,3 +425,28 @@ generateTitleFx.fail.watch(({ error, params }) => {
   console.error(`Failed to generate title for chat ${params.chatId}:`, error);
   // No need to show this error to the user, just keep the default title
 });
+
+// --- Debugging ---
+debug(
+  $chatHistoryIndex,
+  $currentChatSession,
+  $currentChatId,
+  $isLoadingHistory,
+  $isSavingChat,
+  $isLoadingChat,
+
+  appStarted,
+  loadChatHistory,
+  chatSelected,
+  saveCurrentChat,
+  deleteChat,
+  newChatCreated,
+  chatTitleEdited,
+
+  loadChatHistoryIndexFx,
+  loadSpecificChatFx,
+  saveChatFx,
+  deleteChatFx,
+  editChatTitleFx,
+  generateTitleFx
+);

@@ -1,4 +1,6 @@
 import { createDomain, createEffect, createEvent, createStore, sample, combine } from 'effector';
+import { debug } from 'patronum/debug';
+ 
 
 // Define LocalStorage keys
 const API_KEY_LS_KEY = 'openrouter_api_key';
@@ -105,3 +107,16 @@ loadSettingsFx.fail.watch(({ error }) => {
 saveSettingsFx.fail.watch(({ error }) => {
     console.error('Failed to save settings:', error);
 });
+
+debug(
+    $apiKey,
+    $temperature,
+    $systemPrompt,
+    $settingsLoaded,
+    loadSettings,
+    apiKeyChanged,
+    temperatureChanged,
+    systemPromptChanged,
+    loadSettingsFx,
+    saveSettingsFx
+  );

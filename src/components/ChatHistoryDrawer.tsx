@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import EditIcon from '@mui/icons-material/Edit'; // Placeholder for edit functionality later
+import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -50,6 +50,8 @@ const ChatHistoryDrawer: React.FC = () => {
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedTitle, setEditedTitle] = useState('');
 
   const filteredHistory = useMemo(() => {
     if (!searchTerm) {
@@ -70,6 +72,27 @@ const ChatHistoryDrawer: React.FC = () => {
     event.stopPropagation(); // Prevent ListItemButton click
     // Optional: Add confirmation dialog here
     removeChat(id);
+  };
+
+  const handleStartEdit = (id: string, currentTitle: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingId(id);
+    setEditedTitle(currentTitle);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (editedTitle.trim() !== '') {
+      import('@/model/history').then(({ chatTitleEdited }) => {
+        chatTitleEdited({ id, newTitle: editedTitle.trim() });
+      });
+    }
+    setEditingId(null);
+    setEditedTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditedTitle('');
   };
 
   // TODO: Implement title editing functionality
@@ -141,11 +164,19 @@ const ChatHistoryDrawer: React.FC = () => {
                   disablePadding
                   secondaryAction={
                     <>
-                      {/* <Tooltip title="Edit Title">
-                        <IconButton edge="end" aria-label="edit" size="small" sx={{ mr: 0.5 }}>
-                           <EditIcon fontSize="inherit" />
-                        </IconButton>
-                      </Tooltip> */}
+                      {editingId === chat.id ? null : (
+                        <Tooltip title="Edit Title">
+                          <IconButton
+                            edge="end"
+                            aria-label="edit"
+                            size="small"
+                            sx={{ mr: 0.5 }}
+                            onClick={(e) => handleStartEdit(chat.id, chat.title, e)}
+                          >
+                            <EditIcon fontSize="inherit" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       <Tooltip title="Delete Chat">
                         <IconButton
                           edge="end"
@@ -163,15 +194,39 @@ const ChatHistoryDrawer: React.FC = () => {
                     onClick={() => handleSelectChat(chat.id)}
                     selected={chat.id === currentChatId}
                   >
-                    <ListItemText
-                      primary={chat.title}
-                      secondary={new Date(chat.lastModified).toLocaleString()}
-                      primaryTypographyProps={{
-                        noWrap: true,
-                        sx: { fontWeight: chat.id === currentChatId ? 'bold' : 'normal' },
-                      }}
-                      secondaryTypographyProps={{ noWrap: true, fontSize: '0.75rem' }}
-                    />
+                    {editingId === chat.id ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                        <TextField
+                          size="small"
+                          value={editedTitle}
+                          onChange={(e) => setEditedTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveEdit(chat.id);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              handleCancelEdit();
+                            }
+                          }}
+                          onBlur={() => handleSaveEdit(chat.id)}
+                          autoFocus
+                          fullWidth
+                          variant="standard"
+                        />
+                      </Box>
+                    ) : (
+                      <ListItemText
+                        primary={chat.title}
+                        secondary={new Date(chat.lastModified).toLocaleString()}
+                        primaryTypographyProps={{
+                          noWrap: true,
+                          sx: { fontWeight: chat.id === currentChatId ? 'bold' : 'normal' },
+                        }}
+                        secondaryTypographyProps={{ noWrap: true, fontSize: '0.75rem' }}
+                      />
+                    )}
                   </ListItemButton>
                 </ListItem>
               ))}

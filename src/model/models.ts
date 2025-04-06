@@ -1,4 +1,6 @@
 import { createDomain, createEffect, createEvent, createStore, sample } from 'effector';
+import { debug } from 'patronum/debug';
+ 
 
 const modelsDomain = createDomain('models');
 
@@ -100,7 +102,12 @@ $modelsError
 $modelsError.reset(fetchModelsFx.done);
 
 // --- Debugging ---
-// $availableModels.watch(models => console.log('Available Models:', models.length));
-// $selectedModelId.watch(id => console.log('Selected Model ID:', id));
-// $isLoadingModels.watch(loading => console.log('Loading Models:', loading));
-// $modelsError.watch(error => error && console.error('Models Error:', error));
+debug(
+    $availableModels,
+    $selectedModelId,
+    $isLoadingModels,
+    $modelsError,
+    fetchModels,
+    modelSelected,
+    fetchModelsFx
+  );
