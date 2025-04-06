@@ -10,7 +10,7 @@ Okay, here's the extracted information from the provided Effector and OpenRouter
     *   **Request Body Structure:**
         ```json
         {
-          "model": "model_id_string", // e.g., "openai/gpt-4o", "google/gemma-3-27b-it:free"
+          "model": "model_id_string", // e.g., "openai/gpt-4o", "google/gemma-3-27b-it"
           "messages": [
             // System Prompt (Optional but recommended)
             { "role": "system", "content": "Your system prompt text..." },
@@ -439,4 +439,3 @@ This extraction covers the core APIs and concepts from the provided docs relevan
 *   Utility types (`StoreValue`, `EventPayload`, `EffectParams`, etc.) help extract types from units.
 *   Use type guards in `sample({ filter: (data): data is Type => ... })` for type narrowing.
 *   Explicitly type arguments in `.prepend( (arg: Type) => ... )` and `createApi` reducers `(state, arg: Type) => ...`.
-

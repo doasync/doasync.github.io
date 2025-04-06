@@ -10,7 +10,7 @@ import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu'; // Placeholder for History
+import HistoryIcon from '@mui/icons-material/History'; // Use History icon
 import SettingsIcon from '@mui/icons-material/Settings'; // Placeholder for Settings
 import AddCommentIcon from '@mui/icons-material/AddComment'; // Placeholder for New Chat
 import SendIcon from '@mui/icons-material/Send'; // Placeholder for Send
@@ -21,6 +21,7 @@ import Alert from '@mui/material/Alert'; // For error display
 
 // Import components
 import { ChatSettingsDrawer } from '@/components/ChatSettingsDrawer';
+import ChatHistoryDrawer from '@/components/ChatHistoryDrawer'; // Import History Drawer
 import { ModelSelector } from '@/components/ModelSelector'; // Import ModelSelector
 
 // Import Effector models
@@ -35,10 +36,13 @@ import {
 import { loadSettings } from '@/model/settings'; // Import settings loader
 import {
   $isSettingsDrawerOpen,
-  openSettingsDrawer,
+  openSettingsDrawer, // Keep for settings
   closeSettingsDrawer,
-} from '@/model/ui'; // Import UI state for drawer
+  toggleHistoryDrawer, // Import history toggle
+  // $isHistoryDrawerOpen is used internally by the drawer component
+} from '@/model/ui';
 import { fetchModels } from '@/model/models'; // Import model fetch trigger
+import { appStarted, newChatCreated } from '@/model/history'; // Import history events
 
 export default function Home() {
   // Connect to Effector units
@@ -52,6 +56,11 @@ export default function Home() {
     openSettingsDrawer,
     closeSettingsDrawer,
   ]);
+  const handleToggleHistoryDrawer = useUnit(toggleHistoryDrawer);
+  const handleNewChat = useUnit(newChatCreated);
+  // Trigger appStarted on mount
+  const triggerAppStarted = useUnit(appStarted);
+
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
   // Note: The useEffect hook to load settings is placed later (lines 62-64)
   // to ensure it runs only once on mount.
@@ -68,6 +77,7 @@ export default function Home() {
   React.useEffect(() => {
     loadSettings();
     fetchModels(); // Fetch models on load
+    triggerAppStarted(); // Load history index on load
   }, []);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -75,14 +85,14 @@ export default function Home() {
       <AppBar position="static">
         <Toolbar>
           <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
-            <MenuIcon /> {/* History Button */}
+            <HistoryIcon onClick={handleToggleHistoryDrawer} /> {/* History Button */}
           </IconButton>
           {/* Model Selector - Takes up the central space */}
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
             <ModelSelector />
           </Box>
-          <IconButton size="large" color="inherit" aria-label="new chat">
-            <AddCommentIcon /> {/* New Chat Button */}
+          <IconButton size="large" color="inherit" aria-label="new chat" onClick={handleNewChat}>
+            <AddCommentIcon /> {/* New Chat Button - Trigger newChatCreated */}
           </IconButton>
           <IconButton size="large" edge="end" color="inherit" aria-label="settings" onClick={handleOpenSettings}>
             <SettingsIcon /> {/* Settings Button - Opens Drawer */}
@@ -188,6 +198,9 @@ export default function Home() {
 
       {/* Settings Drawer */}
       <ChatSettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings} />
+
+      {/* History Drawer */}
+      <ChatHistoryDrawer />
     </Box>
   );
 }

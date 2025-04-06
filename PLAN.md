@@ -136,7 +136,7 @@ graph TD
     *   `deleteChatFx`: Delete a chat from IndexedDB.
     *   `fetchModelsFx`: Fetch model list from OpenRouter API (using TanStack Query integration if desired, or pure effect).
     *   `sendApiRequestFx`: Send chat completion request to OpenRouter.
-    *   `generateTitleFx`: Send request to OpenRouter (`google/gemma-3-27b-it:free`) to generate chat title.
+    *   `generateTitleFx`: Send request to OpenRouter (`google/gemma-3-27b-it`) to generate chat title.
     *   `readFileFx`: Read file content client-side.
 *   **Flow Example (Sending Message):**
     ```mermaid

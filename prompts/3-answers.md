@@ -10,7 +10,7 @@ it be fetched dynamically from an OpenRouter endpoint on startup
 
 it Should default to a date and time .
 
-Then a free `google/gemma-3-27b-it:free` model will be used for now after the first user message to generate a title using a simple hardcoded prompt.
+Then a free `google/gemma-3-27b-it` model will be used for now after the first user message to generate a title using a simple hardcoded prompt.
 
 ##  Message Editing (Model Messages):
 

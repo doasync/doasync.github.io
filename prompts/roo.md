@@ -38,6 +38,24 @@ Here's a summary of what was done according to the `PLAN.md`:
     *   Triggered the model list fetch on application load in `src/app/page.tsx`.
     *   Updated `src/model/chat.ts` to use the `$selectedModelId` when making API calls.
 
-The application should now be able to fetch models, allow selection, accept user input, call the OpenRouter API using the selected model and settings, display the response, and handle basic loading/error states.
+**Phase 6 (History Persistence Foundation):**
 
-Let's proceed with the implementation.
+1.  **`src/model/history.ts`:** Created this new file containing:
+    *   IndexedDB setup using the `idb` library for storing chat sessions (`ChatSession` interface defined).
+    *   Effector units (`$chatHistoryIndex`, `$currentChatSession`, `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`, `deleteChatFx`, `editChatTitleFx`, `chatSelected`, `newChatCreated`, `chatTitleEdited`, etc.) to manage history data.
+    *   Logic to load the history index on app start, load a specific chat when selected, save the current chat state, handle new chat creation (resetting state), delete chats, and edit chat titles.
+2.  **`src/model/ui.ts`:** Added state (`$isHistoryDrawerOpen`) and events (`openHistoryDrawer`, `closeHistoryDrawer`, `toggleHistoryDrawer`) for managing the history drawer's visibility.
+3.  **`src/components/ChatHistoryDrawer.tsx`:** Created the React component for the history drawer:
+    *   Uses MUI `Drawer`, `List`, `ListItemButton`, etc.
+    *   Displays the chat list from `$chatHistoryIndex`.
+    *   Allows selecting a chat (triggers `chatSelected`).
+    *   Allows deleting a chat (triggers `deleteChat`).
+    *   Includes a search bar to filter the history list by title.
+    *   Shows loading indicators (`$isLoadingHistory`).
+4.  **`src/app/page.tsx`:** Integrated the history functionality:
+    *   Imported `ChatHistoryDrawer` and rendered it.
+    *   Triggered `appStarted` from the history model on component mount to load the initial history index.
+    *   Added a `HistoryIcon` button to the header that triggers `toggleHistoryDrawer`.
+    *   Connected the "New Chat" (`AddCommentIcon`) button to the `newChatCreated` event.
+
+Let's proceed with the implementation of properly working History Persistence.

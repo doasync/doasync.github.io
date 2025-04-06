@@ -27,7 +27,7 @@ interface ModelsApiResponse {
 export const $availableModels = modelsDomain.store<ModelInfo[]>([], { name: 'availableModels' });
 // Holds the ID of the currently selected model
 // Initialize with a sensible default or the first model after fetch
-export const $selectedModelId = modelsDomain.store<string>('google/gemma-3-27b-it:free', { name: 'selectedModelId' }); // Default to free model initially
+export const $selectedModelId = modelsDomain.store<string>('google/gemma-3-27b-it', { name: 'selectedModelId' }); // Default to free model initially
 // Loading state for the models fetch
 export const $isLoadingModels = modelsDomain.store<boolean>(false, { name: 'isLoadingModels' });
 // Error state for the models fetch

@@ -89,7 +89,32 @@ Users who need a web-based interface to interact with various LLM APIs via the O
     *   Errors during file reading or for unsupported types will trigger user alerts. No server uploads.
 *   **4.4.3. Send Button (Inside Field, Right):**
     *   Icon button. Sends text and attached file data (if any) upon click or Enter press.
-    *   Clears input field, displays user message, triggers OpenRouter API request using current chat context, settings, and API key.
+    *   **Action Sequence on Send:**
+        1.  Display the user's message immediately in the chat window (aligned right).
+        2.  Clear the input field.
+        3.  **If this is the *first* message in a *new* chat session:**
+            *   Create a new chat record with a unique ID.
+            *   Assign a **default title** based on the current date and time (e.g., "Chat 2025-04-07 15:30").
+            *   Include the current settings (selected model, temperature, system prompt).
+            *   Add the user's first message to this record's message list.
+            *   **Save this initial chat record to IndexedDB.**
+            *   **Immediately add/update the entry in the Chat History sidebar** to display this new chat with its default title.
+        4.  **Else (if adding to an existing chat):**
+            *   Add the user's message to the existing chat record's message list in IndexedDB.
+        5.  **Initiate API Request (Model Response):** Send the current chat context (including system prompt, messages up to this point, and any attached file data) to the configured LLM via the OpenRouter API, using the stored API key and chat settings.
+        6.  **UI Update:** Display a **loading indicator (spinner)** in the chat window where the model's response is expected (aligned left).
+        7.  **Await API Response:**
+            *   **On Success:** Receive the model's response text and `usage.total_tokens`.
+                *   **UI Update:** Replace the loading indicator with the received model message.
+                *   **Update Chat Record:** Add the model's message and its associated token count to the chat record in IndexedDB.
+                *   **If this was the *first* model response in the chat:**
+                    *   **Initiate API Request (Title Generation):** Send the user's first message and this first model response to the `google/gemma-3-27b-it` model via OpenRouter (using the user's key) with a hardcoded prompt requesting a short title.
+                    *   **Await Title Response:**
+                        *   **On Success:** Receive the generated title. Update the chat record in IndexedDB, replacing the default date/time title with the new one. Update the corresponding entry's title in the Chat History sidebar UI.
+                        *   **On Failure (Title Generation):** Log the error; the title remains the default date/time. No user-facing error alert is necessary for title generation failure.
+            *   **On Failure (Model Response):**
+                *   **UI Update:** Remove the loading indicator. Display an error message (e.g., using an MUI Alert component) indicating the failure.
+                *   The chat remains saved in its current state (with the user's message).
 
 **4.5. Chat History Sidebar (Left Drawer / Bottom Drawer - Mobile)**
 
@@ -99,10 +124,14 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 *   **4.5.2. Chat Search:**
     *   Input field filters chat list based on **titles**. Search within message content might be considered later based on performance.
 *   **4.5.3. Chat List:**
-    *   Displays previous chats. Each entry shows:
-        *   **Chat Title:** Initially defaults to **current date and time**. After the first user message, an attempt will be made to **auto-generate a title using the `google/gemma-3-27b-it:free` model** via OpenRouter (using the user's API key and a simple hardcoded summarization prompt). If generation fails, it remains the date/time. The title is **editable by the user**.
+    *   Displays previous chat sessions loaded from IndexedDB. Each entry shows:
+        *   **Chat Title:**
+            *   Initially displayed as the **default date and time** when a new chat is created and saved upon sending the first message.
+            *   **Updated asynchronously** to an auto-generated title after the *first successful model response* is received and the subsequent title generation request to `google/gemma-3-27b-it` completes successfully.
+            *   Remains the date/time if title generation fails.
+            *   The title is **editable by the user** at any time by clicking on it (or via an edit icon) within the history list. User edits override any default or generated title.
         *   Timestamp (e.g., last modified).
-    *   Clicking loads the conversation into the main window.
+    *   Clicking a chat in the history loads that conversation (messages, associated settings) into the main Chat Window and updates relevant UI elements.
 
 **4.6. Chat Settings Sidebar (Right Drawer / Bottom Drawer - Mobile)**
 

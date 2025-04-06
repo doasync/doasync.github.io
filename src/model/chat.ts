@@ -1,7 +1,7 @@
 import { createStore, createEvent, createEffect, sample, combine, createDomain } from 'effector';
 import { $apiKey, $temperature, $systemPrompt } from './settings';
 import { $selectedModelId } from './models'; // Import selected model ID store
-
+// Removed import of saveCurrentChat from './history' to break circular dependency
 // Define the structure for a chat message
 export interface Message {
   id: string; // Unique identifier for the message
@@ -40,6 +40,9 @@ export const messageSent = chatDomain.event<void>('messageSent');
 
 // Internal event to add a message (used by API response)
 const messageAdded = chatDomain.event<Message>('messageAdded');
+
+// Event to signal that the initial state of a new chat needs saving
+export const initialChatSaveNeeded = chatDomain.event<void>('initialChatSaveNeeded');
 
 // --- Types for API Interaction ---
 interface OpenRouterMessage {
@@ -148,8 +151,8 @@ $messageText.on(messageTextChanged, (_, newText) => newText);
 
 // Update message list (user message + assistant response)
 $messages
-    .on(messageAdded, (list, newMessage) => [...list, newMessage])
-    .reset(messageSent); // Example: Clear chat on new send? Maybe not ideal, adjust later.
+    .on(messageAdded, (list, newMessage) => [...list, newMessage]);
+    // Removed incorrect .reset(messageSent); - messages should reset only on newChatCreated (handled in history.ts)
 
 // Reset error on new message attempt
 $apiError.reset(messageSent);
@@ -171,6 +174,14 @@ const userMessageCreated = sample({
 sample({
     clock: userMessageCreated,
     target: messageAdded,
+});
+
+// 2b. If this is the *first* message, signal that an initial save is needed
+sample({
+    clock: userMessageCreated,
+    source: $messages,
+    filter: (messages) => messages.length === 0, // Filter: only run if the list is empty (first message)
+    target: initialChatSaveNeeded,
 });
 
 // 3. Trigger the API request after the user message is created
@@ -211,19 +222,31 @@ $isGenerating
     .reset(sendApiRequestFx.finally);
 
 // Handle successful API response
-const apiRequestSuccess = sample({
+export const apiRequestSuccess = sample({ // Export this event
     clock: sendApiRequestFx.doneData, // Event payload is OpenRouterResponseBody
 });
 
 // Add assistant message to the list on success
 sample({
     clock: apiRequestSuccess,
-    fn: (response): Message => ({
-        id: response.id || crypto.randomUUID(), // Use API ID or fallback
-        role: 'assistant', // Use 'assistant' role from API
-        content: response.choices[0]?.message?.content ?? 'Error: Empty response',
-        timestamp: Date.now(),
-    }),
+    fn: (response): Message => {
+        const content = response.choices?.[0]?.message?.content;
+        if (!content) {
+            console.error('API response content is empty or undefined:', response);
+            return {
+                id: response.id || crypto.randomUUID(), // Use API ID or fallback
+                role: 'assistant', // Use 'assistant' role from API
+                content: 'Error: Empty response from API',
+                timestamp: Date.now(),
+            };
+        }
+        return {
+            id: response.id || crypto.randomUUID(), // Use API ID or fallback
+            role: 'assistant', // Use 'assistant' role from API
+            content: content,
+            timestamp: Date.now(),
+        };
+    },
     target: messageAdded,
 });
 
@@ -237,6 +260,7 @@ sample({
 
 // Clear API error on success
 $apiError.reset(apiRequestSuccess);
+// Removed sample block targeting saveCurrentChat. This logic is moved to history.ts
 
 
 // Handle API request failure
@@ -246,11 +270,11 @@ sample({
     target: $apiError,
 });
 
+
 // --- Debugging (Optional) ---
-// --- Debugging (Optional) ---
-// $messageText.watch(text => console.log('Input Text:', text));
-// $messages.watch(msgs => console.log('Messages:', msgs));
-// $isGenerating.watch(loading => console.log('Generating:', loading));
-// $currentChatTokens.watch(tokens => console.log('Tokens:', tokens));
-// $apiError.watch(error => error && console.error('API Error:', error));
-// sendApiRequestFx.fail.watch(fail => console.error('Effect Fail:', fail));
+$messageText.watch(text => console.log('Input Text:', text));
+$messages.watch(msgs => console.log('Messages:', msgs));
+$isGenerating.watch(loading => console.log('Generating:', loading));
+$currentChatTokens.watch(tokens => console.log('Tokens:', tokens));
+$apiError.watch(error => error && console.error('API Error:', error));
+sendApiRequestFx.fail.watch(fail => console.error('Effect Fail:', fail));
