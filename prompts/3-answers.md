@@ -45,13 +45,21 @@ no warnings for  potential IndexedDB storage limits.
 
 ##  UI/UX Specifics:
 
-For mobile Bottom Drawers: users will switch between both History and Settings using tabs within the drawer or separate trigger icons in the header.
+For mobile Bottom Drawers: users will switch between both History and Settings using tabs within the drawer or separate trigger icons in the header. Mobile Drawer Switching will be handled via tabs within the drawer as well as separate trigger icons in the header bar as described. Tabs are just for convenience.
 
 Need to ensure usability of action icons on touch devices.
 
 ## State Management Complexity:
- effector will be structured to manage this complex state reliably according to effector docs
+effector will be structured to manage this complex state reliably according to effector docs
 
 ##  Handling Model Changes Mid-Chat:
 
- the change only apply going forward. the UI doesn't indicate if the model changed.
+the change only apply going forward. the UI doesn't indicate if the model changed.
+
+## Error Alert Display:
+
+It should be displayed as slide-in alert responsive draggable Dialog (element). 
+
+## Default Settings: 
+
+the initial default value for the Temperature is 1. And the System Prompt input when the application first loads or a new chat is created is loaded from localstorage (empty by default)
