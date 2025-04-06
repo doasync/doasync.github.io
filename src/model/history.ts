@@ -397,7 +397,7 @@ sample({
   filter: (apiKey, { params: savedChat }) => { // Destructure params from clock payload
     return (
       !!apiKey && // Ensure API key exists
-      savedChat.messages.length === 1
+      savedChat.messages.length === 2
     );
   },
   fn: (apiKey, { params: savedChat }): GenerateTitleParams => { // Destructure params from clock payload

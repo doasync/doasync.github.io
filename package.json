@@ -20,7 +20,8 @@
     "next": "15.2.4",
     "patronum": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-draggable": "^4.4.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -277,6 +277,14 @@ $apiError.reset(apiRequestSuccess);
 // Removed sample block targeting saveCurrentChat. This logic is moved to history.ts
 
 
+import { showApiKeyDialog } from '@/model/ui';
+
+sample({
+  clock: messageSent,
+  source: $apiKey,
+  filter: (key) => key.trim().length === 0,
+  target: showApiKeyDialog,
+});
 // Handle API request failure
 /**
  * Retry message logic

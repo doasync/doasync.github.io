@@ -22,6 +22,7 @@ import RefreshIcon from '@mui/icons-material/Refresh'; // For regenerate title b
  
 
 // Import components
+import ApiKeyMissingDialog from '@/components/ApiKeyMissingDialog';
 import { ChatSettingsDrawer } from '@/components/ChatSettingsDrawer';
 import ChatHistoryDrawer from '@/components/ChatHistoryDrawer'; // Import History Drawer
 import { ModelSelector } from '@/components/ModelSelector'; // Import ModelSelector
@@ -288,6 +289,7 @@ export default function Home() {
 
       {/* History Drawer */}
       <ChatHistoryDrawer />
+      <ApiKeyMissingDialog />
     </Box>
   );
 }

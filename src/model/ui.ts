@@ -1,5 +1,13 @@
-import { createDomain, createEvent, createStore } from 'effector';
+import { createStore, createEvent } from 'effector';
+import { createDomain } from 'effector';
 import { debug } from 'patronum/debug';
+
+export const showApiKeyDialog = createEvent();
+export const hideApiKeyDialog = createEvent();
+
+export const $isApiKeyDialogOpen = createStore(false)
+  .on(showApiKeyDialog, () => true)
+  .on(hideApiKeyDialog, () => false);
 
 const uiDomain = createDomain('ui');
 
