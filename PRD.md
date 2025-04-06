@@ -95,7 +95,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 *   **4.5.1. Sidebar View:**
     *   MUI Drawer storing/displaying chat sessions from IndexedDB.
-    *   On mobile, uses a Bottom Drawer. Switching between History and Settings (if both use Bottom Drawers) will be handled via **tabs within the drawer or separate trigger icons in the header bar**.
+    *   On mobile, uses a Bottom Drawer. Switching between History and Settings (if both use Bottom Drawers) will be handled via **tabs within the drawer as well as separate trigger icons in the header bar**.
 *   **4.5.2. Chat Search:**
     *   Input field filters chat list based on **titles**. Search within message content might be considered later based on performance.
 *   **4.5.3. Chat List:**
