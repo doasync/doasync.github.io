@@ -169,7 +169,7 @@ graph TD
 - **Title Generation:**
   - Create `generateTitleFx` effect.
   - Input: `{ messages: FormattedMessage[], apiKey: string }`.
-  - Hardcode model to `google/gemma-3-27b-it:free`.
+  - Hardcode model to `google/gemma-3-27b-it`.
   - Use a simple summarization prompt (e.g., "Summarize this conversation in 5 words or less:").
   - Call OpenRouter API similar to `sendApiRequestFx`.
   - Return the generated title string.
@@ -188,7 +188,7 @@ graph TD
 
 **8. Key Feature Implementation Notes:**
 
-- **Responsiveness:** Use MUI's `useMediaQuery` hook or theme breakpoints to conditionally render Drawer variants (permanent/persistent on desktop, temporary/bottom on mobile) and adjust layouts (e.g., Stack direction). Handle mobile drawer switching via header icons _and_ tabs within the drawer.
+- **Responsiveness:** Use MUI's `useMediaQuery` hook or theme breakpoints to conditionally render Drawer variants (permanent/persistent on desktop, temporary/bottom on mobile) and adjust layouts (e.g., Stack direction). Handle mobile drawer switching via header icons (tabs within drawer not implemented).
 - **Message Edits/Deletes:** Update the `$currentChat.messages` array directly in the Effector store reducer. Trigger `saveChatFx`. Ensure `sendApiRequestFx` always reads the latest state from `$currentChat`.
 - **Retry:** Get the relevant message index. Slice `$currentChat.messages` up to that point (or the preceding user message for LLM retry). Trigger `sendApiRequestFx` with the sliced history. Update the specific assistant message upon success.
 - **File Attachments:** Use `<input type="file">`. Use `FileReader` API (`readAsDataURL` for images, `readAsText` for text). Check `$modelsList` for `architecture.input_modalities` of the selected model before allowing image attachment/sending. Show loading/preview state. Handle `FileReader` errors. Limit file size client-side (~20MB check).
@@ -201,10 +201,10 @@ graph TD
 3.  **Core Chat:** Basic message sending (no API yet), display in ChatArea, Effector state for current chat.
 4.  **API Integration:** `sendApiRequestFx`, connect to OpenRouter, display real responses, handle token count.
 5.  **Model Selection:** Fetch models (`fetchModelsFx`), Model Selector dropdown UI, update chat settings.
-6.  **History Persistence:** IndexedDB setup (`idb`), `saveChatFx`, `loadChatHistoryIndexFx`, History Drawer UI, `loadSpecificChatFx`.
+6.  **History Persistence:** IndexedDB setup (`idb`), `saveChatFx`, `loadChatHistoryIndexFx`, History Drawer UI, `loadSpecificChatFx`. **(Complete)**
 7.  **Message Actions:** Implement Edit, Delete, Retry logic in Effector and UI.
 8.  **File Attachments:** File input, `readFileFx`, base64 encoding, multimodal check, update API request format.
-9.  **Advanced Features:** Auto title generation (`generateTitleFx`) - Partially implemented, might have issues, responsiveness polish and basic error display (MUI Alert).
+9.  **Advanced Features:** Auto title generation (`generateTitleFx`) - Implemented and working, responsiveness polish needed, basic error display (MUI Alert) implemented.
 10. **Testing & Refinement:** Unit/integration tests (using Effector's scope for isolation), UI testing, bug fixing.
 
 ---

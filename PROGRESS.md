@@ -41,12 +41,12 @@ Here's a summary of what was done according to the `PLAN.md`:
 - Triggered the model list fetch on application load in `src/app/page.tsx`.
 - Updated `src/model/chat.ts` to use the `$selectedModelId` when making API calls.
 
-**Phase 6 (History Persistence Foundation):** - **Mostly Implemented, May Require Minor Debugging**
+**Phase 6 (History Persistence Foundation):**
 
 1.  **`src/model/history.ts`:** Created this new file containing:
     - IndexedDB setup using the `idb` library for storing chat sessions (`ChatSession` interface defined).
     - Effector units (`$chatHistoryIndex`, `$currentChatSession`, `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`, `deleteChatFx`, `editChatTitleFx`, `chatSelected`, `newChatCreated`, `chatTitleEdited`, etc.) to manage history data.
-    - Logic to load the history index on app start, load a specific chat when selected, save the current chat state, handle new chat creation (resetting state, including `$currentChatTokens`), delete chats, and edit chat titles.
+    - Logic to load the history index on app start, load a specific chat when selected, save the current chat state (including manually edited titles), handle new chat creation (resetting state, including `$currentChatTokens`), delete chats, and edit chat titles.
 2.  **`src/model/ui.ts`:** Added state (`$isHistoryDrawerOpen`) and events (`openHistoryDrawer`, `closeHistoryDrawer`, `toggleHistoryDrawer`) for managing the history drawer's visibility.
 3.  **`src/components/ChatHistoryDrawer.tsx`:** Created the React component for the history drawer:
     - Uses MUI `Drawer`, `List`, `ListItemButton`, etc.
@@ -60,11 +60,6 @@ Here's a summary of what was done according to the `PLAN.md`:
     - Triggered `appStarted` from the history model on component mount to load the initial history index.
     - Added a `HistoryIcon` button to the header that triggers `toggleHistoryDrawer`.
     - Connected the "New Chat" (`AddCommentIcon`) button to the `newChatCreated` event.
-
-**Features NOT Fully Implemented:**
-
-- **Auto-Title Generation:** Logic is implemented but may not be fully reliable.
-- **Message Interaction and Actions:** Features like message editing, deletion, retry, copy, and copy as Markdown/Code are **not yet implemented**.
-- **File Attachments:** The "Attach File" button is present in the UI, but the functionality for attaching and sending files (text or images) is **not yet implemented**.
+5.  Auto-Title Generation: is implemented and working.
 
 ---

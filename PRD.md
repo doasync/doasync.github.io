@@ -132,7 +132,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
     - **Chat Title:**
       - Initially displayed as the **default date and time** when a new chat is created and saved upon sending the first message.
       - **Updated asynchronously** to an auto-generated title after the _first successful model response_ is received and the subsequent title generation request to `google/gemma-3-27b-it` completes successfully.
-      - Remains the date/time if title generation fails. **Note: Automatic title generation might have issues and is not fully reliable in the current version.**
+      - Remains the date/time if title generation fails.
       - The title is **editable by the user** at any time by clicking on it (or via an edit icon) within the history list. User edits override any default or generated title.
     - Timestamp (e.g., last modified).
   - Clicking a chat in the history loads that conversation (messages, associated settings) into the main Chat Window and updates relevant UI elements.
@@ -154,12 +154,12 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 **5. Non-Functional Requirements**
 
-- **5.1. Technology Stack:** TypeScript, React, Next.js, MUI v5+, effector, TanStack React Query, OpenRouter API.
+- **5.1. Technology Stack:** TypeScript, React, Next.js, MUI v5+, effector, idb, OpenRouter API.
 - **5.2. Architecture:** Static Web Application. Logic runs client-side.
   - **Data Persistence:**
     - Chat history (messages, titles, chat-specific settings) in **IndexedDB**. No specific warnings or handling for IndexedDB storage limits will be implemented initially.
     - Global settings (API key, default preferences) in **LocalStorage**. **Users accept the risk associated with storing API keys in browser storage.**
-- **5.3. Responsiveness & Adaptability:** Seamless adaptation to desktop, tablet, mobile. Layouts adjust. Sidebars become Bottom Drawers on mobile, with clear switching mechanism (tabs or header icons).
+- **5.3. Responsiveness & Adaptability:** Seamless adaptation to desktop, tablet, mobile. Layouts adjust. Sidebars become Bottom Drawers on mobile (switching via header icons implemented; tabs within drawer not implemented).
 - **5.4. Browser Compatibility:** Latest versions of Chrome, Firefox, Safari, Edge.
 - **5.5. Performance:** Responsive UI, smooth scrolling (consider virtualization if needed), efficient state updates. Clear loading indicators for API calls.
 - **5.6. Usability & Error Handling:** Intuitive interface, clear iconography (with tooltips), accessible message actions on touch. **User-facing errors (API, network, file) communicated via MUI Alert components.**
