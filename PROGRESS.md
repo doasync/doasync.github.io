@@ -89,4 +89,43 @@ Here's a summary of what was done according to the `PLAN.md`:
     - Removed unused import and references to the _old_ edit logic.
       The component now uses the `editMessage` event directly for confirmed edits.
 
----
+**Phase 8 (Architecture Refactoring & Modularization):**
+
+1.  **File Structure Improvements**
+    - Created **feature folders** under `/src/features/`:
+      - `/features/chat/`
+      - `/features/chat-history/`
+      - `/features/chat-settings/`
+      - `/features/models-select/`
+      - `/features/ui-state/`
+    - Within **chat** and **chat-history**, split code into:
+      - `model.ts` — _Effector unit definitions and wiring (events, effects, stores, samples)_
+      - `types.ts` — _TypeScript interfaces, types, enums_
+      - `lib.ts` — _Async effect handler functions, reusable pure functions, DB logic, API calls_
+      - `index.ts` — _(optional) re-export barrel_
+2.  **Effector Model Refactoring**
+    a) **Types Extraction**
+    - All interfaces (`ChatSession`, `Message`, `ChatHistoryIndex`, etc.), enums, and function parameter types were **moved into `types.ts`**.
+    - This **decouples** type definitions from logic and allows **shared imports** without circular dependencies.
+      b) **Effect Handlers Extraction**
+    - All **async logic** (e.g., IndexedDB operations, API calls) was **moved into `lib.ts`**:
+    - Effects in `model.ts` now reference these handlers via `createEffect({ handler })`.
+      c) **Pure Functions Extraction**
+    - Some large **pure transformation functions** used in `sample` blocks were **moved into `lib.ts`**:
+      d) **Unified Chat Session Preparation**
+3.  **Effector Model Organization**
+    Both `chat-history/model.ts` and `chat/model.ts` now follow a **clear, consistent structure**:
+    - **Imports:** Types, effect handlers, stores, utilities
+    - **Events:** All `createEvent` calls grouped at the top
+    - **Effects:** All `createEffect` calls grouped next
+    - **Stores:** All `createStore` calls grouped, with initial values and options
+    - **Store `.on` and `.reset`:** Simple store mutation calls
+    - **Sample Blocks:** Grouped and commented by purpose:
+    - **Debugging:** `debug()` call at bottom, watching all relevant units
+    - **Additional watches:** For save events and failures, with console logs
+4.  **Result**:
+    - **Reduced file size** of `model.ts` files by moving ~50% of code to `lib.ts` and `types.ts`.
+    - **Improved readability:** Clear grouping, comments, smaller functions.
+    - **Simplified logic:** `sample` blocks now mostly compose pure functions and effect calls.
+    - **Easier maintenance:** Isolated effect handlers and pure functions can be tested or modified independently.
+    - **Foundation for future:** New features can be added modularly without bloating core model files.

@@ -1,9 +1,9 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2025-04-07
 **Author:** doasync
-**Status:** Updated after Phase 7
+**Status:** Updated after Phase 8 (Architecture Refactoring)
 
 **1. Introduction**
 

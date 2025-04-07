@@ -24,6 +24,43 @@
 
 The application will be a client-side Single Page Application (SPA).
 
+---
+
+### Phase 8 Modular Architecture Update
+
+Following Phase 8, the codebase adopts a **feature modularization** approach. Each major domain resides in `/src/features/<feature>/` with consistent internal structure:
+
+- `model.ts` — Effector units (events, effects, stores)
+- `types.ts` — TypeScript interfaces, enums
+- `lib.ts` — Async effect handlers, pure functions
+- `index.ts` — Optional barrel export
+
+This modularization improves maintainability, scalability, and testability by decoupling types and async logic from Effector models.
+
+---
+
+```mermaid
+graph TD
+    App[App Root]
+    App --> Features
+    subgraph Features
+        Chat[Chat Feature]
+        History[Chat History Feature]
+        Settings[Settings Feature]
+        Models[Model Selection Feature]
+        UIState[UI State Feature]
+    end
+    Chat --> ChatModel[model.ts]
+    Chat --> ChatTypes[types.ts]
+    Chat --> ChatLib[lib.ts]
+    History --> HistoryModel[model.ts]
+    History --> HistoryTypes[types.ts]
+    History --> HistoryLib[lib.ts]
+    Settings --> SettingsModel[model.ts]
+    Models --> ModelsModel[model.ts]
+    UIState --> UIStateModel[model.ts]
+```
+
 ```mermaid
 graph TD
     User --> BrowserUI[Browser UI (React/MUI)];
