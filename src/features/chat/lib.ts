@@ -7,6 +7,7 @@ import {
   SendApiRequestParams,
   CalculatedRetryUpdatePayload, // Need this type
   Role, // Need Role type
+  MessageRetryInitiatedPayload, // Need this type
 } from "./types";
 
 /**
@@ -226,4 +227,68 @@ export const calculateRetryUpdatePayloadFn = (
   }
 
   return { targetIndex, newAssistantMessage, insert };
+};
+
+/**
+ * Determines the ID of the message that should show the "retrying" spinner.
+ * Used in the sample triggered by `messageRetryInitiated`.
+ */
+export const determineRetryingMessageIdFn = (
+  messages: Message[],
+  { messageId, role }: MessageRetryInitiatedPayload
+): string | null => {
+  if (role === "assistant") {
+    return messageId; // Retrying assistant message, spinner on it
+  } else {
+    // Retrying user message: find next assistant message
+    const userIndex = messages.findIndex((msg) => msg.id === messageId);
+    if (userIndex === -1) {
+      console.error("Retrying user message not found:", messageId);
+      return null; // Message not found
+    }
+    const nextAssistant = messages.find(
+      (msg, idx) => idx > userIndex && msg.role === "assistant"
+    );
+    return nextAssistant ? nextAssistant.id : null; // Return ID of next assistant or null
+  }
+};
+
+/**
+ * Updates the message list based on a retry action (insert or replace).
+ * Used in the sample triggered by `retryUpdate`.
+ */
+export const updateMessagesOnRetryFn = (
+  currentMessages: Message[],
+  {
+    targetIndex,
+    newAssistantMessage,
+    insert = false,
+  }: {
+    targetIndex: number;
+    newAssistantMessage: Message;
+    insert?: boolean;
+  }
+): Message[] => {
+  if (insert) {
+    // Insert the new message after the target index
+    const updatedMessages = [...currentMessages];
+    if (targetIndex >= -1 && targetIndex < currentMessages.length) {
+      updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
+      return updatedMessages;
+    } else {
+      console.error(
+        "Retry update (insert) received invalid index:",
+        targetIndex
+      );
+      return currentMessages;
+    }
+  } else if (targetIndex !== -1 && targetIndex < currentMessages.length) {
+    // Replace the message at the target index
+    return currentMessages.map((msg, index) =>
+      index === targetIndex ? newAssistantMessage : msg
+    );
+  }
+  // If index is invalid or insertion wasn't requested
+  console.error("Retry update (replace) received invalid index or state.");
+  return currentMessages;
 };

@@ -22,6 +22,8 @@ import {
   addAssistantMessageFn,
   prepareRetryRequestParamsFn,
   calculateRetryUpdatePayloadFn,
+  determineRetryingMessageIdFn, // Import new function
+  updateMessagesOnRetryFn, // Import new function
 } from "./lib"; // Import pure functions
 
 // Domain
@@ -93,6 +95,14 @@ export const $retryingMessageId = chatDomain
   // Reset when messages change (e.g., new chat loaded)
   .reset($messages);
 
+// Sample to update $retryingMessageId based on messageRetryInitiated event
+sample({
+  clock: messageRetryInitiated,
+  source: $messages,
+  fn: determineRetryingMessageIdFn, // Use extracted function
+  target: $retryingMessageId,
+});
+
 // Logic
 $messageText.on(messageTextChanged, (_, text) => text);
 
@@ -109,37 +119,7 @@ $messages
         : msg
     )
   )
-  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
-  // Add new handler for the internal retry update event
-  .on(
-    retryUpdate,
-    (currentMessages, { targetIndex, newAssistantMessage, insert = false }) => {
-      if (insert) {
-        // Insert the new message after the target index (which is the original user message index)
-        const updatedMessages = [...currentMessages];
-        // Ensure targetIndex + 1 is valid before splicing
-        if (targetIndex >= -1 && targetIndex < currentMessages.length) {
-          updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
-          return updatedMessages;
-        } else {
-          console.error(
-            "Retry update handler received invalid insert index:",
-            targetIndex
-          );
-          return currentMessages; // Return original on invalid index
-        }
-      } else if (targetIndex !== -1 && targetIndex < currentMessages.length) {
-        // Replace the message at the target index
-        return currentMessages.map((msg, index) =>
-          index === targetIndex ? newAssistantMessage : msg
-        );
-      }
-      // If index is invalid or insertion wasn't requested, return current state
-      console.error("Retry update handler received invalid index or state.");
-      return currentMessages;
-    }
-  );
-
+  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id));
 $apiError.reset(messageSent);
 
 $isGenerating.on(sendApiRequestFx, () => true).reset(sendApiRequestFx.finally);
@@ -174,6 +154,14 @@ sample({
   source: $messages,
   filter: (msgs) => msgs.length === 0,
   target: initialChatSaveNeeded,
+});
+
+// Sample to handle message updates/insertions from retry logic
+sample({
+  clock: retryUpdate,
+  source: $messages,
+  fn: updateMessagesOnRetryFn, // Use extracted function
+  target: $messages,
 });
 
 // Trigger API request on new user message
