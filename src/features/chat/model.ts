@@ -1,5 +1,5 @@
 // guard is deprecated, use sample instead
-import { sample, createDomain, Store } from "effector"; // Added Store import
+import { sample, createDomain, Store } from "effector";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { debug } from "patronum/debug";
 import { $selectedModelId } from "@/features/models-select";
@@ -7,41 +7,39 @@ import { showApiKeyDialog } from "@/features/ui-state";
 import {
   Role,
   Message,
-  OpenRouterMessage, // Add missing type
-  OpenRouterRequestBody, // Add missing type
+  OpenRouterMessage,
+  OpenRouterRequestBody,
   OpenRouterResponseBody,
-  OpenRouterErrorBody, // Add missing type
+  OpenRouterErrorBody,
   SendApiRequestParams,
   RetryUpdatePayload,
   CalculatedRetryUpdatePayload,
   MessageRetryInitiatedPayload,
-} from "./types"; // Import types
-
+} from "./types";
 import {
   sendApiRequestFn,
   addAssistantMessageFn,
   prepareRetryRequestParamsFn,
   calculateRetryUpdatePayloadFn,
-  determineRetryingMessageIdFn, // Import new function
-  updateMessagesOnRetryFn, // Import new function
-} from "./lib"; // Import pure functions
+  determineRetryingMessageIdFn,
+  updateMessagesOnRetryFn,
+} from "./lib";
 
-// Domain
+// --- Domain ---
 const chatDomain = createDomain("chat");
 
-// Events
+// --- Events ---
+
+// Public Events (triggered by UI or other features)
 export const messageTextChanged =
   chatDomain.event<string>("messageTextChanged");
 export const messageSent = chatDomain.event<void>("messageSent");
 export const editMessage = chatDomain.event<{
-  // Note: This might be redundant now
   messageId: string;
   newContent: string;
 }>("editMessage");
 export const deleteMessage = chatDomain.event<string>("deleteMessage");
-export const retryMessage = chatDomain.event<string>("retryMessage"); // Keep original retryMessage for now
-export const messageRetry = chatDomain.event<Message>("messageRetry"); // New event for retry logic
-
+export const messageRetry = chatDomain.event<Message>("messageRetry");
 export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
 );
@@ -50,23 +48,22 @@ export const apiRequestTokensUpdated = chatDomain.event<OpenRouterResponseBody>(
 );
 export const apiRequestSuccess =
   chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess");
+export const userMessageCreated =
+  chatDomain.event<Message>("userMessageCreated");
 
-// Internal events
-const messageAdded = chatDomain.event<Message>("messageAdded"); // Used by normal API response
-// Renamed for clarity
+// Internal Events (used within this model)
+const messageAdded = chatDomain.event<Message>("messageAdded");
 const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate");
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
-export const userMessageCreated =
-  chatDomain.event<Message>("userMessageCreated");
 const prepareRetryParams =
   chatDomain.event<SendApiRequestParams>("prepareRetryParams");
 const calculatedRetryUpdate = chatDomain.event<CalculatedRetryUpdatePayload>(
   "calculatedRetryUpdate"
 );
 
-// Effects
+// --- Effects ---
 export const sendApiRequestFx = chatDomain.effect<
   SendApiRequestParams,
   OpenRouterResponseBody,
@@ -76,7 +73,7 @@ export const sendApiRequestFx = chatDomain.effect<
   handler: sendApiRequestFn,
 });
 
-// Stores
+// --- Stores ---
 export const $messageText = chatDomain.store<string>("", {
   name: "$messageText",
 });
@@ -95,40 +92,55 @@ export const $retryingMessageId = chatDomain
   // Reset when messages change (e.g., new chat loaded)
   .reset($messages);
 
-// Sample to update $retryingMessageId based on messageRetryInitiated event
-sample({
-  clock: messageRetryInitiated,
-  source: $messages,
-  fn: determineRetryingMessageIdFn, // Use extracted function
-  target: $retryingMessageId,
-});
+// --- Store Updates (.on/.reset) ---
 
-// Logic
+// Update message text input
 $messageText.on(messageTextChanged, (_, text) => text);
 
+// Handle message edits and deletions directly on the store
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
     list.map((msg) =>
       msg.id === messageId
         ? {
             ...msg,
-            content: newContent, // Update content directly
+            content: newContent,
             isEdited: true,
-            originalContent: msg.content, // Store original before update
+            originalContent: msg.content,
           }
         : msg
     )
   )
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id));
+
+// Reset API error when a new message is sent
 $apiError.reset(messageSent);
 
+// Update generating state based on API effect
 $isGenerating.on(sendApiRequestFx, () => true).reset(sendApiRequestFx.finally);
 
-// Reset error on API success
+// Reset API error on successful API request
 $apiError.reset(apiRequestSuccess);
 
-// Flow
+// --- Samples (Flow Logic) ---
 
+// Determine which message ID should show the spinner during retry
+sample({
+  clock: messageRetryInitiated,
+  source: $messages,
+  fn: determineRetryingMessageIdFn,
+  target: $retryingMessageId,
+});
+
+// Handle message updates (insert/replace) after a successful retry
+sample({
+  clock: retryUpdate,
+  source: $messages,
+  fn: updateMessagesOnRetryFn,
+  target: $messages,
+});
+
+// Create a new user message object when message is sent
 sample({
   clock: messageSent,
   source: $messageText,
@@ -142,29 +154,23 @@ sample({
   target: userMessageCreated,
 });
 
+// Add the newly created user message to the messages list
 sample({
   clock: userMessageCreated,
   source: $messages,
   fn: (messages, newMsg) => [...messages, newMsg],
-  target: $messages, // Use $messages store directly
-});
-
-sample({
-  clock: userMessageCreated,
-  source: $messages,
-  filter: (msgs) => msgs.length === 0,
-  target: initialChatSaveNeeded,
-});
-
-// Sample to handle message updates/insertions from retry logic
-sample({
-  clock: retryUpdate,
-  source: $messages,
-  fn: updateMessagesOnRetryFn, // Use extracted function
   target: $messages,
 });
 
-// Trigger API request on new user message
+// Trigger initial save if this is the first message
+sample({
+  clock: userMessageCreated,
+  source: $messages,
+  filter: (msgs) => msgs.length === 1, // Check if it's exactly the first message
+  target: initialChatSaveNeeded,
+});
+
+// Trigger API request when a user message is created (if API key exists)
 sample({
   clock: userMessageCreated,
   source: {
@@ -177,11 +183,10 @@ sample({
   filter: ({ apiKey }) => apiKey.length > 0,
   fn: (
     { messages, apiKey, temperature, systemPrompt, selectedModelId },
-    userMsg
+    userMsg // userMsg is the clock payload here
   ): SendApiRequestParams => ({
-    // Ensure return type matches target
     modelId: selectedModelId,
-    messages: [...messages, userMsg], // Send current + new user message
+    messages: messages, // $messages already includes the new userMsg due to previous sample
     apiKey,
     temperature,
     systemPrompt,
@@ -189,29 +194,39 @@ sample({
   target: sendApiRequestFx,
 });
 
+// Clear message input after sending
 sample({
-  clock: userMessageCreated,
+  clock: userMessageCreated, // Use userMessageCreated to ensure it clears after adding
   fn: () => "",
   target: $messageText,
 });
 
-// API response success event
+// Trigger API key dialog if message sent without key
+sample({
+  clock: messageSent,
+  source: $apiKey,
+  filter: (key: string) => key.trim().length === 0,
+  target: showApiKeyDialog,
+});
+
+// --- API Response Handling ---
+
+// Forward successful API response data to apiRequestSuccess event
 sample({
   clock: sendApiRequestFx.doneData,
   target: apiRequestSuccess,
 });
 
-// Add assistant message on successful API response (for normal flow, not retry)
+// Add assistant message to list after successful API response (non-retry flow)
 sample({
-  clock: apiRequestSuccess, // This is sendApiRequestFx.doneData
+  clock: apiRequestSuccess,
   source: { messages: $messages, retryingId: $retryingMessageId },
-  // Filter remains crucial: only run this append logic if NOT retrying.
-  filter: ({ retryingId }) => retryingId === null,
-  fn: addAssistantMessageFn, // Use extracted function
+  filter: ({ retryingId }) => retryingId === null, // Only run if not retrying
+  fn: addAssistantMessageFn,
   target: $messages,
 });
 
-// Update token count and emit update event
+// Update token count after successful API response
 sample({
   clock: apiRequestSuccess,
   source: $currentChatTokens,
@@ -220,20 +235,21 @@ sample({
   target: $currentChatTokens,
 });
 
+// Forward successful API response data to apiRequestTokensUpdated event
 sample({
   clock: apiRequestSuccess,
   fn: (response) => response,
   target: apiRequestTokensUpdated,
 });
 
-// API failure
+// Update API error store on API request failure
 sample({
   clock: sendApiRequestFx.failData,
   fn: (error) => error.message,
   target: $apiError,
 });
 
-// --- Retry Logic ---
+// --- Retry Logic Flow ---
 
 // Type predicate for filtering retryable messages
 const isRetryableMessage = (
@@ -242,7 +258,7 @@ const isRetryableMessage = (
   return !!message && (message.role === "user" || message.role === "assistant");
 };
 
-// Prepare parameters for the API request when retry is triggered
+// Prepare API parameters when a message retry is requested
 sample({
   clock: messageRetry,
   source: {
@@ -252,60 +268,50 @@ sample({
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
   },
-  // Filter out system messages and ensure API key exists
   filter: ({ apiKey }, messageRetried) =>
     apiKey.length > 0 && isRetryableMessage(messageRetried),
-  fn: prepareRetryRequestParamsFn, // Use extracted function
+  fn: prepareRetryRequestParamsFn,
   target: prepareRetryParams,
 });
 
-// Trigger messageRetryInitiated separately in a declarative way
+// Trigger the event to update the retrying message ID state
 sample({
   clock: messageRetry,
   filter: (
     messageToRetry
-  ): messageToRetry is Message & { role: "user" | "assistant" } => // Type predicate
-    messageToRetry.role === "user" || messageToRetry.role === "assistant",
+  ): messageToRetry is Message & { role: "user" | "assistant" } =>
+    isRetryableMessage(messageToRetry),
   fn: (messageToRetry): MessageRetryInitiatedPayload => ({
-    messageId: messageToRetry.id, // messageToRetry is narrowed here
-    role: messageToRetry.role, // messageToRetry is narrowed here
+    messageId: messageToRetry.id,
+    role: messageToRetry.role,
   }),
   target: messageRetryInitiated,
 });
 
-// Trigger the API request only if parameters were successfully prepared
+// Trigger the API request effect with the prepared retry parameters
 sample({
   clock: prepareRetryParams,
   filter: (params): params is SendApiRequestParams => params !== null,
   target: sendApiRequestFx,
 });
 
-// Handle successful retry response
-// Calculate retry update payload and trigger internal event
+// Calculate how to update the message list after a successful retry response
 sample({
   clock: apiRequestSuccess,
   source: { messages: $messages, retryingMessageId: $retryingMessageId },
-  filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only process if a retry was initiated
-  fn: calculateRetryUpdatePayloadFn, // Use extracted function
+  filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only run if retrying
+  fn: calculateRetryUpdatePayloadFn,
   target: calculatedRetryUpdate,
 });
 
-// Trigger the internal update event only if a valid payload was calculated
+// Trigger the message list update if the calculation was successful
 sample({
   clock: calculatedRetryUpdate,
   filter: (payload): payload is RetryUpdatePayload => payload !== null,
-  target: retryUpdate, // Target the renamed internal event
+  target: retryUpdate,
 });
 
-// --- End Retry Logic ---
-
-sample({
-  clock: messageSent,
-  source: $apiKey,
-  filter: (key: string) => key.trim().length === 0,
-  target: showApiKeyDialog, // Trigger dialog if API key is missing
-});
-
+// --- Debug ---
 debug(
   // Stores
   $messageText,
@@ -320,7 +326,6 @@ debug(
   messageSent,
   editMessage,
   deleteMessage,
-  retryMessage,
   messageRetry,
 
   // Internal events
@@ -332,6 +337,7 @@ debug(
   calculatedRetryUpdate,
   apiRequestTokensUpdated,
   apiRequestSuccess,
+  initialChatSaveNeeded, // Added missing event
 
   // Effects
   sendApiRequestFx
