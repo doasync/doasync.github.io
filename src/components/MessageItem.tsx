@@ -23,6 +23,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy"; // Import Copy ic
 import CodeIcon from "@mui/icons-material/Code"; // Import Code icon
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import AutoModeIcon from "@mui/icons-material/AutoMode";
 
 interface MessageItemProps {
   message: Message;
@@ -105,7 +106,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
         flexDirection: "column",
         position: "relative",
         borderColor: isHovered ? "primary" : "transparent",
-        padding: 2,
+        padding: 2.5,
       }}
     >
       <Card
@@ -115,7 +116,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           p: 1.5,
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor: message.role === "user" ? "primary.dark" : "primary",
-          maxWidth: "80%",
+          maxWidth: "90%",
           wordWrap: "break-word", // Ensure long words break
         }}
       >
@@ -149,20 +150,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         )}
-
         <Paper
           elevation={0}
           sx={{
             position: "absolute",
             borderRadius: 20,
-            top: -16,
+            top: -17,
             right: 4,
-            display: isHovered ? "block" : "none", // Show on hover
+            gap: 1,
+            display: isHovered ? "flex" : "none", // Show on hover
             // backgroundColor: "primary.main",
           }}
         >
           {isEditing ? (
-            <React.Fragment>
+            <>
               <IconButton
                 aria-label="confirm"
                 color="success"
@@ -179,17 +180,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
-            </React.Fragment>
+            </>
           ) : (
             <>
-              <IconButton
-                aria-label="edit"
-                size="small"
-                onClick={handleEditClick}
-                color="inherit"
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
               <IconButton
                 aria-label="delete"
                 size="small"
@@ -197,14 +190,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 onClick={handleDeleteClick}
               >
                 <DeleteIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                aria-label="retry"
-                size="small"
-                color="inherit"
-                onClick={handleRetryClick}
-              >
-                <ReplayIcon fontSize="small" />
               </IconButton>
               <IconButton
                 aria-label="copy text"
@@ -221,6 +206,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 onClick={handleCopyCodeClick} // Added onClick handler
               >
                 <CodeIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="edit"
+                size="small"
+                onClick={handleEditClick}
+                color="inherit"
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="retry"
+                size="small"
+                color="inherit"
+                onClick={handleRetryClick}
+              >
+                <AutoModeIcon fontSize="small" />
               </IconButton>
             </>
           )}

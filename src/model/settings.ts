@@ -137,14 +137,19 @@ saveSettingsFx.fail.watch(({ error }) => {
 });
 
 debug(
+  // Stores
   $apiKey,
   $temperature,
   $systemPrompt,
   $settingsLoaded,
+
+  // Events
   loadSettings,
   apiKeyChanged,
   temperatureChanged,
   systemPromptChanged,
+
+  // Effects
   loadSettingsFx,
   saveSettingsFx
 );

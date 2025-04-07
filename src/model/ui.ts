@@ -31,11 +31,17 @@ export const $isHistoryDrawerOpen = uiDomain
   .on(toggleHistoryDrawer, (isOpen) => !isOpen);
 
 debug(
+  // Stores
+  $isApiKeyDialogOpen,
+  $isSettingsDrawerOpen,
+  $isHistoryDrawerOpen,
+
+  // Events
+  showApiKeyDialog,
+  hideApiKeyDialog,
   openSettingsDrawer,
   closeSettingsDrawer,
   openHistoryDrawer,
   closeHistoryDrawer,
-  toggleHistoryDrawer,
-  $isSettingsDrawerOpen,
-  $isHistoryDrawerOpen
+  toggleHistoryDrawer
 );

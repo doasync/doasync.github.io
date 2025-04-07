@@ -181,10 +181,23 @@ export const $currentChatTokens = chatDomain.store<number>(0, {
 export const $apiError = chatDomain.store<string | null>(null, {
   name: "$apiError",
 });
-export const $retryingMessageId = chatDomain // Added export
+export const $retryingMessageId = chatDomain
   .store<string | null>(null, { name: "$retryingMessageId" })
-  .on(messageRetryInitiated, (_, { messageId }) => messageId)
-  .reset(sendApiRequestFx.finally); // Now sendApiRequestFx is declared
+  .on(messageRetryInitiated, (state, { messageId, role }) => {
+    const messages = $messages.getState();
+    if (role === "assistant") {
+      return messageId; // retrying assistant message, spinner on it
+    } else {
+      // retrying user message: find next assistant message
+      const userIndex = messages.findIndex((msg) => msg.id === messageId);
+      if (userIndex === -1) return null;
+      const nextAssistant = messages.find(
+        (msg, idx) => idx > userIndex && msg.role === "assistant"
+      );
+      return nextAssistant ? nextAssistant.id : null;
+    }
+  })
+  .reset($messages);
 
 // Logic
 $messageText.on(messageTextChanged, (_, text) => text);
@@ -313,12 +326,6 @@ sample({
   // Filter remains crucial: only run this append logic if NOT retrying.
   filter: ({ retryingId }) => retryingId === null,
   fn: ({ messages, retryingId }, response): Message[] => {
-    // Double-check inside fn as an extra safeguard, though filter should prevent this.
-    if (retryingId !== null) {
-      console.warn("Append logic triggered unexpectedly during retry flow.");
-      return messages; // Return original state if somehow triggered during retry
-    }
-
     const content = response.choices?.[0]?.message?.content;
     const newMessage: Message = content
       ? {
@@ -380,22 +387,22 @@ sample({
     selectedModelId: $selectedModelId,
   },
   // Filter out system messages and ensure API key exists
-  filter: ({ apiKey }, messageToRetry) =>
-    apiKey.length > 0 && isRetryableMessage(messageToRetry),
+  filter: ({ apiKey }, messageRetried) =>
+    apiKey.length > 0 && isRetryableMessage(messageRetried),
   fn: (
     { messages, apiKey, temperature, systemPrompt, selectedModelId },
-    messageToRetry // Type is narrowed by the filter
+    messageRetried // Type is narrowed by the filter
   ): SendApiRequestParams => {
     const retryIndex = messages.findIndex(
-      (msg) => msg.id === messageToRetry.id
+      (msg) => msg.id === messageRetried.id
     );
 
     if (retryIndex === -1) {
-      throw "Message to retry not found: " + messageToRetry.id;
+      throw "Message retried not found: " + messageRetried.id;
     }
 
     let historyToSend: Message[];
-    if (messageToRetry.role === "user") {
+    if (messageRetried.role === "user") {
       historyToSend = messages.slice(0, retryIndex + 1);
     } else {
       // Retrying an assistant message
@@ -409,7 +416,7 @@ sample({
       if (precedingUserIndex === -1) {
         console.error(
           "Could not find preceding user message for retry:",
-          messageToRetry.id
+          messageRetried.id
         );
         historyToSend = [];
       } else {
@@ -539,15 +546,32 @@ sample({
 });
 
 debug(
+  // Stores
   $messageText,
   $messages,
   $isGenerating,
   $apiError,
   $currentChatTokens,
+  $retryingMessageId,
+
+  // User-facing events
   messageTextChanged,
   messageSent,
   editMessage,
   deleteMessage,
+  retryMessage,
   messageRetry,
+
+  // Internal events
+  messageAdded,
+  retryUpdate,
+  messageRetryInitiated,
+  userMessageCreated,
+  prepareRetryParams,
+  calculatedRetryUpdate,
+  apiRequestTokensUpdated,
+  apiRequestSuccess,
+
+  // Effects
   sendApiRequestFx
 );

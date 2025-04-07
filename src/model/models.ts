@@ -114,11 +114,16 @@ $modelsError.reset(fetchModelsFx.done);
 
 // --- Debugging ---
 debug(
+  // Stores
   $availableModels,
   $selectedModelId,
   $isLoadingModels,
   $modelsError,
+
+  // Events
   fetchModels,
   modelSelected,
+
+  // Effects
   fetchModelsFx
 );

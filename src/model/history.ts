@@ -551,6 +551,7 @@ generateTitleFx.fail.watch(({ error, params }) => {
 
 // --- Debugging ---
 debug(
+  // Stores
   $chatHistoryIndex,
   $currentChatSession,
   $currentChatId,
@@ -558,6 +559,7 @@ debug(
   $isSavingChat,
   $isLoadingChat,
 
+  // Events
   appStarted,
   loadChatHistory,
   chatSelected,
@@ -566,6 +568,7 @@ debug(
   newChatCreated,
   chatTitleEdited,
 
+  // Effects
   loadChatHistoryIndexFx,
   loadSpecificChatFx,
   saveChatFx,
