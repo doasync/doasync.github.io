@@ -3,6 +3,7 @@ import { sample, createDomain } from "effector";
 import { $apiKey, $temperature, $systemPrompt } from "./settings";
 import { debug } from "patronum/debug";
 import { $selectedModelId } from "./models";
+import { showApiKeyDialog } from "@/model/ui";
 
 // Types
 export type Role = "user" | "assistant" | "system";
@@ -60,23 +61,58 @@ export interface SendApiRequestParams {
   systemPrompt: string;
 }
 
+// Pure functions
+const sendApiRequestFn = async ({
+  modelId,
+  messages,
+  apiKey,
+  temperature,
+  systemPrompt,
+}: SendApiRequestParams) => {
+  const apiMessages: OpenRouterMessage[] = [];
+  if (systemPrompt && systemPrompt.trim()) {
+    apiMessages.push({ role: "system", content: systemPrompt });
+  }
+  messages.forEach((msg) => {
+    // Ensure only user and assistant messages are sent
+    if (msg.role === "user" || msg.role === "assistant") {
+      apiMessages.push({
+        role: msg.role,
+        // Use edited content if available (content property is updated by editMessage handler)
+        content: msg.content,
+      });
+    }
+  });
+  const body: OpenRouterRequestBody = {
+    model: modelId,
+    messages: apiMessages,
+    temperature,
+  };
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    }
+  );
+  if (!response.ok) {
+    let errorMsg = `HTTP error! status: ${response.status}`;
+    try {
+      const errorBody: OpenRouterErrorBody = await response.json();
+      errorMsg = `API Error (${response.status}): ${errorBody.error.message}`;
+    } catch {}
+    throw new Error(errorMsg);
+  }
+  const data: OpenRouterResponseBody = await response.json();
+  return data;
+};
+
 // Domain
 const chatDomain = createDomain("chat");
-
-// Stores
-export const $messageText = chatDomain.store<string>("", {
-  name: "$messageText",
-});
-export const $messages = chatDomain.store<Message[]>([], { name: "$messages" });
-export const $isGenerating = chatDomain.store<boolean>(false, {
-  name: "$isGenerating",
-});
-export const $currentChatTokens = chatDomain.store<number>(0, {
-  name: "$currentChatTokens",
-});
-export const $apiError = chatDomain.store<string | null>(null, {
-  name: "$apiError",
-});
 
 // Events
 export const messageTextChanged =
@@ -97,14 +133,29 @@ export const initialChatSaveNeeded = chatDomain.event<void>(
 export const apiRequestTokensUpdated = chatDomain.event<OpenRouterResponseBody>(
   "apiRequestTokensUpdated"
 );
+export const apiRequestSuccess =
+  chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess");
 
 // Internal events
 const messageAdded = chatDomain.event<Message>("messageAdded"); // Used by normal API response
+// Renamed for clarity
 const retryUpdate = chatDomain.event<{
   targetIndex: number;
   newAssistantMessage: Message;
   insert?: boolean; // Flag to indicate insertion instead of replacement
-}>("_internalRetryUpdate");
+}>("retryUpdate");
+const messageRetryInitiated = chatDomain.event<{
+  messageId: string;
+  role: Role;
+}>("messageRetryInitiated");
+const userMessageCreated = chatDomain.event<Message>("userMessageCreated");
+const prepareRetryParams =
+  chatDomain.event<SendApiRequestParams>("prepareRetryParams");
+const calculatedRetryUpdate = chatDomain.event<{
+  targetIndex: number;
+  newAssistantMessage: Message;
+  insert?: boolean;
+} | null>("calculatedRetryUpdate");
 
 // Effects
 export const sendApiRequestFx = chatDomain.effect<
@@ -113,61 +164,27 @@ export const sendApiRequestFx = chatDomain.effect<
   Error
 >({
   name: "sendApiRequestFx",
-  handler: async ({ modelId, messages, apiKey, temperature, systemPrompt }) => {
-    const apiMessages: OpenRouterMessage[] = [];
-    if (systemPrompt && systemPrompt.trim()) {
-      apiMessages.push({ role: "system", content: systemPrompt });
-    }
-    messages.forEach((msg) => {
-      // Ensure only user and assistant messages are sent
-      if (msg.role === "user" || msg.role === "assistant") {
-        apiMessages.push({
-          role: msg.role,
-          // Use edited content if available (content property is updated by editMessage handler)
-          content: msg.content,
-        });
-      }
-    });
-    const body: OpenRouterRequestBody = {
-      model: modelId,
-      messages: apiMessages,
-      temperature,
-    };
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-    if (!response.ok) {
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      try {
-        const errorBody: OpenRouterErrorBody = await response.json();
-        errorMsg = `API Error (${response.status}): ${errorBody.error.message}`;
-      } catch {}
-      throw new Error(errorMsg);
-    }
-    const data: OpenRouterResponseBody = await response.json();
-    return data;
-  },
+  handler: sendApiRequestFn,
 });
 
-// --- Retry Logic Events/Stores (Declare AFTER sendApiRequestFx) ---
-const messageRetryInitiated = chatDomain.event<{
-  messageId: string;
-  role: Role;
-}>("messageRetryInitiated");
-
+// Stores
+export const $messageText = chatDomain.store<string>("", {
+  name: "$messageText",
+});
+export const $messages = chatDomain.store<Message[]>([], { name: "$messages" });
+export const $isGenerating = chatDomain.store<boolean>(false, {
+  name: "$isGenerating",
+});
+export const $currentChatTokens = chatDomain.store<number>(0, {
+  name: "$currentChatTokens",
+});
+export const $apiError = chatDomain.store<string | null>(null, {
+  name: "$apiError",
+});
 export const $retryingMessageId = chatDomain // Added export
-  .store<string | null>(null)
+  .store<string | null>(null, { name: "$retryingMessageId" })
   .on(messageRetryInitiated, (_, { messageId }) => messageId)
   .reset(sendApiRequestFx.finally); // Now sendApiRequestFx is declared
-// --- End Retry Logic Events/Stores ---
 
 // Logic
 $messageText.on(messageTextChanged, (_, text) => text);
@@ -193,8 +210,17 @@ $messages
       if (insert) {
         // Insert the new message after the target index (which is the original user message index)
         const updatedMessages = [...currentMessages];
-        updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
-        return updatedMessages;
+        // Ensure targetIndex + 1 is valid before splicing
+        if (targetIndex >= -1 && targetIndex < currentMessages.length) {
+          updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
+          return updatedMessages;
+        } else {
+          console.error(
+            "Retry update handler received invalid insert index:",
+            targetIndex
+          );
+          return currentMessages; // Return original on invalid index
+        }
       } else if (targetIndex !== -1 && targetIndex < currentMessages.length) {
         // Replace the message at the target index
         return currentMessages.map((msg, index) =>
@@ -209,7 +235,14 @@ $messages
 
 $apiError.reset(messageSent);
 
-const userMessageCreated = sample({
+$isGenerating.on(sendApiRequestFx, () => true).reset(sendApiRequestFx.finally);
+
+// Reset error on API success
+$apiError.reset(apiRequestSuccess);
+
+// Flow
+
+sample({
   clock: messageSent,
   source: $messageText,
   filter: (text) => text.trim().length > 0,
@@ -219,6 +252,7 @@ const userMessageCreated = sample({
     content: text.trim(),
     timestamp: Date.now(),
   }),
+  target: userMessageCreated,
 });
 
 sample({
@@ -266,21 +300,25 @@ sample({
   target: $messageText,
 });
 
-// API loading state
-$isGenerating.on(sendApiRequestFx, () => true).reset(sendApiRequestFx.finally);
-
 // API response success event
-export const apiRequestSuccess = sample({
+sample({
   clock: sendApiRequestFx.doneData,
+  target: apiRequestSuccess,
 });
 
 // Add assistant message on successful API response (for normal flow, not retry)
 sample({
-  clock: apiRequestSuccess,
-  source: { messages: $messages, retryingId: $retryingMessageId }, // Source retryingId
-  filter: ({ retryingId }) => retryingId === null, // Only run if NOT retrying
-  fn: ({ messages }, response): Message[] => {
-    // Destructure source
+  clock: apiRequestSuccess, // This is sendApiRequestFx.doneData
+  source: { messages: $messages, retryingId: $retryingMessageId },
+  // Filter remains crucial: only run this append logic if NOT retrying.
+  filter: ({ retryingId }) => retryingId === null,
+  fn: ({ messages, retryingId }, response): Message[] => {
+    // Double-check inside fn as an extra safeguard, though filter should prevent this.
+    if (retryingId !== null) {
+      console.warn("Append logic triggered unexpectedly during retry flow.");
+      return messages; // Return original state if somehow triggered during retry
+    }
+
     const content = response.choices?.[0]?.message?.content;
     const newMessage: Message = content
       ? {
@@ -315,9 +353,6 @@ sample({
   target: apiRequestTokensUpdated,
 });
 
-// Reset error on API success
-$apiError.reset(apiRequestSuccess);
-
 // API failure
 sample({
   clock: sendApiRequestFx.failData,
@@ -335,7 +370,7 @@ const isRetryableMessage = (
 };
 
 // Prepare parameters for the API request when retry is triggered
-const prepareRetryParams = sample({
+sample({
   clock: messageRetry,
   source: {
     messages: $messages,
@@ -350,14 +385,13 @@ const prepareRetryParams = sample({
   fn: (
     { messages, apiKey, temperature, systemPrompt, selectedModelId },
     messageToRetry // Type is narrowed by the filter
-  ): SendApiRequestParams | null => {
+  ): SendApiRequestParams => {
     const retryIndex = messages.findIndex(
       (msg) => msg.id === messageToRetry.id
     );
 
     if (retryIndex === -1) {
-      console.error("Message to retry not found:", messageToRetry.id);
-      return null;
+      throw "Message to retry not found: " + messageToRetry.id;
     }
 
     let historyToSend: Message[];
@@ -383,8 +417,6 @@ const prepareRetryParams = sample({
       }
     }
 
-    // Removed imperative call to messageRetryInitiated to maintain purity
-
     return {
       modelId: selectedModelId,
       messages: historyToSend,
@@ -393,6 +425,7 @@ const prepareRetryParams = sample({
       systemPrompt,
     };
   },
+  target: prepareRetryParams,
 });
 
 // Trigger messageRetryInitiated separately in a declarative way
@@ -416,8 +449,8 @@ sample({
 
 // Handle successful retry response
 // Calculate retry update payload and trigger internal event
-const calculatedRetryUpdate = sample({
-  clock: sendApiRequestFx.doneData,
+sample({
+  clock: apiRequestSuccess,
   source: { messages: $messages, retryingMessageId: $retryingMessageId },
   filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only process if a retry was initiated
   fn: (
@@ -480,6 +513,7 @@ const calculatedRetryUpdate = sample({
 
     return { targetIndex, newAssistantMessage, insert };
   },
+  target: calculatedRetryUpdate,
 });
 
 // Trigger the internal update event only if a valid payload was calculated
@@ -492,12 +526,10 @@ sample({
     newAssistantMessage: Message;
     insert?: boolean;
   } => payload !== null,
-  target: retryUpdate,
+  target: retryUpdate, // Target the renamed internal event
 });
 
 // --- End Retry Logic ---
-
-import { showApiKeyDialog } from "@/model/ui";
 
 sample({
   clock: messageSent,
