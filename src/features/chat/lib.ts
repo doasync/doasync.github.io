@@ -5,9 +5,8 @@ import {
   OpenRouterResponseBody,
   OpenRouterErrorBody,
   SendApiRequestParams,
-  CalculatedRetryUpdatePayload, // Need this type
-  Role, // Need Role type
-  MessageRetryInitiatedPayload, // Need this type
+  CalculatedRetryUpdatePayload,
+  MessageRetryInitiatedPayload,
 } from "./types";
 
 /**

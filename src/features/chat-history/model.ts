@@ -1,14 +1,6 @@
-import {
-  createStore,
-  createEvent,
-  createEffect,
-  sample,
-  attach,
-} from "effector";
-import { openDB, DBSchema, IDBPDatabase } from "idb";
+import { createStore, createEvent, createEffect, sample } from "effector";
 import { debug } from "patronum/debug";
 import {
-  Message,
   $messages,
   $currentChatTokens,
   apiRequestSuccess,
@@ -20,27 +12,23 @@ import { $apiKey } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
 import { $temperature, $systemPrompt } from "@/features/chat-settings";
 import {
-  ChatSettings,
   ChatSession,
   ChatHistoryIndex,
-  ChatDB,
   GenerateTitleParams,
   GenerateTitleResult,
   EditTitleParams,
 } from "./types";
 import {
-  getDb, // Import getDb
-  STORE_NAME, // Import STORE_NAME
   loadChatHistoryIndexHandler,
   loadSpecificChatHandler,
   saveChatHandler,
   deleteChatHandler,
   editChatTitleHandler,
   generateTitleHandler,
-  updateIndexOnSaveFn, // Import sample fn
-  updateIndexOnTitleEditFn, // Import sample fn
-  prepareChatSessionFn, // Import the unified function
-} from "./lib"; // Import handlers and sample fns
+  updateIndexOnSaveFn,
+  updateIndexOnTitleEditFn,
+  prepareChatSessionFn,
+} from "./lib";
 
 // --- Events ---
 export const appStarted = createEvent("appStarted");

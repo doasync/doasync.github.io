@@ -1,4 +1,4 @@
-import { openDB, DBSchema, IDBPDatabase } from "idb";
+import { openDB, IDBPDatabase } from "idb";
 import {
   ChatDB,
   ChatSession,

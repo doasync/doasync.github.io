@@ -1,16 +1,11 @@
-// guard is deprecated, use sample instead
-import { sample, createDomain, Store } from "effector";
+import { sample, createDomain } from "effector";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { debug } from "patronum/debug";
 import { $selectedModelId } from "@/features/models-select";
 import { showApiKeyDialog } from "@/features/ui-state";
 import {
-  Role,
   Message,
-  OpenRouterMessage,
-  OpenRouterRequestBody,
   OpenRouterResponseBody,
-  OpenRouterErrorBody,
   SendApiRequestParams,
   RetryUpdatePayload,
   CalculatedRetryUpdatePayload,
