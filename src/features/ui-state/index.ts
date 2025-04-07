@@ -15,4 +15,9 @@ export {
   openHistoryDrawer, // Triggered by Header button
   closeHistoryDrawer, // Triggered by Drawer itself or overlay click
   toggleHistoryDrawer, // Triggered by Header button
+  // Mobile Drawer
+  $isMobileDrawerOpen,
+  $mobileDrawerTab,
+  openMobileDrawer,
+  closeMobileDrawer,
 } from "./model";

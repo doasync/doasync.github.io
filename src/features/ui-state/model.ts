@@ -21,6 +21,11 @@ export const toggleHistoryDrawer = uiDomain.event("toggleHistoryDrawer");
 export const appStarted = uiDomain.event("appStarted");
 export const windowResized = uiDomain.event<number>("windowResized");
 
+export const openMobileDrawer = uiDomain.event<"history" | "settings">(
+  "openMobileDrawer"
+);
+export const closeMobileDrawer = uiDomain.event("closeMobileDrawer");
+
 // --- Stores ---
 export const $isSettingsDrawerOpen = uiDomain
   .store<boolean>(false, { name: "isSettingsDrawerOpen" })
@@ -40,6 +45,17 @@ export const $isMobile = uiDomain
     console.log("Window resized:", width, "isMobile:", mobile);
     return mobile;
   });
+
+// Mobile drawer state
+export const $isMobileDrawerOpen = uiDomain
+  .store<boolean>(false, { name: "isMobileDrawerOpen" })
+  .on(openMobileDrawer, () => true)
+  .on(closeMobileDrawer, () => false);
+
+export const $mobileDrawerTab = uiDomain
+  .store<"history" | "settings" | null>(null, { name: "mobileDrawerTab" })
+  .on(openMobileDrawer, (_, tab) => tab)
+  .on(closeMobileDrawer, () => null);
 
 // Setup window resize listener
 sample({

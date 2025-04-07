@@ -40,11 +40,14 @@ import {
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
 import {
   $isSettingsDrawerOpen,
-  openSettingsDrawer, // Keep for settings
+  openSettingsDrawer,
   closeSettingsDrawer,
-  toggleHistoryDrawer, // Import history toggle
-  // $isHistoryDrawerOpen is used internally by the drawer component
+  toggleHistoryDrawer,
   $isMobile,
+  $isMobileDrawerOpen,
+  $mobileDrawerTab,
+  openMobileDrawer,
+  closeMobileDrawer,
 } from "@/features/ui-state";
 import { fetchModels } from "@/features/models-select"; // Import model fetch trigger
 import {
@@ -57,7 +60,9 @@ import { $apiKey } from "@/features/chat-settings";
 
 export default function Home() {
   const isMobile = useUnit($isMobile);
-  // Connect to Effector units
+  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
+  const mobileDrawerTab = useUnit($mobileDrawerTab);
+
   const [messages, messageText] = useUnit([$messages, $messageText]);
   const [handleMessageSent, handleMessageTextChanged] = useUnit([
     messageSent,
@@ -70,7 +75,6 @@ export default function Home() {
   ]);
   const handleToggleHistoryDrawer = useUnit(toggleHistoryDrawer);
   const handleNewChat = useUnit(newChatCreated);
-  // Trigger appStarted on mount
   const triggerAppStarted = useUnit(appStarted);
 
   const [currentChatSession, apiKey] = useUnit([$currentChatSession, $apiKey]);
@@ -89,18 +93,13 @@ export default function Home() {
   };
 
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
-  // Note: The useEffect hook to load settings is placed later (lines 62-64)
-  // to ensure it runs only once on mount.
 
-  // Ref for scrolling to bottom
   const chatEndRef = React.useRef<null | HTMLDivElement>(null);
 
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]); // Scroll when messages change
+  }, [messages]);
 
-  // Load settings only once on initial mount
-  // Load settings and models only once on initial mount
   React.useEffect(() => {
     console.log("Page mounted - loading settings and models");
     loadSettings();
@@ -108,9 +107,9 @@ export default function Home() {
     console.log("Triggering appStarted");
     triggerAppStarted();
   }, []);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Header Bar */}
       <AppBar position="static">
         <Toolbar sx={{ gap: isMobile ? 0.5 : 2 }}>
           <IconButton
@@ -119,11 +118,23 @@ export default function Home() {
             color="inherit"
             aria-label="menu"
             sx={{ mr: 2 }}
+            onClick={() => {
+              if (isMobile) {
+                if (!isMobileDrawerOpen) {
+                  openMobileDrawer("history");
+                } else if (mobileDrawerTab === "history") {
+                  closeMobileDrawer();
+                } else {
+                  openMobileDrawer("history");
+                }
+              } else {
+                handleToggleHistoryDrawer();
+              }
+            }}
           >
-            <HistoryIcon onClick={handleToggleHistoryDrawer} />
-            {/* History Button */}
+            <HistoryIcon />
           </IconButton>
-          {/* Model Selector - Takes up the central space */}
+
           <Box
             sx={{
               flexGrow: 1,
@@ -134,14 +145,16 @@ export default function Home() {
           >
             <ModelSelector />
           </Box>
+
           <IconButton
             size={isMobile ? "medium" : "large"}
             color="inherit"
             aria-label="new chat"
             onClick={handleNewChat}
           >
-            <AddCommentIcon /> {/* New Chat Button - Trigger newChatCreated */}
+            <AddCommentIcon />
           </IconButton>
+
           <IconButton
             size={isMobile ? "medium" : "large"}
             color="inherit"
@@ -151,30 +164,41 @@ export default function Home() {
           >
             <RefreshIcon />
           </IconButton>
+
           <IconButton
             size={isMobile ? "medium" : "large"}
             edge="end"
             color="inherit"
             aria-label="settings"
-            onClick={handleOpenSettings}
+            onClick={() => {
+              if (isMobile) {
+                if (!isMobileDrawerOpen) {
+                  openMobileDrawer("settings");
+                } else if (mobileDrawerTab === "settings") {
+                  closeMobileDrawer();
+                } else {
+                  openMobileDrawer("settings");
+                }
+              } else {
+                handleOpenSettings();
+              }
+            }}
           >
-            <SettingsIcon /> {/* Settings Button - Opens Drawer */}
+            <SettingsIcon />
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Chat Window Area */}
       <Container
-        maxWidth="md" // Or false to disable maxWidth
+        maxWidth="md"
         sx={{
           flexGrow: 1,
-          overflowY: "auto", // Make chat scrollable
-          py: 2, // Padding top and bottom
+          overflowY: "auto",
+          py: 2,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Messages Display */}
         <Paper
           elevation={0}
           sx={{
@@ -189,11 +213,10 @@ export default function Home() {
             {messages.map((msg) => (
               <MessageItem message={msg} key={msg.id} />
             ))}
-            <div ref={chatEndRef} /> {/* Invisible element to scroll to */}
+            <div ref={chatEndRef} />
           </Stack>
         </Paper>
 
-        {/* API Error Display */}
         {apiError && (
           <Alert severity="error" sx={{ mt: 1, mb: 1 }}>
             {apiError}
@@ -201,32 +224,30 @@ export default function Home() {
         )}
       </Container>
 
-      {/* Message Input Area */}
       <Paper
         square
         elevation={3}
         sx={{
           pb: isMobile ? 1 : 2,
-          p: 2, // Padding
+          p: 2,
           display: "flex",
           alignItems: "center",
-          gap: 1, // Spacing between items
+          gap: 1,
         }}
       >
         <TextField
           fullWidth
           multiline
-          maxRows={5} // Limit vertical expansion
+          maxRows={5}
           variant="outlined"
           placeholder="Type your message..."
           sx={{ flexGrow: 1 }}
-          value={messageText} // Bind value to store
-          onChange={(e) => handleMessageTextChanged(e.target.value)} // Update store on change
+          value={messageText}
+          onChange={(e) => handleMessageTextChanged(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
-              // Send on Enter (but not Shift+Enter)
-              e.preventDefault(); // Prevent newline
-              if (!isGenerating) handleMessageSent(); // Prevent send while generating
+              e.preventDefault();
+              if (!isGenerating) handleMessageSent();
             }
           }}
         />
@@ -234,13 +255,11 @@ export default function Home() {
           <AttachFileIcon />
         </IconButton>
         <Box sx={{ position: "relative" }}>
-          {" "}
-          {/* Wrapper for loading indicator */}
           <IconButton
             color="primary"
             aria-label="send message"
             onClick={() => handleMessageSent()}
-            disabled={messageText.trim().length === 0 || isGenerating} // Disable if empty or generating
+            disabled={messageText.trim().length === 0 || isGenerating}
           >
             <SendIcon />
           </IconButton>
@@ -252,19 +271,21 @@ export default function Home() {
                 position: "absolute",
                 top: "50%",
                 left: "50%",
-                marginTop: "-12px", // Center vertically
-                marginLeft: "-12px", // Center horizontally
+                marginTop: "-12px",
+                marginLeft: "-12px",
               }}
             />
           )}
         </Box>
       </Paper>
 
-      {/* Settings Drawer */}
-      <ChatSettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings} />
+      {/* Mobile Drawer */}
+      {require("@/components/MobileDrawer").default()}
 
-      {/* History Drawer */}
+      {/* Desktop Drawers */}
+      <ChatSettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings} />
       <ChatHistoryDrawer />
+
       <ApiKeyMissingDialog />
     </Box>
   );

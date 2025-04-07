@@ -1,84 +1,132 @@
-# Detailed Implementation Plan: Responsiveness & Usability Enhancements
+# Detailed Phase 9 Plan — Responsiveness Polish, Smoothness & Mobile Drawer Tabs
 
-## 1. Responsive Layout Improvements
+---
 
-### Key Tasks:
+## Goal
 
-- **Breakpoint Handling**:
+Refine UI/UX with adaptive responsive layout, smooth transitions, mobile-friendly navigation, including a **mobile bottom drawer tab system** combining Chat History + Settings.
 
-  - Modify `src/theme.ts` to add custom breakpoints matching MUI defaults
-  - Create responsive hooks in `src/features/ui-state/model.ts`
+---
 
-- **Drawer Adaptations**:
-  - Update drawer components to adapt between desktop and mobile views
-  - Implement tabbed navigation for mobile drawers
+## 1. Architectural Refactor: Mobile Drawer Tabs System
 
-### Files to Modify:
+### What
 
-- `src/theme.ts`
-- `src/features/ui-state/model.ts`
-- `src/components/ChatHistoryDrawer.tsx`
-- `src/components/ChatSettingsDrawer.tsx`
-- New: `src/components/MobileDrawerTabs.tsx`
+- **Replace two separate bottom drawers** (Chat History and Settings) on mobile, with a **single bottom drawer containing tabs**.
+- Desktop/tablet keep persistent separate drawers.
 
-## 2. Navigation & Drawer Usability
+### Effector Setup
 
-### Key Tasks:
+- New store: `$isMobileDrawerOpen: boolean`
+- New store: `$mobileDrawerTab: 'history' | 'settings' | null`
+- Events: `openMobileDrawer(tab)`, `closeMobileDrawer()`
+- On **desktop**, continue using `$isHistoryDrawerOpen` and `$isSettingsDrawerOpen`.
+- On **mobile**, ignore those and use the new two exclusively.
 
-- **Icon Button Improvements**:
-  - Add tooltips and active states to header buttons
-- **Drawer Animations**:
-  - Implement smooth transitions for drawer operations
+### Components
 
-## 3. Message Interaction Polish
+- **`<MobileDrawer/>`**:
+  - Only appears if `$isMobile && $isMobileDrawerOpen`.
+  - MUI `<Drawer anchor="bottom">`.
+  - Contains:
+    - Tab bar (either MUI Tabs or Icons with labels).
+    - Content switches between:
+      - **`<ChatHistoryView/>`**
+      - **`<ChatSettingsView/>`**
+  - Animate tab switching (fade/slide).
+- Toolbar buttons:
+  - On **mobile**:
+    - Opening a drawer icon either:
+      - Closes drawer if same tab open.
+      - Switches tabs if other tab open.
+      - Opens drawer with relevant tab if closed.
+  - On desktop, stick with current toggles.
 
-### Key Tasks:
+### UX Benefits
 
-- **Hover/Tap Feedback**:
-  - Enhance message action buttons with subtle animations
-- **Inline Editing UX**:
-  - Improve edit mode with clear confirm/cancel controls
+- Clean, intuitive.
+- Extensible.
+- "Native app" feel.
 
-## 4. Error Display Enhancements
+---
 
-### Key Tasks:
+## 2. Responsive Layout Improvements
 
-- **Alert Styling**:
-  - Create custom alert component with animations
-- **Critical Error Dialog**:
-  - Implement dedicated error dialog component
+- Tweak **App Bar** spacing (`sx` `gap` and padding).
+- Proper Resizing:
+  - ModelSelector max-width reduced on mobile.
+  - Icon sizes (`size={isMobile ? 'medium' : 'large'}`).
+  - Bottom input expands fully.
+- Use responsive styles via breakpoints or media queries.
+- Adjust Chat area scroll and height.
 
-## 5. General UI/UX Smoothness
+---
 
-### Key Tasks:
+## 3. Navigation & Drawer Usability
 
-- **Button Feedback**:
-  - Enhance button interaction states
-- **Scroll Behavior**:
-  - Implement smooth scrolling in chat window
+- Implement above **tabbed mobile drawer**.
+- Improve opening/closing animations.
+- Tap-away to close.
+- Button feedback states.
 
-## Implementation Timeline
+---
+
+## 4. Message Interaction Polish
+
+- Message hover = fade in actions.
+- `:active` scale for icon buttons.
+- Inline edit animations.
+- Tap-to-copy feedback (snackbar?).
+- Consistent shadows, rounded corners.
+
+---
+
+## 5. Error Display Dialog Enhancements
+
+- One reusable **ErrorDialog component**.
+- Animate fade in/out.
+- Theme-friendly error colors.
+- Position as modal/snackbar on mobile.
+- Clear messages.
+
+---
+
+## 6. General UI/UX Smoothness
+
+- Use CSS/MUI transitions globally (drawers, hover, active).
+- Avoid layout jank when drawers/tabs switch.
+- Subtle animations on interaction.
+
+---
+
+## Implementation Sequence
+
+1. **Effector Updates:** Add `$isMobileDrawerOpen`, `$mobileDrawerTab`, events.
+2. **Create MobileDrawer component** with tab switch logic.
+3. **Refactor History + Settings views** into reusable content components.
+4. **Update toolbar buttons** to trigger mobile drawer switching logic when on mobile.
+5. Enhance tab-bar styles & tab switching animation.
+6. Polish overall app responsiveness.
+7. Improve transitions, error dialogs, polish message actions.
+8. Cross-device testing.
+
+---
+
+## Diagram
 
 ```mermaid
-gantt
-    title Responsiveness & Usability Enhancements Timeline
-    dateFormat  YYYY-MM-DD
-    section Core Responsiveness
-    Breakpoint Handling       :2025-04-08, 1d
-    Drawer Adaptations        :2025-04-09, 2d
-    Tabbed Navigation         :2025-04-11, 2d
+graph TD
+  subgraph Mobile UI
+    Header -->|Icon click| MobileDrawer
+  end
 
-    section Final Polish
-    Button Feedback          :2025-04-15, 1d
-    Scroll Behavior          :2025-04-15, 1d
-    Transition Optimization  :2025-04-16, 1d
+  MobileDrawer --> Tabs[Tab Bar (History | Settings)]
+  Tabs --> ChatHistoryView
+  Tabs --> ChatSettingsView
+
+  ChatHistoryView --> ChatList
+  ChatSettingsView --> SettingsForm
+
+  ChatList --> IndexedDB[(IndexedDB)]
+  SettingsForm --> LocalStorage[(LocalStorage)]
 ```
-
-## Risk Assessment
-
-1. **Animation Performance**:
-   - Test on low-end devices
-2. **Mobile Drawer Behavior**:
-   - Thorough cross-browser testing
-3. **State Management Complexity**:
-   - Keep animations decoupled from business logic
