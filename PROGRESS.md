@@ -65,29 +65,28 @@ Here's a summary of what was done according to the `PLAN.md`:
 **Phase 7 (Message Actions):**
 
 1.  **`src/components/MessageItem.tsx`:**
-    - Created the component to render individual messages.
-    - Implemented hover effect to show action buttons.
+    - Created the component to render individual messages using `Paper` and `Card` components for improved UI.
+    - Implemented hover effect to show action buttons within a `Paper` component.
     - Added action buttons (Edit, Delete, Retry, Copy Text, Copy Code) with icons.
     - Implemented inline editing using `InputBase` when "Edit" is clicked.
     - Added confirm/cancel buttons for editing.
-    - Added loading indicator (`CircularProgress`) displayed during retry.
+    - Implemented loading indicator (`CircularProgress`) displayed during retry, appearing on the relevant message (assistant or subsequent assistant for user retry).
     - Implemented `navigator.clipboard.writeText` for Copy Text and Copy Code buttons.
     - Connected action buttons to corresponding Effector events.
 2.  **`src/model/chat.ts`:**
+    - Refined Effector logic and state management to ensure accurate retry behavior and prevent race conditions.
     - Added `isEdited` and `originalContent` fields to `Message` interface.
-    - Created events: `messageEditStarted`, `messageEditCancelled`, `messageEditConfirmed`, `messageRetry`.
+    - Implemented `messageRetry` event and associated logic for retry functionality, ensuring correct message replacement/insertion.
     - Updated `$messages` store handler for `messageEditConfirmed` to update message content and flags.
     - Updated `$messages` store handler for `deleteMessage` to filter out the message.
-    - Implemented retry logic:
-      - Added `$retryingMessageId` store to track the message being retried.
-      - Added `sample` block listening to `messageRetry` to prepare history and trigger `sendApiRequestFx`.
-      - Added `sample` block listening to `sendApiRequestFx.doneData` to update `$messages` with the retry response, replacing the correct message.
     - Updated `sendApiRequestFx` to use the current message content (including edits) when sending API requests.
+    - Added comprehensive `debug()` calls in all Effector model files (`chat.ts`, `history.ts`, `models.ts`, `settings.ts`, `ui.ts`) for enhanced debugging.
 3.  **`src/model/history.ts`:**
     - Updated `saveChatFx` to persist `isEdited` and `originalContent` fields for messages in IndexedDB.
     - Verified that `saveChatFx` is triggered correctly after edit and delete operations via existing `sample` logic.
 4.  **`src/app/page.tsx`:**
     - Replaced the previous message rendering logic with the new `MessageItem` component.
-    - Removed unused `editMessage` import and related logic.
+    - Removed unused import and references to the _old_ edit logic.
+      The component now uses the `editMessage` event directly for confirmed edits.
 
 ---

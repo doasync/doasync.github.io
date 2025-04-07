@@ -56,34 +56,36 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 **4.3. Chat Window (Middle Area)**
 
 - **4.3.1. Display Area:**
-  - The main area displaying the conversation history for the _current_ chat using the `MessageItem` component.
-  - Must be scrollable vertically. Auto-scrolls to the bottom on new messages.
-- **4.3.2. Message Alignment & Styling:**
-  - Handled within the `MessageItem` component. User messages aligned right, model messages aligned left, with distinct background colors (`primary.dark` for user, `primary` for model).
+  - The main area displaying the conversation history for the _current_ chat.
+  - Must be scrollable vertically. Consider virtualization for very long chats if performance degrades.
+  - New messages appear at the bottom.
+- **4.3.2. Message Alignment:**
+  - Messages from the LLM model are aligned to the left.
+  - Messages from the user are aligned to the right and have highlighted background (different color).
 - **4.3.3. Message Interaction:**
-  - Hovering over a message (within the `MessageItem`) reveals a small set of action icons in a popover/toolbar.
+  - Hovering over a message reveals a small set of action icons in a popover/toolbar.
 - **4.3.4. Message Actions (Icons):** **(Implemented in Phase 7)**
   - **Copy Text:** Copies the plain text content using `navigator.clipboard`. **(Implemented)**
   - **Copy Markdown/Code:** Copies the content as-is (assuming Markdown/code) using `navigator.clipboard`. **(Implemented - Basic)**
-  - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing within the `MessageItem`. The edited version **replaces the original in the stored history (IndexedDB)**. This edited history is then used as context for all subsequent LLM requests. **(Implemented)**
+  - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests. **(Implemented)**
   - **Delete:**
     - Deleting a **User Message**: Removes only that specific user message from the chat view and the history sent to the LLM. **(Implemented)**
     - Deleting a **Model Response**: Removes only that specific model response from the chat view and the history sent to the LLM. **(Implemented)**
-    - Deleted messages are treated as if they never existed for future LLM interactions. Changes are saved to IndexedDB. **(Implemented)**
+    - Deleted messages are treated as if they never existed for future LLM interactions. **(Implemented)**
   - **Retry/Resubmit:**
-    - **On a User Message:** Resubmits history up to and including this message. Replaces the _next_ model response with the new one. History below is preserved. Shows loader on the message during regeneration. **(Implemented)**
-    - **On an LLM Message:** Resubmits history up to the _preceding_ user message. Replaces the _current_ model response with the new one. History below is preserved. Shows loader on the message during regeneration. **(Implemented)**
+    - **On a User Message:** Resubmits history up to and including this message. Replaces the _next_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented)**
+    - **On an LLM Message:** Resubmits history up to the _preceding_ user message. Replaces the _current_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented)**
 
 **4.4. Message Input Area (Bottom)**
 
 - **4.4.1. Text Input Field:**
   - Multi-line text input, resizes vertically up to a max height.
-- **4.4.2. Attach File Button (Inside Field, Right):** **(Not Implemented)**
-  - Icon button to select local text or image files (approx. **~20MB client-side limit**).
-  - Reads content client-side (text content or **base64 encoded image data formatted as a data URL, e.g., `data:image/png;base64,...`**).
-  - The UI must **clearly indicate** when a file is attached and staged for sending.
-  - Includes a check (using model metadata from the dynamic list, e.g., `architecture.input_modalities`) to verify if the **currently selected model supports multimodal input** before attempting to send image data.
-  - Errors during file reading or for unsupported types will trigger user alerts. No server uploads.
+- **4.4.2. Attach File Button (Inside Field, Right):** **(Not Implemented in this version)**
+  - Icon button to select local text or image files (approx. **~20MB client-side limit**). **(Not Implemented in this version)**
+  - Reads content client-side (text content or **base64 encoded image data formatted as a data URL, e.g., `data:image/png;base64,...`**). **(Not Implemented in this version)**
+  - The UI must **clearly indicate** when a file is attached and staged for sending. **(Not Implemented in this version)**
+  - Includes a check (using model metadata from the dynamic list, e.g., `architecture.input_modalities`) to verify if the **currently selected model supports multimodal input** before attempting to send image data. **(Not Implemented in this version)**
+  - Errors during file reading or for unsupported types will trigger user alerts. No server uploads. **(Not Implemented in this version)**
 - **4.4.3. Send Button (Inside Field, Right):**
   - Icon button. Sends text and attached file data (if any) upon click or Enter press.
   - **Action Sequence on Send:**
@@ -174,11 +176,10 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - Server-side logic/hosting (beyond static deployment).
 - User auth beyond local storage.
 - The LLM models themselves (via OpenRouter).
-- Advanced file management (beyond basic text/image attachment).
+- Advanced file management.
 - Real-time collaboration.
 - Backend storage/security for API keys or history.
 - Client-side token estimation libraries.
 - Proactive management of IndexedDB storage limits.
-- Advanced Markdown/code copying (e.g., syntax highlighting preservation).
 
 ---
