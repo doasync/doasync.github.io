@@ -1,9 +1,9 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.2
-**Date:** 2025-04-06
+**Version:** 1.3
+**Date:** 2025-04-07
 **Author:** doasync
-**Status:** Refined Draft
+**Status:** Updated after Phase 7
 
 **1. Introduction**
 
@@ -62,20 +62,19 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - **4.3.2. Message Alignment:**
   - Messages from the LLM model are aligned to the left.
   - Messages from the user are aligned to the right and have highlighted background (different color).
-- **4.3.3. Message Interaction:** **(Not Implemented)**
-  - ~~Clicking/tapping on any message highlights it (e.g., outline).~~ **Not implemented in this version.**
-  - ~~Upon highlighting, a small set of action icons appears (e.g., in a small popover or inline toolbar), designed for usability on both desktop (hover/click) and touch devices (tap).~~ **Not implemented in this version.**
-- **4.3.4. Message Actions (Icons):** **(Not Implemented)**
-  - **Copy Text:** Copies the plain text content. **(Not Implemented)**
-  - **Copy Markdown/Code:** Copies the content formatted as Markdown. **(Not Implemented)**
-  - **Edit:** Allows the user to modify the text content of **both user and model messages**. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests, effectively allowing the user to guide the conversation history. **(Not Implemented)**
-  - **Delete:** **(Not Implemented)**
-    - Deleting a **User Message**: Removes only that specific user message from the chat view and the history sent to the LLM. **(Not Implemented)**
-    - Deleting a **Model Response**: Removes only that specific model response from the chat view and the history sent to the LLM. **(Not Implemented)**
-    - Deleted messages are treated as if they never existed for future LLM interactions. Confirmation may be required. **(Not Implemented)**
-  - **Retry/Resubmit:** (Kept simple as requested) **(Not Implemented)**
-    - **On a User Message:** Resubmits history up to and including this message. Replaces the _next_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Not Implemented)**
-    - **On an LLM Message:** Resubmits history up to the _preceding_ user message. Replaces the _current_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Not Implemented)**
+- **4.3.3. Message Interaction:**
+  - Hovering over a message reveals a small set of action icons in a popover/toolbar.
+- **4.3.4. Message Actions (Icons):** **(Implemented in Phase 7)**
+  - **Copy Text:** Copies the plain text content using `navigator.clipboard`. **(Implemented)**
+  - **Copy Markdown/Code:** Copies the content as-is (assuming Markdown/code) using `navigator.clipboard`. **(Implemented - Basic)**
+  - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests. **(Implemented)**
+  - **Delete:**
+    - Deleting a **User Message**: Removes only that specific user message from the chat view and the history sent to the LLM. **(Implemented)**
+    - Deleting a **Model Response**: Removes only that specific model response from the chat view and the history sent to the LLM. **(Implemented)**
+    - Deleted messages are treated as if they never existed for future LLM interactions. **(Implemented)**
+  - **Retry/Resubmit:** (Kept simple, Partially Implemented)
+    - **On a User Message:** Should resubmit history up to and including this message. Should replace the _next_ model response with the new one (not working). History below should be preserved. Should show loader on the affected model response during regeneration. **(Needs further refinement)**
+    - **On an LLM Message:** Should rsubmit history up to the _preceding_ user message. Should replace the _current_ model response with the new one (not working). History below should be preserved. Should show loader on the affected model response during regeneration. **(Needs further refinement)**
 
 **4.4. Message Input Area (Bottom)**
 
@@ -102,7 +101,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
     4.  **Else (if adding to an existing chat):**
         - **Append Message:** Add the user's message to the existing chat record's message list in IndexedDB.
     5.  **Initiate API Request (Model Response):**
-        - **Prepare Context:** Gather the current chat context, including the system prompt, all messages up to this point, and any attached file data.
+        - **Prepare Context:** Gather the current chat context, including the system prompt, all messages up to this point (including edited messages), and any attached file data.
         - **Send API Call:** Send the chat context to the configured LLM via the OpenRouter API, using the stored API key and current chat settings.
     6.  **UI - Show Loading:** Display a **loading indicator (spinner)** in the chat window where the model's response is expected (aligned left).
     7.  **Await API Response:** Handle the API response:

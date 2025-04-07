@@ -1,19 +1,15 @@
-import {
-  createStore,
-  createEvent,
-  createEffect,
-  sample,
-  createDomain,
-  guard, // Import guard
-} from "effector";
+// guard is deprecated, use sample instead
+import { sample, createDomain } from "effector";
 import { $apiKey, $temperature, $systemPrompt } from "./settings";
 import { debug } from "patronum/debug";
 import { $selectedModelId } from "./models";
 
 // Types
+export type Role = "user" | "assistant" | "system";
+
 export interface Message {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: Role;
   content: string | any;
   timestamp: number;
   isEdited?: boolean;
@@ -21,7 +17,7 @@ export interface Message {
 }
 
 interface OpenRouterMessage {
-  role: "user" | "assistant" | "system";
+  role: Role;
   content: string | any;
 }
 
@@ -94,15 +90,7 @@ export const editMessage = chatDomain.event<{
 export const deleteMessage = chatDomain.event<string>("deleteMessage");
 export const retryMessage = chatDomain.event<string>("retryMessage"); // Keep original retryMessage for now
 export const messageRetry = chatDomain.event<Message>("messageRetry"); // New event for retry logic
-export const messageEditStarted =
-  chatDomain.event<string>("messageEditStarted");
-export const messageEditCancelled = chatDomain.event<string>(
-  "messageEditCancelled"
-);
-export const messageEditConfirmed = chatDomain.event<{
-  messageId: string;
-  newContent: string;
-}>("messageEditConfirmed");
+
 export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
 );
@@ -130,7 +118,7 @@ export const sendApiRequestFx = chatDomain.effect<
       if (msg.role === "user" || msg.role === "assistant") {
         apiMessages.push({
           role: msg.role,
-          // Use edited content if available (content property is updated by messageEditConfirmed handler)
+          // Use edited content if available (content property is updated by editMessage handler)
           content: msg.content,
         });
       }
@@ -167,7 +155,7 @@ export const sendApiRequestFx = chatDomain.effect<
 // --- Retry Logic Events/Stores (Declare AFTER sendApiRequestFx) ---
 const messageRetryInitiated = chatDomain.event<{
   messageId: string;
-  role: "user" | "assistant"; // Role is narrowed here
+  role: Role;
 }>("messageRetryInitiated");
 
 export const $retryingMessageId = chatDomain // Added export
@@ -180,7 +168,7 @@ export const $retryingMessageId = chatDomain // Added export
 $messageText.on(messageTextChanged, (_, text) => text);
 
 $messages
-  .on(messageEditConfirmed, (list, { messageId, newContent }) =>
+  .on(editMessage, (list, { messageId, newContent }) =>
     list.map((msg) =>
       msg.id === messageId
         ? {
@@ -341,6 +329,7 @@ const prepareRetryParams = sample({
     const retryIndex = messages.findIndex(
       (msg) => msg.id === messageToRetry.id
     );
+
     if (retryIndex === -1) {
       console.error("Message to retry not found:", messageToRetry.id);
       return null;
@@ -369,11 +358,7 @@ const prepareRetryParams = sample({
       }
     }
 
-    // Trigger event to store the ID and role *after* preparing params
-    messageRetryInitiated({
-      messageId: messageToRetry.id,
-      role: messageToRetry.role as "user" | "assistant", // Explicit type assertion
-    });
+    // Removed imperative call to messageRetryInitiated to maintain purity
 
     return {
       modelId: selectedModelId,
@@ -385,8 +370,20 @@ const prepareRetryParams = sample({
   },
 });
 
+// Trigger messageRetryInitiated separately in a declarative way
+sample({
+  clock: messageRetry,
+  filter: (messageToRetry) =>
+    messageToRetry.role === "user" || messageToRetry.role === "assistant",
+  fn: (messageToRetry): { messageId: string; role: Role } => ({
+    messageId: messageToRetry.id,
+    role: messageToRetry.role,
+  }),
+  target: messageRetryInitiated,
+});
+
 // Trigger the API request only if parameters were successfully prepared
-guard({
+sample({
   clock: prepareRetryParams,
   filter: (params): params is SendApiRequestParams => params !== null,
   target: sendApiRequestFx,
@@ -462,11 +459,8 @@ debug(
   $currentChatTokens,
   messageTextChanged,
   messageSent,
-  editMessage, // Keep for debug?
+  editMessage,
   deleteMessage,
-  messageRetry, // Keep for debug?
-  messageEditConfirmed,
-  messageEditCancelled,
-  messageEditStarted,
+  messageRetry,
   sendApiRequestFx
 );

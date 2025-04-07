@@ -115,7 +115,7 @@ graph TD
   - `updateGlobalSetting`: User changes API key, default temp, etc.
   - `updateChatSetting`: User changes temp/system prompt for the _current_ chat.
   - `sendMessage`: User submits a message.
-  - `editMessage`: User confirms editing a message.
+  - `editMessage`: User confirms editing a message in the UI, triggering this event with the message ID and new content.
   - `deleteMessage`: User confirms deleting a message.
   - `retryMessage`: User clicks retry on a message.
   - `attachFile`: User selects a file.

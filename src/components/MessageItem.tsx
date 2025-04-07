@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useUnit } from "effector-react";
 import {
-  messageEditConfirmed,
+  editMessage,
   deleteMessage,
   messageRetry,
   $isGenerating, // Import loading state
@@ -47,7 +47,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   };
 
   const handleEditConfirm = () => {
-    messageEditConfirmed({ messageId: message.id, newContent: editedText });
+    editMessage({ messageId: message.id, newContent: editedText });
     setIsEditing(false);
   };
 
@@ -151,14 +151,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
         )}
 
         <Paper
-          elevation={5}
+          elevation={0}
           sx={{
             position: "absolute",
             borderRadius: 20,
             top: -16,
             right: 4,
             display: isHovered ? "block" : "none", // Show on hover
-            backgroundColor: "secondary,main",
+            // backgroundColor: "primary.main",
           }}
         >
           {isEditing ? (
