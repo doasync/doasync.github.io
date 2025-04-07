@@ -4,6 +4,7 @@ import {
   createEffect,
   sample,
   createDomain,
+  guard, // Import guard
 } from "effector";
 import { $apiKey, $temperature, $systemPrompt } from "./settings";
 import { debug } from "patronum/debug";
@@ -55,7 +56,7 @@ interface OpenRouterErrorBody {
   };
 }
 
-interface SendApiRequestParams {
+export interface SendApiRequestParams {
   modelId: string;
   messages: Message[];
   apiKey: string;
@@ -86,12 +87,13 @@ export const messageTextChanged =
   chatDomain.event<string>("messageTextChanged");
 export const messageSent = chatDomain.event<void>("messageSent");
 export const editMessage = chatDomain.event<{
+  // Note: This might be redundant now
   messageId: string;
   newContent: string;
 }>("editMessage");
 export const deleteMessage = chatDomain.event<string>("deleteMessage");
-export const messageDeleted = chatDomain.event<string>("messageDeleted");
-export const retryMessage = chatDomain.event<string>("retryMessage");
+export const retryMessage = chatDomain.event<string>("retryMessage"); // Keep original retryMessage for now
+export const messageRetry = chatDomain.event<Message>("messageRetry"); // New event for retry logic
 export const messageEditStarted =
   chatDomain.event<string>("messageEditStarted");
 export const messageEditCancelled = chatDomain.event<string>(
@@ -124,10 +126,14 @@ export const sendApiRequestFx = chatDomain.effect<
       apiMessages.push({ role: "system", content: systemPrompt });
     }
     messages.forEach((msg) => {
-      apiMessages.push({
-        role: msg.role,
-        content: msg.isEdited ? msg.content : msg.content, // Use edited content if available
-      });
+      // Ensure only user and assistant messages are sent
+      if (msg.role === "user" || msg.role === "assistant") {
+        apiMessages.push({
+          role: msg.role,
+          // Use edited content if available (content property is updated by messageEditConfirmed handler)
+          content: msg.content,
+        });
+      }
     });
     const body: OpenRouterRequestBody = {
       model: modelId,
@@ -158,6 +164,18 @@ export const sendApiRequestFx = chatDomain.effect<
   },
 });
 
+// --- Retry Logic Events/Stores (Declare AFTER sendApiRequestFx) ---
+const messageRetryInitiated = chatDomain.event<{
+  messageId: string;
+  role: "user" | "assistant"; // Role is narrowed here
+}>("messageRetryInitiated");
+
+export const $retryingMessageId = chatDomain // Added export
+  .store<string | null>(null)
+  .on(messageRetryInitiated, (_, { messageId }) => messageId)
+  .reset(sendApiRequestFx.finally); // Now sendApiRequestFx is declared
+// --- End Retry Logic Events/Stores ---
+
 // Logic
 $messageText.on(messageTextChanged, (_, text) => text);
 
@@ -167,9 +185,9 @@ $messages
       msg.id === messageId
         ? {
             ...msg,
-            content: newContent,
+            content: newContent, // Update content directly
             isEdited: true,
-            originalContent: msg.content,
+            originalContent: msg.content, // Store original before update
           }
         : msg
     )
@@ -204,6 +222,7 @@ sample({
   target: initialChatSaveNeeded,
 });
 
+// Trigger API request on new user message
 sample({
   clock: userMessageCreated,
   source: {
@@ -217,9 +236,10 @@ sample({
   fn: (
     { messages, apiKey, temperature, systemPrompt, selectedModelId },
     userMsg
-  ) => ({
+  ): SendApiRequestParams => ({
+    // Ensure return type matches target
     modelId: selectedModelId,
-    messages: [...messages, userMsg],
+    messages: [...messages, userMsg], // Send current + new user message
     apiKey,
     temperature,
     systemPrompt,
@@ -241,11 +261,13 @@ export const apiRequestSuccess = sample({
   clock: sendApiRequestFx.doneData,
 });
 
-// Add assistant message
+// Add assistant message on successful API response (for normal flow, not retry)
 sample({
   clock: apiRequestSuccess,
-  source: $messages,
-  fn: (messages, response): Message[] => {
+  source: { messages: $messages, retryingId: $retryingMessageId }, // Source retryingId
+  filter: ({ retryingId }) => retryingId === null, // Only run if NOT retrying
+  fn: ({ messages }, response): Message[] => {
+    // Destructure source
     const content = response.choices?.[0]?.message?.content;
     const newMessage: Message = content
       ? {
@@ -262,7 +284,7 @@ sample({
         };
     return [...messages, newMessage];
   },
-  target: $messages, // Use $messages store directly
+  target: $messages,
 });
 
 // Update token count and emit update event
@@ -290,6 +312,139 @@ sample({
   target: $apiError,
 });
 
+// --- Retry Logic ---
+
+// Define a type predicate to check if a message is retryable
+const isRetryableMessage = (
+  message: Message
+): message is Message & { role: "user" | "assistant" } => {
+  return message.role === "user" || message.role === "assistant";
+};
+
+// Prepare parameters for the API request when retry is triggered
+const prepareRetryParams = sample({
+  clock: messageRetry,
+  source: {
+    messages: $messages,
+    apiKey: $apiKey,
+    temperature: $temperature,
+    systemPrompt: $systemPrompt,
+    selectedModelId: $selectedModelId,
+  },
+  // Filter out system messages and ensure API key exists
+  filter: ({ apiKey }, messageToRetry) =>
+    apiKey.length > 0 && isRetryableMessage(messageToRetry),
+  fn: (
+    { messages, apiKey, temperature, systemPrompt, selectedModelId },
+    messageToRetry // Type is narrowed by the filter
+  ): SendApiRequestParams | null => {
+    const retryIndex = messages.findIndex(
+      (msg) => msg.id === messageToRetry.id
+    );
+    if (retryIndex === -1) {
+      console.error("Message to retry not found:", messageToRetry.id);
+      return null;
+    }
+
+    let historyToSend: Message[];
+    if (messageToRetry.role === "user") {
+      historyToSend = messages.slice(0, retryIndex + 1);
+    } else {
+      // Retrying an assistant message
+      let precedingUserIndex = -1;
+      for (let i = retryIndex - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          precedingUserIndex = i;
+          break;
+        }
+      }
+      if (precedingUserIndex === -1) {
+        console.error(
+          "Could not find preceding user message for retry:",
+          messageToRetry.id
+        );
+        historyToSend = [];
+      } else {
+        historyToSend = messages.slice(0, precedingUserIndex + 1);
+      }
+    }
+
+    // Trigger event to store the ID and role *after* preparing params
+    messageRetryInitiated({
+      messageId: messageToRetry.id,
+      role: messageToRetry.role as "user" | "assistant", // Explicit type assertion
+    });
+
+    return {
+      modelId: selectedModelId,
+      messages: historyToSend,
+      apiKey,
+      temperature,
+      systemPrompt,
+    };
+  },
+});
+
+// Trigger the API request only if parameters were successfully prepared
+guard({
+  clock: prepareRetryParams,
+  filter: (params): params is SendApiRequestParams => params !== null,
+  target: sendApiRequestFx,
+});
+
+// Handle successful retry response
+sample({
+  clock: sendApiRequestFx.doneData,
+  source: { messages: $messages, retryingMessageId: $retryingMessageId },
+  filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only process if a retry was initiated
+  fn: ({ messages, retryingMessageId }, response): Message[] => {
+    // Return type is Message[]
+    const retryIndex = messages.findIndex(
+      (msg) => msg.id === retryingMessageId
+    );
+    if (retryIndex === -1) {
+      console.error(
+        "Original retried message not found after API response:",
+        retryingMessageId
+      );
+      return messages; // Return original messages if something went wrong
+    }
+
+    const newAssistantMessage: Message = {
+      id: response.id || crypto.randomUUID(),
+      role: "assistant",
+      content:
+        response.choices?.[0]?.message?.content ?? "Error: Empty response",
+      timestamp: Date.now(),
+    };
+
+    const originalMessage = messages[retryIndex];
+    let updatedMessages = [...messages];
+
+    if (originalMessage.role === "user") {
+      // If retrying a user message, replace the *next* assistant message
+      if (
+        retryIndex + 1 < messages.length &&
+        messages[retryIndex + 1].role === "assistant"
+      ) {
+        updatedMessages[retryIndex + 1] = newAssistantMessage;
+      } else {
+        // If there's no next assistant message, insert the new one
+        updatedMessages.splice(retryIndex + 1, 0, newAssistantMessage);
+      }
+    } else {
+      // Retrying an assistant message
+      // Replace the *current* assistant message
+      updatedMessages[retryIndex] = newAssistantMessage;
+    }
+
+    return updatedMessages;
+  },
+  target: $messages,
+});
+
+// --- End Retry Logic ---
+
 import { showApiKeyDialog } from "@/model/ui";
 
 sample({
@@ -307,8 +462,11 @@ debug(
   $currentChatTokens,
   messageTextChanged,
   messageSent,
-  editMessage,
+  editMessage, // Keep for debug?
   deleteMessage,
-  retryMessage,
+  messageRetry, // Keep for debug?
+  messageEditConfirmed,
+  messageEditCancelled,
+  messageEditStarted,
   sendApiRequestFx
 );

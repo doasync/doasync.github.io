@@ -1,9 +1,26 @@
 import React, { useState } from "react";
-import { messageEditConfirmed } from "@/model/chat";
+import { useUnit } from "effector-react";
+import {
+  messageEditConfirmed,
+  deleteMessage,
+  messageRetry,
+  $isGenerating, // Import loading state
+  $retryingMessageId, // Import retrying message ID store
+} from "@/model/chat";
 import { Message } from "@/model/chat";
-import { Typography, IconButton, InputBase, Paper, Card } from "@mui/material";
+import {
+  Typography,
+  IconButton,
+  InputBase,
+  Paper,
+  Card,
+  CircularProgress,
+} from "@mui/material"; // Added CircularProgress
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ReplayIcon from "@mui/icons-material/Replay"; // Import Retry icon
+import ContentCopyIcon from "@mui/icons-material/ContentCopy"; // Import Copy icon
+import CodeIcon from "@mui/icons-material/Code"; // Import Code icon
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -12,7 +29,11 @@ interface MessageItemProps {
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+  const isGenerating = useUnit($isGenerating);
+  const retryingMessageId = useUnit($retryingMessageId);
   const [isHovered, setIsHovered] = useState(false);
+  const isRetryingThisMessage =
+    isGenerating && retryingMessageId === message.id;
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.content);
 
@@ -32,6 +53,45 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setEditedText(event.target.value);
+  };
+
+  const handleDeleteClick = () => {
+    deleteMessage(message.id);
+  };
+
+  const handleRetryClick = () => {
+    messageRetry(message);
+  };
+
+  const handleCopyTextClick = () => {
+    if (typeof message.content === "string") {
+      navigator.clipboard
+        .writeText(message.content)
+        .then(() => {
+          console.log("Text copied to clipboard");
+        })
+        .catch((err) => {
+          console.error("Failed to copy text: ", err);
+        });
+    } else {
+      console.error("Cannot copy non-string content");
+    }
+  };
+
+  const handleCopyCodeClick = () => {
+    // Simple implementation: Copy content as is
+    if (typeof message.content === "string") {
+      navigator.clipboard
+        .writeText(message.content)
+        .then(() => {
+          console.log("Code/Markdown copied to clipboard");
+        })
+        .catch((err) => {
+          console.error("Failed to copy code/markdown: ", err);
+        });
+    } else {
+      console.error("Cannot copy non-string content as code/markdown");
+    }
   };
 
   return (
@@ -77,6 +137,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             {message.content}
           </Typography>
         )}
+        {isRetryingThisMessage && (
+          <CircularProgress
+            size={20}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              marginTop: "-10px",
+              marginLeft: "-10px",
+            }}
+          />
+        )}
 
         <Paper
           elevation={5}
@@ -109,14 +181,48 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               </IconButton>
             </React.Fragment>
           ) : (
-            <IconButton
-              aria-label="edit"
-              size="small"
-              onClick={handleEditClick}
-              color="inherit"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
+            <>
+              <IconButton
+                aria-label="edit"
+                size="small"
+                onClick={handleEditClick}
+                color="inherit"
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="delete"
+                size="small"
+                color="inherit"
+                onClick={handleDeleteClick}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="retry"
+                size="small"
+                color="inherit"
+                onClick={handleRetryClick}
+              >
+                <ReplayIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="copy text"
+                size="small"
+                color="inherit"
+                onClick={handleCopyTextClick}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                aria-label="copy code"
+                size="small"
+                color="inherit"
+                onClick={handleCopyCodeClick} // Added onClick handler
+              >
+                <CodeIcon fontSize="small" />
+              </IconButton>
+            </>
           )}
         </Paper>
       </Card>

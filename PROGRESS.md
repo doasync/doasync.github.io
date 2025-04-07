@@ -62,4 +62,32 @@ Here's a summary of what was done according to the `PLAN.md`:
     - Connected the "New Chat" (`AddCommentIcon`) button to the `newChatCreated` event.
 5.  Auto-Title Generation: is implemented and working.
 
+**Phase 7 (Message Actions):**
+
+1.  **`src/components/MessageItem.tsx`:**
+    - Created the component to render individual messages.
+    - Implemented hover effect to show action buttons.
+    - Added action buttons (Edit, Delete, Retry, Copy Text, Copy Code) with icons.
+    - Implemented inline editing using `InputBase` when "Edit" is clicked.
+    - Added confirm/cancel buttons for editing.
+    - Added loading indicator (`CircularProgress`) displayed during retry.
+    - Implemented `navigator.clipboard.writeText` for Copy Text and Copy Code buttons.
+    - Connected action buttons to corresponding Effector events.
+2.  **`src/model/chat.ts`:**
+    - Added `isEdited` and `originalContent` fields to `Message` interface.
+    - Created events: `messageEditStarted`, `messageEditCancelled`, `messageEditConfirmed`, `messageRetry`.
+    - Updated `$messages` store handler for `messageEditConfirmed` to update message content and flags.
+    - Updated `$messages` store handler for `deleteMessage` to filter out the message.
+    - Implemented retry logic:
+      - Added `$retryingMessageId` store to track the message being retried.
+      - Added `sample` block listening to `messageRetry` to prepare history and trigger `sendApiRequestFx`.
+      - Added `sample` block listening to `sendApiRequestFx.doneData` to update `$messages` with the retry response, replacing the correct message.
+    - Updated `sendApiRequestFx` to use the current message content (including edits) when sending API requests.
+3.  **`src/model/history.ts`:**
+    - Updated `saveChatFx` to persist `isEdited` and `originalContent` fields for messages in IndexedDB.
+    - Verified that `saveChatFx` is triggered correctly after edit and delete operations via existing `sample` logic.
+4.  **`src/app/page.tsx`:**
+    - Replaced the previous message rendering logic with the new `MessageItem` component.
+    - Removed unused `editMessage` import and related logic.
+
 ---
