@@ -1,10 +1,12 @@
 // Public API for the chat-history feature
 
-export {
-  // Types
-  type ChatSession,
-  type ChatHistoryIndex,
+// Import types separately
+import { type ChatSession, type ChatHistoryIndex } from "./types";
 
+// Export types
+export type { ChatSession, ChatHistoryIndex };
+
+export {
   // Stores - Needed by UI (ChatHistoryDrawer) or other features
   $chatHistoryIndex,
   $currentChatSession, // Potentially useful for debugging or complex UI logic
