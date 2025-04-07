@@ -2,11 +2,13 @@
 // Only export units (stores, events, effects) that are needed
 // by other features or UI components.
 
-export {
-  // Types
-  type Role,
-  type Message,
+// Import types separately
+import { type Role, type Message } from "./types";
 
+// Export types
+export type { Role, Message };
+
+export {
   // Stores - Likely needed by UI
   $messageText,
   $messages,
