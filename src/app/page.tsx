@@ -1,6 +1,8 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
+import { useTheme, useMediaQuery } from "@mui/material";
+import UnifiedBottomDrawer from "@/components/UnifiedBottomDrawer";
 import { useUnit, useGate } from "effector-react"; // Import useUnit and useGate
 import Box from "@mui/material/Box";
 import AppBar from "@mui/material/AppBar";
@@ -55,7 +57,9 @@ import {
 import { $apiKey } from "@/features/chat-settings";
 
 export default function Home() {
-  // Connect to Effector units
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [messages, messageText] = useUnit([$messages, $messageText]);
   const [handleMessageSent, handleMessageTextChanged] = useUnit([
     messageSent,
@@ -68,7 +72,6 @@ export default function Home() {
   ]);
   const handleToggleHistoryDrawer = useUnit(toggleHistoryDrawer);
   const handleNewChat = useUnit(newChatCreated);
-  // Trigger appStarted on mount
   const triggerAppStarted = useUnit(appStarted);
 
   const [currentChatSession, apiKey] = useUnit([$currentChatSession, $apiKey]);
@@ -87,26 +90,29 @@ export default function Home() {
   };
 
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
-  // Note: The useEffect hook to load settings is placed later (lines 62-64)
-  // to ensure it runs only once on mount.
 
-  // Ref for scrolling to bottom
   const chatEndRef = React.useRef<null | HTMLDivElement>(null);
 
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]); // Scroll when messages change
+  }, [messages]);
 
-  // Load settings only once on initial mount
-  // Load settings and models only once on initial mount
   React.useEffect(() => {
     loadSettings();
-    fetchModels(); // Fetch models on load
-    triggerAppStarted(); // Load history index on load
+    fetchModels();
+    triggerAppStarted();
   }, []);
+
+  const [mobileDrawerOpen, setMobileDrawerOpen] = React.useState(false);
+  const [mobileTab, setMobileTab] = React.useState(0); // 0-history, 1-settings
+
+  const openMobileDrawerFor = (tabIndex: number) => {
+    setMobileTab(tabIndex);
+    setMobileDrawerOpen(true);
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Header Bar */}
       <AppBar position="static">
         <Toolbar>
           <IconButton
@@ -115,11 +121,13 @@ export default function Home() {
             color="inherit"
             aria-label="menu"
             sx={{ mr: 2 }}
+            onClick={() => {
+              if (isMobile) openMobileDrawerFor(0);
+              else handleToggleHistoryDrawer();
+            }}
           >
-            <HistoryIcon onClick={handleToggleHistoryDrawer} />
-            {/* History Button */}
+            <HistoryIcon />
           </IconButton>
-          {/* Model Selector - Takes up the central space */}
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
             <ModelSelector />
           </Box>
@@ -129,7 +137,7 @@ export default function Home() {
             aria-label="new chat"
             onClick={handleNewChat}
           >
-            <AddCommentIcon /> {/* New Chat Button - Trigger newChatCreated */}
+            <AddCommentIcon />
           </IconButton>
           <IconButton
             size="large"
@@ -145,25 +153,26 @@ export default function Home() {
             edge="end"
             color="inherit"
             aria-label="settings"
-            onClick={handleOpenSettings}
+            onClick={() => {
+              if (isMobile) openMobileDrawerFor(1);
+              else handleOpenSettings();
+            }}
           >
-            <SettingsIcon /> {/* Settings Button - Opens Drawer */}
+            <SettingsIcon />
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Chat Window Area */}
       <Container
-        maxWidth="md" // Or false to disable maxWidth
+        maxWidth="md"
         sx={{
           flexGrow: 1,
-          overflowY: "auto", // Make chat scrollable
-          py: 2, // Padding top and bottom
+          overflowY: "auto",
+          py: 2,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Messages Display */}
         <Paper
           elevation={0}
           sx={{
@@ -178,11 +187,10 @@ export default function Home() {
             {messages.map((msg) => (
               <MessageItem message={msg} key={msg.id} />
             ))}
-            <div ref={chatEndRef} /> {/* Invisible element to scroll to */}
+            <div ref={chatEndRef} />
           </Stack>
         </Paper>
 
-        {/* API Error Display */}
         {apiError && (
           <Alert severity="error" sx={{ mt: 1, mb: 1 }}>
             {apiError}
@@ -190,31 +198,29 @@ export default function Home() {
         )}
       </Container>
 
-      {/* Message Input Area */}
       <Paper
         square
         elevation={3}
         sx={{
-          p: 2, // Padding
+          p: 2,
           display: "flex",
           alignItems: "center",
-          gap: 1, // Spacing between items
+          gap: 1,
         }}
       >
         <TextField
           fullWidth
           multiline
-          maxRows={5} // Limit vertical expansion
+          maxRows={5}
           variant="outlined"
           placeholder="Type your message..."
           sx={{ flexGrow: 1 }}
-          value={messageText} // Bind value to store
-          onChange={(e) => handleMessageTextChanged(e.target.value)} // Update store on change
+          value={messageText}
+          onChange={(e) => handleMessageTextChanged(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
-              // Send on Enter (but not Shift+Enter)
-              e.preventDefault(); // Prevent newline
-              if (!isGenerating) handleMessageSent(); // Prevent send while generating
+              e.preventDefault();
+              if (!isGenerating) handleMessageSent();
             }
           }}
         />
@@ -222,13 +228,11 @@ export default function Home() {
           <AttachFileIcon />
         </IconButton>
         <Box sx={{ position: "relative" }}>
-          {" "}
-          {/* Wrapper for loading indicator */}
           <IconButton
             color="primary"
             aria-label="send message"
             onClick={() => handleMessageSent()}
-            disabled={messageText.trim().length === 0 || isGenerating} // Disable if empty or generating
+            disabled={messageText.trim().length === 0 || isGenerating}
           >
             <SendIcon />
           </IconButton>
@@ -240,19 +244,31 @@ export default function Home() {
                 position: "absolute",
                 top: "50%",
                 left: "50%",
-                marginTop: "-12px", // Center vertically
-                marginLeft: "-12px", // Center horizontally
+                marginTop: "-12px",
+                marginLeft: "-12px",
               }}
             />
           )}
         </Box>
       </Paper>
 
-      {/* Settings Drawer */}
-      <ChatSettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings} />
+      {isMobile ? (
+        <UnifiedBottomDrawer
+          open={mobileDrawerOpen}
+          onClose={() => setMobileDrawerOpen(false)}
+        >
+          {/* tabs handled inside component, pass initial tab via prop if desired */}
+        </UnifiedBottomDrawer>
+      ) : (
+        <>
+          <ChatSettingsDrawer
+            open={isSettingsOpen}
+            onClose={handleCloseSettings}
+          />
+          <ChatHistoryDrawer />
+        </>
+      )}
 
-      {/* History Drawer */}
-      <ChatHistoryDrawer />
       <ApiKeyMissingDialog />
     </Box>
   );
