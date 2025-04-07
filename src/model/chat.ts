@@ -98,8 +98,13 @@ export const apiRequestTokensUpdated = chatDomain.event<OpenRouterResponseBody>(
   "apiRequestTokensUpdated"
 );
 
-// Internal event to add a message (used by API response)
-const messageAdded = chatDomain.event<Message>("messageAdded");
+// Internal events
+const messageAdded = chatDomain.event<Message>("messageAdded"); // Used by normal API response
+const retryUpdate = chatDomain.event<{
+  targetIndex: number;
+  newAssistantMessage: Message;
+  insert?: boolean; // Flag to indicate insertion instead of replacement
+}>("_internalRetryUpdate");
 
 // Effects
 export const sendApiRequestFx = chatDomain.effect<
@@ -180,7 +185,27 @@ $messages
         : msg
     )
   )
-  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id));
+  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
+  // Add new handler for the internal retry update event
+  .on(
+    retryUpdate,
+    (currentMessages, { targetIndex, newAssistantMessage, insert = false }) => {
+      if (insert) {
+        // Insert the new message after the target index (which is the original user message index)
+        const updatedMessages = [...currentMessages];
+        updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
+        return updatedMessages;
+      } else if (targetIndex !== -1 && targetIndex < currentMessages.length) {
+        // Replace the message at the target index
+        return currentMessages.map((msg, index) =>
+          index === targetIndex ? newAssistantMessage : msg
+        );
+      }
+      // If index is invalid or insertion wasn't requested, return current state
+      console.error("Retry update handler received invalid index or state.");
+      return currentMessages;
+    }
+  );
 
 $apiError.reset(messageSent);
 
@@ -390,54 +415,84 @@ sample({
 });
 
 // Handle successful retry response
-sample({
+// Calculate retry update payload and trigger internal event
+const calculatedRetryUpdate = sample({
   clock: sendApiRequestFx.doneData,
   source: { messages: $messages, retryingMessageId: $retryingMessageId },
   filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only process if a retry was initiated
-  fn: ({ messages, retryingMessageId }, response): Message[] => {
-    // Return type is Message[]
-    const retryIndex = messages.findIndex(
+  fn: (
+    { messages, retryingMessageId },
+    response
+  ): {
+    targetIndex: number;
+    newAssistantMessage: Message;
+    insert?: boolean;
+  } | null => {
+    const originalMessageIndex = messages.findIndex(
       (msg) => msg.id === retryingMessageId
     );
-    if (retryIndex === -1) {
+
+    if (originalMessageIndex === -1) {
       console.error(
         "Original retried message not found after API response:",
         retryingMessageId
       );
-      return messages; // Return original messages if something went wrong
+      return null; // Cannot proceed
     }
 
+    const originalMessage = messages[originalMessageIndex];
+
     const newAssistantMessage: Message = {
-      id: response.id || crypto.randomUUID(),
+      id: crypto.randomUUID(), // Ensure a unique ID for the new message
       role: "assistant",
       content:
         response.choices?.[0]?.message?.content ?? "Error: Empty response",
       timestamp: Date.now(),
     };
 
-    const originalMessage = messages[retryIndex];
-    let updatedMessages = [...messages];
+    let targetIndex = -1;
+    let insert = false;
 
     if (originalMessage.role === "user") {
-      // If retrying a user message, replace the *next* assistant message
-      if (
-        retryIndex + 1 < messages.length &&
-        messages[retryIndex + 1].role === "assistant"
-      ) {
-        updatedMessages[retryIndex + 1] = newAssistantMessage;
+      // If retrying a user message, find the *next* assistant message index
+      const nextAssistantIndex = messages.findIndex(
+        (msg, index) => index > originalMessageIndex && msg.role === "assistant"
+      );
+      if (nextAssistantIndex !== -1) {
+        // Found next assistant message to replace
+        targetIndex = nextAssistantIndex;
       } else {
-        // If there's no next assistant message, insert the new one
-        updatedMessages.splice(retryIndex + 1, 0, newAssistantMessage);
+        // No next assistant message, insert after the original user message
+        targetIndex = originalMessageIndex; // Use original index for insertion point
+        insert = true;
       }
     } else {
-      // Retrying an assistant message
-      // Replace the *current* assistant message
-      updatedMessages[retryIndex] = newAssistantMessage;
+      // If retrying an assistant message, replace the message itself
+      targetIndex = originalMessageIndex;
     }
 
-    return updatedMessages;
+    if (targetIndex === -1 && !insert) {
+      console.error(
+        "Retry logic error: Could not determine target index for assistant retry."
+      );
+      return null; // Cannot proceed
+    }
+
+    return { targetIndex, newAssistantMessage, insert };
   },
-  target: $messages,
+});
+
+// Trigger the internal update event only if a valid payload was calculated
+sample({
+  clock: calculatedRetryUpdate,
+  filter: (
+    payload
+  ): payload is {
+    targetIndex: number;
+    newAssistantMessage: Message;
+    insert?: boolean;
+  } => payload !== null,
+  target: retryUpdate,
 });
 
 // --- End Retry Logic ---
