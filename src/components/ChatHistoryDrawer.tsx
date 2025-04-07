@@ -29,9 +29,17 @@ import {
   // chatTitleEdited, // We'll add title editing UI later
   $currentChatId,
 } from "@/features/chat-history";
-import { $isHistoryDrawerOpen, toggleHistoryDrawer } from "@/features/ui-state";
+import {
+  $isHistoryDrawerOpen,
+  toggleHistoryDrawer,
+  $isMobile,
+} from "@/features/ui-state";
 
 const ChatHistoryDrawer: React.FC = () => {
+  const isMobile = useUnit($isMobile);
+  React.useEffect(() => {
+    console.log("ChatHistoryDrawer isMobile:", isMobile);
+  }, [isMobile]);
   const [
     isOpen,
     toggleDrawer,
@@ -103,10 +111,25 @@ const ChatHistoryDrawer: React.FC = () => {
   // TODO: Implement title editing functionality
 
   return (
-    <Drawer anchor="left" open={isOpen} onClose={toggleDrawer}>
+    <Drawer
+      anchor={isMobile ? "bottom" : "left"}
+      open={isOpen}
+      onClose={toggleDrawer}
+      variant={isMobile ? "temporary" : "persistent"}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile
+        sx: {
+          "& .MuiDrawer-paper": {
+            height: isMobile ? "60vh" : "100vh",
+            borderTopLeftRadius: isMobile ? 8 : 0,
+            borderTopRightRadius: isMobile ? 8 : 0,
+          },
+        },
+      }}
+    >
       <Box
         sx={{
-          width: 300, // Adjust width as needed
+          width: isMobile ? "100%" : 300,
           display: "flex",
           flexDirection: "column",
           height: "100%",

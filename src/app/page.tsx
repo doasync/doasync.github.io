@@ -44,6 +44,7 @@ import {
   closeSettingsDrawer,
   toggleHistoryDrawer, // Import history toggle
   // $isHistoryDrawerOpen is used internally by the drawer component
+  $isMobile,
 } from "@/features/ui-state";
 import { fetchModels } from "@/features/models-select"; // Import model fetch trigger
 import {
@@ -55,6 +56,7 @@ import {
 import { $apiKey } from "@/features/chat-settings";
 
 export default function Home() {
+  const isMobile = useUnit($isMobile);
   // Connect to Effector units
   const [messages, messageText] = useUnit([$messages, $messageText]);
   const [handleMessageSent, handleMessageTextChanged] = useUnit([
@@ -100,17 +102,19 @@ export default function Home() {
   // Load settings only once on initial mount
   // Load settings and models only once on initial mount
   React.useEffect(() => {
+    console.log("Page mounted - loading settings and models");
     loadSettings();
-    fetchModels(); // Fetch models on load
-    triggerAppStarted(); // Load history index on load
+    fetchModels();
+    console.log("Triggering appStarted");
+    triggerAppStarted();
   }, []);
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       {/* Header Bar */}
       <AppBar position="static">
-        <Toolbar>
+        <Toolbar sx={{ gap: isMobile ? 0.5 : 2 }}>
           <IconButton
-            size="large"
+            size={isMobile ? "medium" : "large"}
             edge="start"
             color="inherit"
             aria-label="menu"
@@ -120,11 +124,18 @@ export default function Home() {
             {/* History Button */}
           </IconButton>
           {/* Model Selector - Takes up the central space */}
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: "flex",
+              justifyContent: "center",
+              maxWidth: isMobile ? "40%" : "100%",
+            }}
+          >
             <ModelSelector />
           </Box>
           <IconButton
-            size="large"
+            size={isMobile ? "medium" : "large"}
             color="inherit"
             aria-label="new chat"
             onClick={handleNewChat}
@@ -132,7 +143,7 @@ export default function Home() {
             <AddCommentIcon /> {/* New Chat Button - Trigger newChatCreated */}
           </IconButton>
           <IconButton
-            size="large"
+            size={isMobile ? "medium" : "large"}
             color="inherit"
             aria-label="regenerate title"
             onClick={handleRegenerateTitle}
@@ -141,7 +152,7 @@ export default function Home() {
             <RefreshIcon />
           </IconButton>
           <IconButton
-            size="large"
+            size={isMobile ? "medium" : "large"}
             edge="end"
             color="inherit"
             aria-label="settings"
@@ -195,6 +206,7 @@ export default function Home() {
         square
         elevation={3}
         sx={{
+          pb: isMobile ? 1 : 2,
           p: 2, // Padding
           display: "flex",
           alignItems: "center",

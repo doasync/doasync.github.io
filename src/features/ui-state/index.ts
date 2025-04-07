@@ -5,6 +5,7 @@ export {
   $isApiKeyDialogOpen,
   $isSettingsDrawerOpen,
   $isHistoryDrawerOpen,
+  $isMobile,
 
   // Events - Triggered by UI components
   showApiKeyDialog, // Triggered by chat model or settings UI

@@ -20,8 +20,8 @@ import {
   apiKeyChanged,
   temperatureChanged,
   systemPromptChanged,
-  // We'll need UI state management later for open/close
 } from "@/features/chat-settings";
+import { $isMobile } from "@/features/ui-state";
 import { $currentChatTokens } from "@/features/chat";
 
 interface ChatSettingsDrawerProps {
@@ -34,6 +34,10 @@ export const ChatSettingsDrawer: React.FC<ChatSettingsDrawerProps> = ({
   open,
   onClose,
 }) => {
+  const isMobile = useUnit($isMobile);
+  React.useEffect(() => {
+    console.log("ChatSettingsDrawer isMobile:", isMobile);
+  }, [isMobile]);
   const [showApiKey, setShowApiKey] = useState(false);
 
   // Connect to Effector stores and events
@@ -78,10 +82,25 @@ export const ChatSettingsDrawer: React.FC<ChatSettingsDrawerProps> = ({
   };
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose}>
+    <Drawer
+      anchor={isMobile ? "bottom" : "right"}
+      open={open}
+      onClose={onClose}
+      variant={isMobile ? "temporary" : "persistent"}
+      ModalProps={{
+        keepMounted: true,
+        sx: {
+          "& .MuiDrawer-paper": {
+            height: isMobile ? "60vh" : "100vh",
+            borderTopLeftRadius: isMobile ? 8 : 0,
+            borderTopRightRadius: isMobile ? 8 : 0,
+          },
+        },
+      }}
+    >
       <Box
         sx={{
-          width: 300,
+          width: isMobile ? "100%" : 300,
           p: 2,
           display: "flex",
           flexDirection: "column",

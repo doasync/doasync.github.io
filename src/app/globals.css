@@ -30,6 +30,25 @@ body {
   margin: 0;
 }
 
+/* Smooth transitions for drawers */
+.MuiDrawer-paper {
+  transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+/* Button press feedback */
+.MuiButtonBase-root {
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.MuiButtonBase-root:active {
+  transform: scale(0.95);
+}
+
+/* Message item hover effects */
+.message-actions {
+  transition: opacity 0.2s ease;
+}
+
 a {
   color: inherit;
   text-decoration: none;

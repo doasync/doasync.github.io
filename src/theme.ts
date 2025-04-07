@@ -23,6 +23,16 @@ const theme = createTheme({
       main: red.A400,
     },
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 900,
+      lg: 1200,
+      xl: 1536,
+      mobile: 600, // Custom breakpoint for mobile devices
+    },
+  },
   // typography: { // Temporarily comment out for debugging
   //   fontFamily: roboto.style.fontFamily,
   // },
