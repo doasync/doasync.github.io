@@ -21,8 +21,8 @@ import {
   temperatureChanged,
   systemPromptChanged,
   // We'll need UI state management later for open/close
-} from "@/model/settings";
-import { $currentChatTokens } from "@/model/chat";
+} from "@/features/chat-settings";
+import { $currentChatTokens } from "@/features/chat";
 
 interface ChatSettingsDrawerProps {
   open: boolean;

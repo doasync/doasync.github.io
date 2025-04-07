@@ -1,9 +1,9 @@
 // guard is deprecated, use sample instead
 import { sample, createDomain } from "effector";
-import { $apiKey, $temperature, $systemPrompt } from "./settings";
+import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { debug } from "patronum/debug";
-import { $selectedModelId } from "./models";
-import { showApiKeyDialog } from "@/model/ui";
+import { $selectedModelId } from "@/features/models-select";
+import { showApiKeyDialog } from "@/features/ui-state";
 
 // Types
 export type Role = "user" | "assistant" | "system";
@@ -148,7 +148,8 @@ const messageRetryInitiated = chatDomain.event<{
   messageId: string;
   role: Role;
 }>("messageRetryInitiated");
-const userMessageCreated = chatDomain.event<Message>("userMessageCreated");
+export const userMessageCreated =
+  chatDomain.event<Message>("userMessageCreated");
 const prepareRetryParams =
   chatDomain.event<SendApiRequestParams>("prepareRetryParams");
 const calculatedRetryUpdate = chatDomain.event<{
@@ -541,7 +542,7 @@ sample({
 sample({
   clock: messageSent,
   source: $apiKey,
-  filter: (key) => key.trim().length === 0,
+  filter: (key: string) => key.trim().length === 0,
   target: showApiKeyDialog, // Trigger dialog if API key is missing
 });
 

@@ -6,8 +6,8 @@ import {
   messageRetry,
   $isGenerating, // Import loading state
   $retryingMessageId, // Import retrying message ID store
-} from "@/model/chat";
-import { Message } from "@/model/chat";
+} from "@/features/chat";
+import { Message } from "@/features/chat";
 import {
   Typography,
   IconButton,

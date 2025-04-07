@@ -28,8 +28,8 @@ import {
   deleteChat,
   // chatTitleEdited, // We'll add title editing UI later
   $currentChatId,
-} from "@/model/history";
-import { $isHistoryDrawerOpen, toggleHistoryDrawer } from "@/model/ui";
+} from "@/features/chat-history";
+import { $isHistoryDrawerOpen, toggleHistoryDrawer } from "@/features/ui-state";
 
 const ChatHistoryDrawer: React.FC = () => {
   const [
@@ -87,7 +87,7 @@ const ChatHistoryDrawer: React.FC = () => {
 
   const handleSaveEdit = (id: string) => {
     if (editedTitle.trim() !== "") {
-      import("@/model/history").then(({ chatTitleEdited }) => {
+      import("@/features/chat-history").then(({ chatTitleEdited }) => {
         chatTitleEdited({ id, newTitle: editedTitle.trim() });
       });
     }

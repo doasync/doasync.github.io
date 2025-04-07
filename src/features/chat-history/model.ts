@@ -15,10 +15,10 @@ import {
   initialChatSaveNeeded,
   editMessage,
   deleteMessage,
-} from "./chat"; // Import apiRequestSuccess and initialChatSaveNeeded
-import { $apiKey } from "./settings";
-import { $selectedModelId } from "./models";
-import { $temperature, $systemPrompt } from "./settings";
+} from "@/features/chat"; // Import apiRequestSuccess and initialChatSaveNeeded
+import { $apiKey } from "@/features/chat-settings";
+import { $selectedModelId } from "@/features/models-select";
+import { $temperature, $systemPrompt } from "@/features/chat-settings";
 
 // --- Types ---
 

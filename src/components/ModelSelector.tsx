@@ -21,7 +21,7 @@ import {
   modelSelected,
   ModelInfo, // Import the type
   fetchModels, // To potentially add a retry button
-} from "@/model/models";
+} from "@/features/models-select";
 
 export const ModelSelector: React.FC = () => {
   const {

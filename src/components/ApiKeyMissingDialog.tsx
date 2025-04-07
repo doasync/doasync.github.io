@@ -14,7 +14,7 @@ import {
   $isApiKeyDialogOpen,
   hideApiKeyDialog,
   openSettingsDrawer,
-} from "@/model/ui";
+} from "@/features/ui-state";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & { children: React.ReactElement },

@@ -35,24 +35,24 @@ import {
   messageTextChanged,
   $isGenerating, // Import loading state
   $apiError, // Import error state
-} from "@/model/chat";
+} from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
-import { loadSettings } from "@/model/settings"; // Import settings loader
+import { loadSettings } from "@/features/chat-settings"; // Import settings loader
 import {
   $isSettingsDrawerOpen,
   openSettingsDrawer, // Keep for settings
   closeSettingsDrawer,
   toggleHistoryDrawer, // Import history toggle
   // $isHistoryDrawerOpen is used internally by the drawer component
-} from "@/model/ui";
-import { fetchModels } from "@/model/models"; // Import model fetch trigger
+} from "@/features/ui-state";
+import { fetchModels } from "@/features/models-select"; // Import model fetch trigger
 import {
   appStarted,
   newChatCreated,
   $currentChatSession,
   generateTitleFx,
-} from "@/model/history"; // Import history events and stores
-import { $apiKey } from "@/model/settings";
+} from "@/features/chat-history"; // Import history events and stores
+import { $apiKey } from "@/features/chat-settings";
 
 export default function Home() {
   // Connect to Effector units
