@@ -15,6 +15,8 @@ export interface Message {
   role: "user" | "assistant" | "system";
   content: string | any;
   timestamp: number;
+  isEdited?: boolean;
+  originalContent?: string | any;
 }
 
 interface OpenRouterMessage {
@@ -88,7 +90,17 @@ export const editMessage = chatDomain.event<{
   newContent: string;
 }>("editMessage");
 export const deleteMessage = chatDomain.event<string>("deleteMessage");
+export const messageDeleted = chatDomain.event<string>("messageDeleted");
 export const retryMessage = chatDomain.event<string>("retryMessage");
+export const messageEditStarted =
+  chatDomain.event<string>("messageEditStarted");
+export const messageEditCancelled = chatDomain.event<string>(
+  "messageEditCancelled"
+);
+export const messageEditConfirmed = chatDomain.event<{
+  messageId: string;
+  newContent: string;
+}>("messageEditConfirmed");
 export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
 );
@@ -112,7 +124,10 @@ export const sendApiRequestFx = chatDomain.effect<
       apiMessages.push({ role: "system", content: systemPrompt });
     }
     messages.forEach((msg) => {
-      apiMessages.push({ role: msg.role, content: msg.content });
+      apiMessages.push({
+        role: msg.role,
+        content: msg.isEdited ? msg.content : msg.content, // Use edited content if available
+      });
     });
     const body: OpenRouterRequestBody = {
       model: modelId,
@@ -147,9 +162,16 @@ export const sendApiRequestFx = chatDomain.effect<
 $messageText.on(messageTextChanged, (_, text) => text);
 
 $messages
-  .on(editMessage, (list, { messageId, newContent }) =>
+  .on(messageEditConfirmed, (list, { messageId, newContent }) =>
     list.map((msg) =>
-      msg.id === messageId ? { ...msg, content: newContent } : msg
+      msg.id === messageId
+        ? {
+            ...msg,
+            content: newContent,
+            isEdited: true,
+            originalContent: msg.content,
+          }
+        : msg
     )
   )
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id));

@@ -119,7 +119,18 @@ export const loadSpecificChatFx = createEffect<
 export const saveChatFx = createEffect<ChatSession, void, Error>("saveChatFx", {
   handler: async (chatSession) => {
     const db = await getDb();
-    await db.put(STORE_NAME, chatSession);
+
+    // Ensure isEdited and originalContent are saved
+    const chatSessionToSave = {
+      ...chatSession,
+      messages: chatSession.messages.map((message) => ({
+        ...message,
+        isEdited: message.isEdited || false, // Ensure isEdited is saved
+        originalContent: message.originalContent || null, // Ensure originalContent is saved
+      })),
+    };
+
+    await db.put(STORE_NAME, chatSessionToSave);
   },
 });
 

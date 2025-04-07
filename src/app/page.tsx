@@ -21,6 +21,7 @@ import Alert from "@mui/material/Alert"; // For error display
 import RefreshIcon from "@mui/icons-material/Refresh"; // For regenerate title button
 
 // Import components
+import MessageItem from "@/components/MessageItem"; // Import MessageItem
 import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
 import { ChatSettingsDrawer } from "@/components/ChatSettingsDrawer";
 import ChatHistoryDrawer from "@/components/ChatHistoryDrawer"; // Import History Drawer
@@ -35,6 +36,7 @@ import {
   $isGenerating, // Import loading state
   $apiError, // Import error state
 } from "@/model/chat";
+// import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/model/settings"; // Import settings loader
 import {
   $isSettingsDrawerOpen,
@@ -114,7 +116,7 @@ export default function Home() {
             aria-label="menu"
             sx={{ mr: 2 }}
           >
-            <HistoryIcon onClick={handleToggleHistoryDrawer} />{" "}
+            <HistoryIcon onClick={handleToggleHistoryDrawer} />
             {/* History Button */}
           </IconButton>
           {/* Model Selector - Takes up the central space */}
@@ -172,106 +174,9 @@ export default function Home() {
             flexDirection: "column",
           }}
         >
-          <Stack spacing={2} sx={{ flexGrow: 1 }}>
+          <Stack spacing={0} sx={{ flexGrow: 1 }}>
             {messages.map((msg) => (
-              <Paper
-                key={msg.id}
-                elevation={1}
-                sx={{
-                  p: 1.5,
-                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-                  backgroundColor:
-                    msg.role === "user" ? "primary.light" : "primary",
-                  maxWidth: "75%",
-                  wordWrap: "break-word", // Ensure long words break
-                }}
-              >
-                <Box sx={{ position: "relative" }}>
-                  <Typography variant="body1">{msg.content}</Typography>
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 4,
-                      right: msg.role === "user" ? 4 : "auto",
-                      left: msg.role === "user" ? "auto" : 4,
-                      display: "flex",
-                      gap: 0.5,
-                      opacity: 0,
-                      transition: "opacity 0.2s",
-                      "&:hover": { opacity: 1 },
-                      pointerEvents: "auto",
-                    }}
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => navigator.clipboard.writeText(msg.content)}
-                      title="Copy"
-                    >
-                      <svg width="16" height="16">
-                        <path
-                          fill="currentColor"
-                          d="M3 2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V9h-1v4H4V4h4V3H3zm9-1h-3v1h2.293L8 6.293 8.707 7 13 2.707V5h1V1a1 1 0 0 0-1-1z"
-                        />
-                      </svg>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        const newContent = prompt("Edit message:", msg.content);
-                        if (newContent !== null) {
-                          import("@/model/chat").then(({ editMessage }) => {
-                            editMessage({ messageId: msg.id, newContent });
-                          });
-                        }
-                      }}
-                      title="Edit"
-                    >
-                      <svg width="16" height="16">
-                        <path
-                          fill="currentColor"
-                          d="M12.146 2.854a.5.5 0 0 1 .708 0l.292.292a.5.5 0 0 1 0 .708l-9 9L3 13l.146-.146 9-9zM2 12.5V14h1.5l.146-.146-1.5-1.5L2 12.5z"
-                        />
-                      </svg>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        import("@/model/chat").then(({ deleteMessage }) => {
-                          deleteMessage(msg.id);
-                        });
-                      }}
-                      title="Delete"
-                    >
-                      <svg width="16" height="16">
-                        <path
-                          fill="currentColor"
-                          d="M5.5 5a.5.5 0 0 1 .5.5V12a.5.5 0 0 1-1 0V5.5a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0V12a.5.5 0 0 0 1 0V5.5zm2 .5a.5.5 0 0 1 .5-.5V12a.5.5 0 0 1-1 0V5.5z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2h3.086A1.5 1.5 0 0 1 7 1h2a1.5 1.5 0 0 1 1.414 1H13.5a1 1 0 0 1 1 1zm-3 1H4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4zM5 2a.5.5 0 0 0-.5.5V3h7v-.5a.5.5 0 0 0-.5-.5h-6z"
-                        />
-                      </svg>
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        import("@/model/chat").then(({ retryMessage }) => {
-                          retryMessage(msg.id);
-                        });
-                      }}
-                      title="Retry"
-                    >
-                      <svg width="16" height="16">
-                        <path
-                          fill="currentColor"
-                          d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 1 1 .908-.418A4 4 0 1 0 8 4v1.5a.5.5 0 0 1-1 0V3.5a.5.5 0 0 1 .5-.5H9a.5.5 0 0 1 0 1H8z"
-                        />
-                      </svg>
-                    </IconButton>
-                  </Box>
-                </Box>
-              </Paper>
+              <MessageItem message={msg} key={msg.id} />
             ))}
             <div ref={chatEndRef} /> {/* Invisible element to scroll to */}
           </Stack>
