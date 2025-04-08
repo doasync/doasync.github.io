@@ -23,6 +23,7 @@ import {
   modelSelected,
   ModelInfo, // Import the type
   fetchModels, // To potentially add a retry button
+  $showFreeOnly,
 } from "@/features/models-select";
 
 export const ModelSelector: React.FC = () => {
@@ -33,6 +34,7 @@ export const ModelSelector: React.FC = () => {
     error,
     handleModelSelect,
     retryFetch,
+    showFreeOnly,
   } = useUnit({
     models: $availableModels,
     selectedModelId: $selectedModelId,
@@ -40,6 +42,7 @@ export const ModelSelector: React.FC = () => {
     error: $modelsError,
     handleModelSelect: modelSelected,
     retryFetch: fetchModels, // Use fetchModels event to retry
+    showFreeOnly: $showFreeOnly,
   });
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -61,20 +64,24 @@ export const ModelSelector: React.FC = () => {
   };
 
   const filteredModels = useMemo(() => {
-    if (!searchTerm) {
-      return models;
+    let list = models;
+    if (showFreeOnly) {
+      list = list.filter(
+        (m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0"
+      );
     }
-    const lowerCaseSearch = searchTerm.toLowerCase();
-    return models.filter(
-      (model) =>
-        model.name.toLowerCase().includes(lowerCaseSearch) ||
-        model.id.toLowerCase().includes(lowerCaseSearch)
+    if (!searchTerm) return list;
+    const lower = searchTerm.toLowerCase();
+    return list.filter(
+      (m) =>
+        m.name.toLowerCase().includes(lower) ||
+        m.id.toLowerCase().includes(lower)
     );
-  }, [models, searchTerm]);
+  }, [models, searchTerm, showFreeOnly]);
 
   const selectedModelName = useMemo(() => {
     const model = models.find((m) => m.id === selectedModelId);
-    return model ? model.name : selectedModelId; // Show ID if name not found (e.g., during initial load)
+    return model ? model.name.replace(/^[^:]+:\s*/, "") : selectedModelId;
   }, [models, selectedModelId]);
 
   return (

@@ -9,8 +9,10 @@ export {
   $selectedModelId, // Also needed by chat feature
   $isLoadingModels,
   $modelsError,
+  $showFreeOnly,
 
   // Events - Triggered by UI or app initialization
   fetchModels, // Triggered on app start
   modelSelected, // Triggered by ModelSelector component
+  setShowFreeOnly,
 } from "./model";

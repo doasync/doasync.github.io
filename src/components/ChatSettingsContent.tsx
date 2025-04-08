@@ -7,10 +7,14 @@ import {
   InputAdornment,
   Tooltip,
   Slider,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useUnit } from "effector-react";
+import { $showFreeOnly, setShowFreeOnly } from "@/features/models-select";
 
 interface ChatSettingsPanelProps {
   apiKey: string;
@@ -39,6 +43,11 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   handleMouseDownApiKey,
   onClose,
 }) => {
+  const [showFreeOnlyValue, setShowFreeOnlyValue] = useUnit([
+    $showFreeOnly,
+    setShowFreeOnly,
+  ]);
+
   return (
     <Box
       sx={{
@@ -123,6 +132,19 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
             max={2.0}
           />
         </Tooltip>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showFreeOnlyValue}
+              onChange={(e) => setShowFreeOnlyValue(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="Show only free models"
+        />
       </Box>
 
       <Box

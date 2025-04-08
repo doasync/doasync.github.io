@@ -1,5 +1,6 @@
 import { createDomain, sample } from "effector";
 import { debug } from "patronum/debug";
+import { persist } from "effector-storage/local";
 
 const modelsDomain = createDomain("models");
 
@@ -16,7 +17,11 @@ export interface ModelInfo {
     input_modalities: string[]; // Check this array for image support
     output_modalities: string[];
   };
-  // Add other fields if needed later (e.g., pricing)
+  pricing?: {
+    prompt: string;
+    completion: string;
+    [key: string]: string;
+  };
 }
 
 interface ModelsApiResponse {
@@ -38,6 +43,21 @@ export const $selectedModelId = modelsDomain.store<string>(
 export const $isLoadingModels = modelsDomain.store<boolean>(false, {
   name: "isLoadingModels",
 });
+export const $showFreeOnly = modelsDomain.store<boolean>(false, {
+  name: "showFreeOnly",
+});
+
+// --- Events ---
+/**
+ * Toggle or set the "show only free models" filter.
+ */
+export const setShowFreeOnly = modelsDomain.event<boolean>("setShowFreeOnly");
+
+// Set the "show only free models" filter.
+$showFreeOnly.on(setShowFreeOnly, (_, payload) => payload);
+
+persist({ store: $showFreeOnly, key: "showFreeOnly" });
+
 // Error state for the models fetch
 export const $modelsError = modelsDomain.store<string | null>(null, {
   name: "modelsError",
