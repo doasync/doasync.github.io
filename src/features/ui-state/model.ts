@@ -39,8 +39,14 @@ export const closeMobileDrawer = uiDomain.event("closeMobileDrawer");
 export const setMobileDrawerTab =
   uiDomain.event<DrawerTabs>("setMobileDrawerTab");
 
-// Scroll Prevention
-export const setPreventScroll = uiDomain.event<boolean>("setPreventScroll");
+// Message Editing Focus
+export const startEditingMessage = uiDomain.event<string>(
+  "startEditingMessage"
+);
+export const stopEditingMessage = uiDomain.event<void>("stopEditingMessage");
+
+// Scroll Prevention (Moved from here to chat model where it's used)
+// export const setPreventScroll = uiDomain.event<boolean>("setPreventScroll");
 
 // --- Effects ---
 const loadUiSettingsFx = uiDomain.effect<
@@ -141,10 +147,12 @@ export const $mobileDrawerTab = uiDomain
   .on(setMobileDrawerTab, (_, tab) => tab)
   .reset(closeMobileDrawer);
 
-// Flag to temporarily prevent auto-scrolling
-export const $preventScroll = uiDomain
-  .store<boolean>(false, { name: "$preventScroll" })
-  .on(setPreventScroll, (_, value) => value);
+// ID of the message currently being edited (null if none)
+export const $editingMessageId = uiDomain
+  .store<string | null>(null, { name: "$editingMessageId" })
+  .on(startEditingMessage, (_, messageId) => messageId)
+  .reset(stopEditingMessage);
+// Removed $preventScroll store, it lives in chat model now
 
 // --- Store Updates for Persistent Drawers ---
 $isHistoryDrawerPersistentOpen
@@ -158,6 +166,9 @@ $isSettingsDrawerPersistentOpen
   .on(openSettingsDrawer, () => true)
   .on(closeSettingsDrawer, () => false)
   .on(loadUiSettingsFx.doneData, (_, payload) => payload.settingsOpen); // Load from effect
+
+// Reset editing state when chat changes
+$editingMessageId.reset(chatSelected, newChatCreated);
 
 // --- Samples (Flow Logic) ---
 
@@ -209,7 +220,8 @@ debug(
   $isModelInfoDrawerOpen,
   $isMobileDrawerOpen,
   $mobileDrawerTab,
-  $preventScroll, // Added store
+  $editingMessageId, // Added store
+  // $preventScroll, // Removed store
 
   // Events
   showApiKeyDialog,
@@ -225,7 +237,9 @@ debug(
   openMobileDrawer,
   closeMobileDrawer,
   setMobileDrawerTab,
-  setPreventScroll, // Added event
+  startEditingMessage, // Added event
+  stopEditingMessage, // Added event
+  // setPreventScroll, // Removed event
 
   // Effects
   loadUiSettingsFx,

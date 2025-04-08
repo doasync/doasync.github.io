@@ -44,9 +44,10 @@ import {
   $isGenerating, // Import loading state
   $apiError, // Import error state
   $preventScroll, // Import scroll prevention state
-  setPreventScroll,
+  setPreventScroll, // Import scroll prevention setter
   scrollToBottomNeeded, // Import the new scroll trigger event
   $scrollTrigger,
+  // Removed duplicate setPreventScroll import
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -283,7 +284,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", height: "100vh" }}>
+      {" "}
+      {/* Ensure outermost Box has height */}
       {/* AppBar */}
       <AppBar
         position="fixed"
@@ -457,10 +460,12 @@ export default function HomePage() {
       {/* Main Content Area Wrapper */}
       <Box
         component="main"
-        sx={{
+        sx={(theme) => ({
+          // Use theme callback for consistency
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          height: "100vh", // Occupy full viewport height
           // Adjust transitions and margins for main content
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
@@ -485,100 +490,136 @@ export default function HomePage() {
               }),
             }),
           // Ensure content below AppBar starts correctly
-          mt: "64px", // Adjust based on AppBar height (default is 64px)
-          height: "calc(100vh - 64px)", // Adjust height calculation
-          overflow: "hidden", // Prevent main box itself from scrolling
-        }}
+          pt: `${theme.mixins.toolbar.minHeight}px`, // Use theme value for AppBar height
+          pb: 0, // Remove potential bottom padding if any
+          boxSizing: "border-box", // Include padding in height calculation
+        })}
       >
-        {/* Container for Chat Messages */}
-        <Container
-          maxWidth="md" // Keep container constraints
+        {/* Scrollable Area for Chat Messages */}
+        <Box
           sx={{
-            flexGrow: 1, // Takes remaining space
-            overflowY: "auto", // Make the container scrollable
+            flexGrow: 1, // Takes remaining vertical space
+            overflowY: "auto", // Make THIS BOX scrollable
+            display: "flex", // Use flexbox to easily center the container
+            flexDirection: "column", // Stack items vertically
+            alignItems: "center", // Center items horizontally
+            width: "100%",
+            px: isMobile ? 1 : 3, // Add horizontal padding
             py: 2,
-            display: "flex",
-            flexDirection: "column",
           }}
         >
-          {/* Paper for message list background/padding */}
-          <Paper
-            elevation={0}
+          {/* Inner container for centering message content */}
+          <Container
+            maxWidth="md" // Apply centering constraint here
+            disableGutters // Remove default container padding, handled by outer Box
             sx={{
-              flexGrow: 1,
-              p: 2,
-              backgroundColor: "transparent", // Or theme background
-              display: "flex",
+              display: "flex", // Use flex to make paper grow
               flexDirection: "column",
+              flexGrow: 1, // Allow vertical growth within scrollable area
+              width: "100%", // Ensure it uses the full width provided by parent Box
             }}
           >
-            <Stack spacing={0} sx={{ flexGrow: 1 }}>
-              {messages.map((msg) => (
-                <MessageItem message={msg} key={msg.id} />
-              ))}
-              <div ref={chatEndRef} />
-            </Stack>
-          </Paper>
-
-          {apiError && (
-            <Alert severity="error" sx={{ mt: 1, mb: 1 }}>
+            {/* Paper for message list background/padding - optional */}
+            <Paper
+              elevation={0}
+              sx={{
+                flexGrow: 1, // Make paper grow to fill container
+                p: 1, // Reduced padding
+                backgroundColor: "transparent", // Or theme background
+                display: "flex",
+                flexDirection: "column",
+                width: "100%", // Take full width of the Container
+              }}
+            >
+              <Stack spacing={1} sx={{ flexGrow: 1, width: "100%" }}>
+                {messages.map((msg) => (
+                  <MessageItem message={msg} key={msg.id} />
+                ))}
+                <div ref={chatEndRef} />
+              </Stack>
+            </Paper>{" "}
+            {/* End Message List Paper */}
+          </Container>{" "}
+          {/* End Centering Container */}
+        </Box>{" "}
+        {/* End Scrollable Area Box */}
+        {/* apiError Alert - Placed outside scrollable area but inside main content */}
+        {apiError && (
+          <Container maxWidth="md" sx={{ px: isMobile ? 1 : 2, width: "100%" }}>
+            <Alert severity="error" sx={{ mt: 1, mb: 1, width: "100%" }}>
               {apiError}
             </Alert>
-          )}
-        </Container>
-
-        {/* Input Area */}
-        <Paper
-          square
-          elevation={3}
+          </Container>
+        )}
+        {/* Input Area Wrapper - Sticks to the bottom */}
+        <Box
           sx={{
-            p: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            // Ensure input stays at bottom
             mt: "auto",
+            width: "100%",
+            backgroundColor: "background.paper",
+            flexShrink: 0,
           }}
         >
-          <TextField
-            fullWidth
-            multiline
-            maxRows={5}
-            variant="outlined"
-            placeholder="Type your message..."
-            sx={{ flexGrow: 1 }}
-            value={messageText}
-            onChange={changeMessage}
-            onKeyDown={keyDownMessage}
-          />
-          <IconButton color="primary" aria-label="attach file">
-            <AttachFileIcon />
-          </IconButton>
-          <Box sx={{ position: "relative" }}>
-            <IconButton
-              color="primary"
-              aria-label="send message"
-              onClick={clickSendMessage}
-              disabled={messageText.trim().length === 0 || isGenerating}
+          {" "}
+          {/* Added flexShrink */}
+          {/* Centering Container for Input */}
+          <Container maxWidth="md" sx={{ py: 1, px: isMobile ? 1 : 2 }}>
+            <Paper
+              square
+              elevation={0} // Can adjust elevation if needed
+              sx={{
+                p: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                width: "100%", // Ensure paper takes full width of container
+              }}
             >
-              <SendIcon />
-            </IconButton>
-            {isGenerating && (
-              <CircularProgress
-                size={24}
-                sx={{
-                  color: "primary.main",
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  marginTop: "-12px",
-                  marginLeft: "-12px",
-                }}
+              <TextField
+                fullWidth
+                multiline
+                maxRows={5}
+                variant="outlined"
+                placeholder="Type your message..."
+                sx={{ flexGrow: 1 }}
+                value={messageText}
+                onChange={changeMessage}
+                onKeyDown={keyDownMessage}
               />
-            )}
-          </Box>
-        </Paper>
-
+              <IconButton color="primary" aria-label="attach file" disabled>
+                {" "}
+                {/* Disabled Attach for now */}
+                <AttachFileIcon />
+              </IconButton>
+              <Box sx={{ position: "relative" }}>
+                <IconButton
+                  color="primary"
+                  aria-label="send message"
+                  onClick={clickSendMessage}
+                  disabled={messageText.trim().length === 0 || isGenerating}
+                >
+                  <SendIcon />
+                </IconButton>
+                {isGenerating && (
+                  <CircularProgress
+                    size={24}
+                    sx={{
+                      color: "primary.main",
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      marginTop: "-12px",
+                      marginLeft: "-12px",
+                    }}
+                  />
+                )}
+              </Box>
+            </Paper>{" "}
+            {/* End Input Paper */}
+          </Container>{" "}
+          {/* End Input Centering Container */}
+        </Box>{" "}
+        {/* End Input Area Wrapper Box */}
         <ApiKeyMissingDialog />
       </Box>{" "}
       {/* End Main Content Box */}

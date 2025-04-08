@@ -10,8 +10,8 @@ export {
   // $activeMessageId, // Remove active message state export
   $isMobileDrawerOpen, // Add mobile drawer state
   $mobileDrawerTab, // Add mobile drawer tab state
-  $preventScroll, // Add scroll prevention state
-
+  // $preventScroll, // Removed - belongs to chat model now
+  $editingMessageId, // Add editing state
   // Events - Triggered by UI components
   showApiKeyDialog, // Triggered by chat model or settings UI
   hideApiKeyDialog, // Triggered by ApiKeyMissingDialog
@@ -25,5 +25,7 @@ export {
   // setActiveMessageId, // Remove active message event export
   closeMobileDrawer,
   setMobileDrawerTab, // Triggered by mobile drawer tab change
-  setPreventScroll, // Triggered by chat model during retry/edit
+  // setPreventScroll, // Removed - belongs to chat model now
+  startEditingMessage, // Add editing state events
+  stopEditingMessage,
 } from "./model";

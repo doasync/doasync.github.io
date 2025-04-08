@@ -57,6 +57,11 @@ const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate");
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
+// Internal event to capture original retry trigger context
+const retryTriggered = chatDomain.event<{
+  messageId: string;
+  role: "user" | "assistant";
+}>("retryTriggered");
 const prepareRetryParams =
   chatDomain.event<SendApiRequestParams>("prepareRetryParams");
 const calculatedRetryUpdate = chatDomain.event<CalculatedRetryUpdatePayload>(
@@ -101,6 +106,14 @@ export const $preventScroll = chatDomain
 export const $scrollTrigger = chatDomain
   .store<number>(0, { name: "$scrollTrigger" })
   .on(scrollToBottomNeeded, (n) => n + 1);
+
+// Store the context of the message that triggered the current retry
+export const $retryContext = chatDomain
+  .store<{ messageId: string; role: "user" | "assistant" } | null>(null, {
+    name: "$retryContext",
+  })
+  .on(retryTriggered, (_, payload) => payload)
+  .reset(sendApiRequestFx.finally); // Reset when API call finishes
 
 // --- Store Updates (.on/.reset) ---
 
@@ -310,9 +323,20 @@ const isRetryableMessage = (
   return !!message && (message.role === "user" || message.role === "assistant");
 };
 
-// Prepare API parameters when a message retry is requested
+// When messageRetry is called, store its context and prepare API params
 sample({
   clock: messageRetry,
+  filter: isRetryableMessage, // Ensure it's a valid message to retry
+  fn: (messageToRetry) => ({
+    // Extract context for $retryContext store
+    messageId: messageToRetry.id,
+    role: messageToRetry.role,
+  }),
+  target: retryTriggered, // Store the context
+});
+
+sample({
+  clock: messageRetry, // Also trigger param preparation
   source: {
     messages: $messages,
     apiKey: $apiKey,
@@ -320,9 +344,11 @@ sample({
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
   },
-  filter: ({ apiKey }, messageRetried) =>
-    apiKey.length > 0 && isRetryableMessage(messageRetried),
-  fn: prepareRetryRequestParamsFn,
+  filter: (
+    { apiKey },
+    messageRetried // Ensure API key exists
+  ) => apiKey.length > 0 && isRetryableMessage(messageRetried),
+  fn: prepareRetryRequestParamsFn, // Prepare params using original message
   target: prepareRetryParams,
 });
 
@@ -348,11 +374,14 @@ sample({
 });
 
 // Calculate how to update the message list after a successful retry response
+// Use the stored $retryContext to know which message was originally retried
 sample({
-  clock: apiRequestSuccess,
-  source: { messages: $messages, retryingMessageId: $retryingMessageId },
-  filter: ({ retryingMessageId }) => retryingMessageId !== null, // Only run if retrying
-  fn: calculateRetryUpdatePayloadFn,
+  clock: apiRequestSuccess, // Triggered after API success
+  source: { messages: $messages, retryContext: $retryContext }, // Get messages and the original retry context
+  filter: ({ retryContext }) => retryContext !== null, // Only run if a retry was triggered
+  // Ensure the fn here correctly uses the source defined above
+  fn: ({ messages, retryContext }, response) =>
+    calculateRetryUpdatePayloadFn({ messages, retryContext }, response),
   target: calculatedRetryUpdate,
 });
 
@@ -371,10 +400,11 @@ debug(
   $isGenerating,
   $apiError,
   $currentChatTokens,
-  $retryingMessageId,
+  $retryingMessageId, // Spinner state
   $scrollTrigger,
+  $retryContext, // Original retry context
   // Targets from other features
-  setPreventScroll,
+  setPreventScroll, // Scroll prevention setter
 
   // User-facing events
   messageTextChanged,
@@ -392,7 +422,8 @@ debug(
   calculatedRetryUpdate,
   apiRequestTokensUpdated,
   apiRequestSuccess,
-  initialChatSaveNeeded, // Added missing event
+  initialChatSaveNeeded,
+  retryTriggered, // Added internal event
 
   // Effects
   sendApiRequestFx

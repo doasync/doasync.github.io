@@ -155,32 +155,21 @@ export const prepareRetryRequestParamsFn = (
 export const calculateRetryUpdatePayloadFn = (
   {
     messages,
-    retryingMessageId,
-  }: { messages: Message[]; retryingMessageId: string | null },
+    retryContext,
+  }: {
+    messages: Message[];
+    retryContext: { messageId: string; role: "user" | "assistant" } | null;
+  },
   response: OpenRouterResponseBody
 ): CalculatedRetryUpdatePayload => {
-  if (!retryingMessageId) {
-    console.error(
-      "calculateRetryUpdatePayloadFn called without a retryingMessageId"
-    );
+  // Use the passed retryContext directly
+  if (!retryContext) {
+    console.error("calculateRetryUpdatePayloadFn called without retryContext");
     return null;
   }
 
-  // Find the message that *initiated* the retry. This is complex because
-  // retryingMessageId points to the message *to be replaced* or *inserted after*.
-  // We need to infer the original trigger based on retryingMessageId's role.
-
-  const messageToReplaceOrInsertAfter = messages.find(
-    (msg) => msg.id === retryingMessageId
-  );
-
-  if (!messageToReplaceOrInsertAfter) {
-    console.error(
-      "Message identified by retryingMessageId not found:",
-      retryingMessageId
-    );
-    return null;
-  }
+  const { messageId: originalRetryMessageId, role: originalRetryMessageRole } =
+    retryContext;
 
   const newAssistantMessage: Message = {
     id: crypto.randomUUID(), // Ensure a unique ID for the new message
@@ -192,13 +181,17 @@ export const calculateRetryUpdatePayloadFn = (
   let targetIndex = -1;
   let insert = false;
 
-  // Determine target index based on the role of the message identified by retryingMessageId
-  if (messageToReplaceOrInsertAfter.role === "assistant") {
+  // Determine target index based on the role of the *original* message that was retried
+  if (originalRetryMessageRole === "assistant") {
     // Retrying an assistant message: Replace the message itself
-    targetIndex = messages.findIndex((msg) => msg.id === retryingMessageId);
-  } else if (messageToReplaceOrInsertAfter.role === "user") {
+    targetIndex = messages.findIndex(
+      (msg) => msg.id === originalRetryMessageId
+    );
+  } else if (originalRetryMessageRole === "user") {
     // Retrying a user message: Find the *next* assistant message index to replace, or insert if none
-    const userIndex = messages.findIndex((msg) => msg.id === retryingMessageId);
+    const userIndex = messages.findIndex(
+      (msg) => msg.id === originalRetryMessageId
+    );
     const nextAssistantIndex = messages.findIndex(
       (msg, index) => index > userIndex && msg.role === "assistant"
     );
@@ -213,8 +206,8 @@ export const calculateRetryUpdatePayloadFn = (
   } else {
     // Should not happen if retryingMessageId is set correctly
     console.error(
-      "Unexpected role for message identified by retryingMessageId:",
-      messageToReplaceOrInsertAfter.role
+      "Unexpected role for original retried message:",
+      originalRetryMessageRole
     );
     return null;
   }
