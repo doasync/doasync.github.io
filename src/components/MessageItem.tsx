@@ -24,6 +24,7 @@ import CodeIcon from "@mui/icons-material/Code"; // Import Code icon
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
+import MarkdownRenderer from "./MarkdownRenderer"; // Import the new renderer
 
 interface MessageItemProps {
   message: Message;
@@ -135,8 +136,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         ) : (
-          <Typography variant="body1" whiteSpace={"pre-wrap"}>
-            {message.content}
+          // Use Typography as a container, but render content with MarkdownRenderer
+          <Typography component="div" variant="body1">
+            <MarkdownRenderer content={message.content} />
           </Typography>
         )}
         {isRetryingThisMessage && (
