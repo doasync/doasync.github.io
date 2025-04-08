@@ -4,7 +4,7 @@ import { debug } from "patronum/debug";
 
 const uiDomain = createDomain("ui");
 
-type DrawerTabs = "history" | "settings";
+type DrawerTabs = "history" | "settings" | "modelInfo";
 
 // --- Events ---
 

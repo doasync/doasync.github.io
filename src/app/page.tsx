@@ -29,6 +29,11 @@ import Drawer from "@mui/material/Drawer";
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
 import { ModelSelector } from "@/components/ModelSelector";
+import {
+  $selectedModelId,
+  $availableModels,
+  ModelInfo,
+} from "@/features/models-select";
 
 // Import Effector models
 import {
@@ -227,11 +232,19 @@ export default function HomePage() {
     handleMouseDownApiKey,
   };
 
+  const [selectedModelId, models] = useUnit([
+    $selectedModelId,
+    $availableModels,
+  ]) as [string, ModelInfo[]];
+
+  const selectedModel = React.useMemo(() => {
+    return models.find((m) => m.id === selectedModelId);
+  }, [models, selectedModelId]);
+
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]); // Scroll when messages change
+  }, [messages]);
 
-  // Load settings and models only once on initial mount
   React.useEffect(() => {
     loadSettings();
     fetchModels();
@@ -240,7 +253,6 @@ export default function HomePage() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-      {/* Header Bar */}
       <AppBar position="static">
         <Toolbar>
           <IconButton
@@ -253,7 +265,6 @@ export default function HomePage() {
           >
             <HistoryIcon />
           </IconButton>
-          {/* Model Selector - Takes up the central space */}
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
             <ModelSelector />
           </Box>
@@ -263,7 +274,7 @@ export default function HomePage() {
             aria-label="new chat"
             onClick={clickNewChat}
           >
-            <AddCommentIcon /> {/* New Chat Button - Trigger newChatCreated */}
+            <AddCommentIcon />
           </IconButton>
           <IconButton
             size="large"
@@ -281,10 +292,9 @@ export default function HomePage() {
             aria-label="settings"
             onClick={clickSettings}
           >
-            <SettingsIcon /> {/* Settings Button */}
+            <SettingsIcon />
           </IconButton>
         </Toolbar>
-        {/* Drawers */}
         {!isMobile && (
           <>
             <Drawer
@@ -308,22 +318,21 @@ export default function HomePage() {
           <MobileUnifiedDrawer
             historyPanelProps={historyPanelProps}
             settingsPanelProps={settingsPanelProps}
+            modelInfo={selectedModel}
           />
         )}
       </AppBar>
 
-      {/* Chat Window Area */}
       <Container
-        maxWidth="md" // Or false to disable maxWidth
+        maxWidth="md"
         sx={{
           flexGrow: 1,
-          overflowY: "auto", // Make chat scrollable
-          py: 2, // Padding top and bottom
+          overflowY: "auto",
+          py: 2,
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Messages Display */}
         <Paper
           elevation={0}
           sx={{
@@ -338,11 +347,10 @@ export default function HomePage() {
             {messages.map((msg) => (
               <MessageItem message={msg} key={msg.id} />
             ))}
-            <div ref={chatEndRef} /> {/* Invisible element to scroll to */}
+            <div ref={chatEndRef} />
           </Stack>
         </Paper>
 
-        {/* API Error Display */}
         {apiError && (
           <Alert severity="error" sx={{ mt: 1, mb: 1 }}>
             {apiError}
@@ -350,39 +358,36 @@ export default function HomePage() {
         )}
       </Container>
 
-      {/* Message Input Area */}
       <Paper
         square
         elevation={3}
         sx={{
-          p: 2, // Padding
+          p: 2,
           display: "flex",
           alignItems: "center",
-          gap: 1, // Spacing between items
+          gap: 1,
         }}
       >
         <TextField
           fullWidth
           multiline
-          maxRows={5} // Limit vertical expansion
+          maxRows={5}
           variant="outlined"
           placeholder="Type your message..."
           sx={{ flexGrow: 1 }}
-          value={messageText} // Bind value to store
-          onChange={changeMessage} // Update store on change
-          onKeyDown={keyDownMessage} // Handle Enter key
+          value={messageText}
+          onChange={changeMessage}
+          onKeyDown={keyDownMessage}
         />
         <IconButton color="primary" aria-label="attach file">
           <AttachFileIcon />
         </IconButton>
         <Box sx={{ position: "relative" }}>
-          {" "}
-          {/* Wrapper for loading indicator */}
           <IconButton
             color="primary"
             aria-label="send message"
             onClick={clickSendMessage}
-            disabled={messageText.trim().length === 0 || isGenerating} // Disable if empty or generating
+            disabled={messageText.trim().length === 0 || isGenerating}
           >
             <SendIcon />
           </IconButton>
@@ -394,8 +399,8 @@ export default function HomePage() {
                 position: "absolute",
                 top: "50%",
                 left: "50%",
-                marginTop: "-12px", // Center vertically
-                marginLeft: "-12px", // Center horizontally
+                marginTop: "-12px",
+                marginLeft: "-12px",
               }}
             />
           )}

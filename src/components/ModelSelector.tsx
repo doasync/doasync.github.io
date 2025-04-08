@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from "react";
+import { useMediaQuery, useTheme } from "@mui/material";
+import { openMobileDrawer } from "@/features/ui-state/model";
 import { useUnit } from "effector-react";
 import {
   Button,
@@ -11,22 +13,28 @@ import {
   Tooltip,
   ListSubheader,
   InputAdornment,
+  IconButton,
+  Drawer,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import ModelInfoDrawer from "./ModelInfoDrawer";
 import {
   $availableModels,
   $selectedModelId,
   $isLoadingModels,
   $modelsError,
   modelSelected,
-  ModelInfo, // Import the type
-  fetchModels, // To potentially add a retry button
+  ModelInfo,
+  fetchModels,
   $showFreeOnly,
 } from "@/features/models-select";
 
 export const ModelSelector: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     models,
     selectedModelId,
@@ -41,12 +49,13 @@ export const ModelSelector: React.FC = () => {
     isLoading: $isLoadingModels,
     error: $modelsError,
     handleModelSelect: modelSelected,
-    retryFetch: fetchModels, // Use fetchModels event to retry
+    retryFetch: fetchModels,
     showFreeOnly: $showFreeOnly,
   });
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -55,7 +64,7 @@ export const ModelSelector: React.FC = () => {
 
   const handleClose = () => {
     setAnchorEl(null);
-    setSearchTerm(""); // Reset search on close
+    setSearchTerm("");
   };
 
   const handleMenuItemClick = (modelId: string) => {
@@ -84,6 +93,10 @@ export const ModelSelector: React.FC = () => {
     return model ? model.name.replace(/^[^:]+:\s*/, "") : selectedModelId;
   }, [models, selectedModelId]);
 
+  const selectedModel: ModelInfo | undefined = useMemo(() => {
+    return models.find((m) => m.id === selectedModelId);
+  }, [models, selectedModelId]);
+
   return (
     <Box
       sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -105,8 +118,8 @@ export const ModelSelector: React.FC = () => {
         aria-expanded={open ? "true" : undefined}
         onClick={handleClick}
         endIcon={<KeyboardArrowDownIcon />}
-        disabled={isLoading || error !== null} // Disable button if loading or if an error exists
-        sx={{ textTransform: "none", color: "inherit" }} // Keep AppBar color
+        disabled={isLoading || error !== null}
+        sx={{ textTransform: "none", color: "inherit" }}
       >
         <Typography
           variant="h6"
@@ -115,27 +128,37 @@ export const ModelSelector: React.FC = () => {
           sx={{ maxWidth: "250px" }}
         >
           {" "}
-          {/* Limit width */}
           {selectedModelName}
         </Typography>
       </Button>
+      <IconButton
+        onClick={() => {
+          if (isMobile) {
+            openMobileDrawer({ tab: "modelInfo" });
+          } else {
+            setInfoOpen(true);
+          }
+        }}
+        disabled={!selectedModel}
+      >
+        <InfoOutlinedIcon />
+      </IconButton>
       <Menu
         id="model-selector-menu"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        disableAutoFocusItem // Prevent auto-selecting first item
+        disableAutoFocusItem
         MenuListProps={{
           "aria-labelledby": "model-selector-button",
         }}
         PaperProps={{
           style: {
-            maxHeight: 400, // Limit menu height
-            width: "35ch", // Set a reasonable width
+            maxHeight: 400,
+            width: "35ch",
           },
         }}
       >
-        {/* Sticky Search Input */}
         <ListSubheader sx={{ padding: 0 }}>
           <TextField
             fullWidth
@@ -145,7 +168,7 @@ export const ModelSelector: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()} // Prevent menu close on key presses
+            onKeyDown={(e) => e.stopPropagation()}
             sx={{ px: 2, py: 1 }}
             autoFocus
             InputProps={{
@@ -163,7 +186,7 @@ export const ModelSelector: React.FC = () => {
               key={model.id}
               selected={model.id === selectedModelId}
               onClick={() => handleMenuItemClick(model.id)}
-              title={model.description} // Show description on hover
+              title={model.description}
             >
               {model.name}
             </MenuItem>
@@ -172,6 +195,9 @@ export const ModelSelector: React.FC = () => {
           <MenuItem disabled>No models found</MenuItem>
         )}
       </Menu>
+      <Drawer anchor="right" open={infoOpen} onClose={() => setInfoOpen(false)}>
+        {selectedModel && <ModelInfoDrawer model={selectedModel} />}
+      </Drawer>
     </Box>
   );
 };

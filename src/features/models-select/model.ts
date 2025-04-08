@@ -12,6 +12,7 @@ export interface ModelInfo {
   name: string; // Display name (e.g., "OpenAI: GPT-4o") - USE THIS
   description: string;
   context_length: number;
+  created?: number; // epoch seconds
   architecture: {
     modality: string;
     input_modalities: string[]; // Check this array for image support

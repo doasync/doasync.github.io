@@ -8,18 +8,21 @@ import {
   setMobileDrawerTab,
 } from "@/features/ui-state/model";
 
-// These panels accept props forwarded from page.tsx
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
+import ModelInfoDrawer from "@/components/ModelInfoDrawer";
+import type { ModelInfo } from "@/features/models-select/model";
 
 interface MobileUnifiedDrawerProps {
   historyPanelProps: React.ComponentProps<typeof ChatHistoryContent>;
   settingsPanelProps: React.ComponentProps<typeof ChatSettingsContent>;
+  modelInfo?: ModelInfo;
 }
 
 const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
   historyPanelProps,
   settingsPanelProps,
+  modelInfo,
 }) => {
   const [isOpen, activeTab] = useUnit([$isMobileDrawerOpen, $mobileDrawerTab]);
   const close = useUnit(closeMobileDrawer);
@@ -47,6 +50,7 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
         >
           <Tab value="history" label="History" />
           <Tab value="settings" label="Settings" />
+          <Tab value="modelInfo" label="Model" />
         </Tabs>
 
         <Box sx={{ flexGrow: 1, overflow: "auto" }}>
@@ -55,6 +59,11 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
           )}
           {activeTab === "settings" && (
             <ChatSettingsContent {...settingsPanelProps} onClose={close} />
+          )}
+          {activeTab === "modelInfo" && modelInfo && (
+            <Box p={2}>
+              <ModelInfoDrawer model={modelInfo} />
+            </Box>
           )}
         </Box>
       </Box>
