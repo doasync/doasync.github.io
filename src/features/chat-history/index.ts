@@ -23,6 +23,8 @@ export {
   chatTitleEdited, // Triggered by editing title in ChatHistoryDrawer
   duplicateChatClicked, // Triggered by duplicate button in ChatHistoryDrawer
   generateTitle, // Triggered by title generation button in ChatHistoryDrawer
+  regenerateTitleForChat, // Triggered by regenerate title menu item
+
   // Effects - Generally kept internal, triggered by events above
   // loadChatHistoryIndexFx,
   // loadSpecificChatFx,

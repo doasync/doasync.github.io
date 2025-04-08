@@ -45,6 +45,9 @@ export const generateTitle = historyDomain.event("generateTitle");
 export const duplicateChatClicked = historyDomain.event<string>(
   "duplicateChatClicked"
 );
+export const regenerateTitleForChat = historyDomain.event<string>(
+  "regenerateTitleForChat"
+);
 
 // --- Effects ---
 export const loadChatHistoryIndexFx = historyDomain.effect<
@@ -132,6 +135,44 @@ export const generateTitleFx = historyDomain.effect<
   Error
 >("generateTitleFx", {
   handler: generateTitleHandler,
+});
+export const regenerateTitleForChatFx = historyDomain.effect<
+  string,
+  void,
+  Error
+>("regenerateTitleForChatFx");
+
+regenerateTitleForChatFx.use(async (chatId) => {
+  const apiKey = $apiKey.getState();
+  if (!apiKey) throw new Error("API key is missing");
+
+  const chat = await loadSpecificChatHandler(chatId);
+  if (!chat) throw new Error("Chat not found");
+
+  if (!chat.messages || chat.messages.length === 0) return;
+
+  const result = await generateTitleHandler({
+    chatId,
+    messages: chat.messages,
+    apiKey,
+  });
+
+  if (!result.generatedTitle) return;
+
+  await editChatTitleHandler({
+    id: chatId,
+    newTitle: result.generatedTitle,
+  });
+});
+
+sample({
+  clock: regenerateTitleForChat,
+  target: regenerateTitleForChatFx,
+});
+
+sample({
+  clock: regenerateTitleForChatFx.done,
+  target: loadChatHistoryIndexFx,
 });
 
 // --- Stores ---

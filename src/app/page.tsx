@@ -46,6 +46,7 @@ import {
   $preventScroll, // Import scroll prevention state
   setPreventScroll,
   scrollToBottomNeeded, // Import the new scroll trigger event
+  $scrollTrigger,
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -266,11 +267,14 @@ export default function HomePage() {
   }, [preventScroll]); // Only run when preventScroll changes
 
   // Effect to scroll to bottom ONLY when the specific event is triggered
-  useUnit(scrollToBottomNeeded).watch(() => {
-    // We don't need to check preventScroll here, as scrollToBottomNeeded should only fire
-    // when scrolling is actually desired (i.e., after a new user message).
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  });
+  const scrollTrigger = useUnit($scrollTrigger);
+  const preventScrollFlag = useUnit($preventScroll);
+
+  React.useEffect(() => {
+    if (!preventScrollFlag) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [scrollTrigger, preventScrollFlag]);
 
   React.useEffect(() => {
     loadSettings();
@@ -282,41 +286,58 @@ export default function HomePage() {
     <Box sx={{ display: "flex" }}>
       {/* AppBar */}
       <AppBar
-        position="fixed" // Make AppBar fixed
-        sx={{
-          zIndex: theme.zIndex.drawer + 1, // Ensure AppBar is above drawers
-          transition: theme.transitions.create(["width", "margin"], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          ...(isHistoryPersistentOpen &&
-            !isMobile && {
+        position="fixed"
+        sx={() => {
+          const base = {
+            zIndex: theme.zIndex.drawer + 1,
+            transition: theme.transitions.create(["width", "margin"], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
+          };
+
+          if (
+            !isMobile &&
+            isHistoryPersistentOpen &&
+            isSettingsPersistentOpen
+          ) {
+            return {
+              ...base,
+              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px - ${SETTINGS_DRAWER_WIDTH}px)`,
+              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
+              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
+              transition: theme.transitions.create(["width", "margin"], {
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            };
+          }
+
+          if (!isMobile && isHistoryPersistentOpen) {
+            return {
+              ...base,
               width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px)`,
               marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
               transition: theme.transitions.create(["width", "margin"], {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-            }),
-          ...(isSettingsPersistentOpen &&
-            !isMobile && {
-              // Adjust width only if history is closed, otherwise handled below
-              ...(!isHistoryPersistentOpen && {
-                width: `calc(100% - ${SETTINGS_DRAWER_WIDTH}px)`,
-              }),
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`, // Add margin for right drawer
+            };
+          }
+
+          if (!isMobile && isSettingsPersistentOpen) {
+            return {
+              ...base,
+              width: `calc(100% - ${SETTINGS_DRAWER_WIDTH}px)`,
+              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
               transition: theme.transitions.create(["width", "margin"], {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-            }),
-          ...(isHistoryPersistentOpen &&
-            isSettingsPersistentOpen &&
-            !isMobile && {
-              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px - ${SETTINGS_DRAWER_WIDTH}px)`, // Adjust width for both drawers
-              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
-            }),
+            };
+          }
+
+          return base;
         }}
       >
         <Toolbar>
@@ -352,7 +373,7 @@ export default function HomePage() {
             color="inherit"
             aria-label="new chat"
             onClick={clickNewChat}
-            sx={{ ml: 1 }} // Added margin-left for spacing
+            sx={{ ml: 1 }}
           >
             <AddCommentIcon />
           </IconButton>
@@ -360,15 +381,6 @@ export default function HomePage() {
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
             <ModelSelector />
           </Box>
-          <IconButton
-            size="large"
-            color="inherit"
-            aria-label="regenerate title"
-            onClick={clickRegenerateTitle}
-            title="Regenerate Title"
-          >
-            <RefreshIcon />
-          </IconButton>
           {/* Conditionally render Settings Button */}
           {!isSettingsPersistentOpen && !isMobile && (
             <IconButton

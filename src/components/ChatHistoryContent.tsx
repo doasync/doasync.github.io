@@ -28,6 +28,8 @@ import CheckIcon from "@mui/icons-material/Check";
 import type { ChatHistoryIndex } from "@/features/chat-history";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { regenerateTitleForChat } from "@/features/chat-history";
 
 interface ChatHistoryPanelProps {
   searchTerm: string;
@@ -88,6 +90,13 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
   const handleDuplicate = () => {
     if (menuChatId) {
       duplicateChatClicked(menuChatId);
+    }
+    handleMenuClose();
+  };
+
+  const handleRegenerateTitle = () => {
+    if (menuChatId) {
+      regenerateTitleForChat(menuChatId);
     }
     handleMenuClose();
   };
@@ -305,6 +314,12 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
             <ContentCopyIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Duplicate" />
+        </MenuItem>
+        <MenuItem onClick={handleRegenerateTitle}>
+          <ListItemIcon>
+            <RefreshIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Regenerate Title" />
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
           <ListItemIcon sx={{ color: "error.main" }}>

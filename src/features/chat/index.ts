@@ -17,6 +17,7 @@ export {
   $apiError, // Needed by UI error display
   $retryingMessageId, // Needed by MessageItem to show spinner
   $preventScroll, // Import scroll prevention state
+  $scrollTrigger, // Scroll trigger counter
 
   // Events - Triggered by UI or other features
   messageTextChanged,

@@ -97,6 +97,11 @@ export const $preventScroll = chatDomain
   .store<boolean>(false, { name: "$preventScroll" })
   .on(setPreventScroll, (_, value) => value);
 
+// Scroll trigger counter, increments on scrollToBottomNeeded event
+export const $scrollTrigger = chatDomain
+  .store<number>(0, { name: "$scrollTrigger" })
+  .on(scrollToBottomNeeded, (n) => n + 1);
+
 // --- Store Updates (.on/.reset) ---
 
 // Update message text input
@@ -367,6 +372,7 @@ debug(
   $apiError,
   $currentChatTokens,
   $retryingMessageId,
+  $scrollTrigger,
   // Targets from other features
   setPreventScroll,
 
