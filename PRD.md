@@ -1,9 +1,9 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.4
-**Date:** 2025-04-07
+**Version:** 1.5
+**Date:** 2025-04-08
 **Author:** doasync
-**Status:** Updated after Phase 8 (Architecture Refactoring)
+**Status:** Updated after Phase 10 (Rich Content, Model Enhancements, History Actions)
 
 **1. Introduction**
 
@@ -12,9 +12,10 @@ This document outlines the requirements for a static, adaptive web application d
 **2. Goals**
 
 - Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter.
-- Enable users to manage multiple chat conversations (history) persistently using IndexedDB.
-- Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically.
+- Enable users to manage multiple chat conversations (history) persistently using IndexedDB, including duplication.
+- Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically, with options to filter and view detailed model information.
 - Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, and retry with resubmission.
+- **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) stored locally.
 - Support client-side file attachment (text/images) for multimodal interaction where supported by the model.
 - Ensure a seamless experience across desktop and mobile devices.
@@ -39,17 +40,21 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - An icon button located on the far left.
   - On click: Opens the "Chat History" sidebar (Left Drawer on Desktop/Tablet, Bottom Drawer on Mobile).
 - **4.2.2. Current Model Display (Center):**
-  - Displays the name of the currently selected LLM model.
+  - Displays the **cleaned name** of the currently selected LLM model (provider prefix removed, e.g., "Llama 4 Scout" instead of "Meta: Llama 4 Scout").
   - On click: Opens the "Model Selection Dropdown".
-- **4.2.3. Model Selection Dropdown:**
+- **4.2.3. Model Info Button (Center):**
+  - An **info icon button** located next to the "Current Model Display".
+  - On click: Opens the "Model Information" view (Right Drawer on Desktop/Tablet, new Tab in Bottom Drawer on Mobile).
+- **4.2.4. Model Selection Dropdown:**
   - A dropdown menu appearing below the "Current Model Display".
   - Contains a list of available LLM models, **fetched dynamically from an OpenRouter endpoint on App startup**.
-  - Includes a search input field at the top to filter the model list.
+  - Includes a search input field at the top to filter the model list by name.
+  - **Filters models based on the "Show only free models" setting** (see 4.6.6).
   - Selecting a model updates the "Current Model Display" and sets the model for **subsequent interactions** in the current chat. The UI will **not** explicitly indicate points in the history where the model was changed.
-- **4.2.4. New Chat Button (Right):**
-  - An icon button located to the right of the model display.
+- **4.2.5. New Chat Button (Right):**
+  - An icon button located to the right of the model display/info button.
   - On click: Clears the current chat window, preserves settings (API key, temperature, system prompt), starts a new chat session UI-wise, and prepares for storage upon first message exchange.
-- **4.2.5. Chat Settings Button (Far Right):**
+- **4.2.6. Chat Settings Button (Far Right):**
   - An icon button located on the far right.
   - On click: Opens the "Chat Settings" sidebar (Right Drawer on Desktop/Tablet, Bottom Drawer on Mobile).
 
@@ -59,14 +64,22 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - The main area displaying the conversation history for the _current_ chat.
   - Must be scrollable vertically. Consider virtualization for very long chats if performance degrades.
   - New messages appear at the bottom.
-- **4.3.2. Message Alignment:**
+- **4.3.2. Message Rendering:**
+  - Messages are rendered using `react-markdown` and associated plugins.
+  - **Supports:**
+    - Standard Markdown syntax.
+    - GitHub Flavored Markdown (GFM) including tables, task lists, strikethrough.
+    - Syntax highlighting for code blocks (`language ... `) using `react-syntax-highlighter`.
+    - LaTeX math notation (`$...$` and `$$...$$`) rendered using KaTeX via `rehype-katex`.
+    - Mermaid diagrams (`mermaid ... `) rendered using `@lightenna/react-mermaid-diagram`.
+- **4.3.3. Message Alignment:**
   - Messages from the LLM model are aligned to the left.
   - Messages from the user are aligned to the right and have highlighted background (different color).
-- **4.3.3. Message Interaction:**
+- **4.3.4. Message Interaction:**
   - Hovering over a message reveals a small set of action icons in a popover/toolbar.
-- **4.3.4. Message Actions (Icons):** **(Implemented in Phase 7)**
+- **4.3.5. Message Actions (Icons):**
   - **Copy Text:** Copies the plain text content using `navigator.clipboard`. **(Implemented)**
-  - **Copy Markdown/Code:** Copies the content as-is (assuming Markdown/code) using `navigator.clipboard`. **(Implemented - Basic)**
+  - **Copy Markdown/Code:** Copies the raw content as-is using `navigator.clipboard`. **(Implemented)**
   - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests. **(Implemented)**
   - **Delete:**
     - Deleting a **User Message**: Removes only that specific user message from the chat view and the history sent to the LLM. **(Implemented)**
@@ -88,97 +101,98 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - Errors during file reading or for unsupported types will trigger user alerts. No server uploads. **(Not Implemented in this version)**
 - **4.4.3. Send Button (Inside Field, Right):**
   - Icon button. Sends text and attached file data (if any) upon click or Enter press.
-  - **Action Sequence on Send:**
-    1.  **Display User Message:** Display the user's message immediately in the chat window (aligned right).
-    2.  **Clear Input:** Clear the input field to prepare for the next message.
-    3.  **Initial Chat Save (First Message):** If this is the _first_ message in a _new_ chat session:
-        - **Create Chat Record:** Create a new chat record in memory with a unique ID.
-        - **Default Title:** Assign a default title based on the current date and time (e.g., "Chat 2025-04-07 15:30").
-        - **Include Settings:** Include the current chat settings (selected model, temperature, system prompt) in the chat record.
-        - **Add First Message:** Add the user's first message to this record's message list.
-        - **Save to IndexedDB:** Save this initial chat record to IndexedDB for persistence.
-        - **Immediately add/update the entry in the Chat History sidebar** to display this new chat with its default title.
-    4.  **Else (if adding to an existing chat):**
-        - **Append Message:** Add the user's message to the existing chat record's message list in IndexedDB.
-    5.  **Initiate API Request (Model Response):**
-        - **Prepare Context:** Gather the current chat context, including the system prompt, all messages up to this point (including edited messages), and any attached file data.
-        - **Send API Call:** Send the chat context to the configured LLM via the OpenRouter API, using the stored API key and current chat settings.
-    6.  **UI - Show Loading:** Display a **loading indicator (spinner)** in the chat window where the model's response is expected (aligned left).
-    7.  **Await API Response:** Handle the API response:
-        - **API Success:** On successful API response:
-          - **Extract Response:** Receive the model's response text and token usage data (`usage.total_tokens`).
-          - **UI - Display Response:** Replace the loading indicator with the received model message in the chat window (aligned left).
-          - **Update Chat Record:** Add the model's message and its token count to the chat record in IndexedDB.
-          - **Title Generation (First Response):** If this was the _first_ model response in the chat:
-            - **Title API Request:** Initiate an API request to the `google/gemini-flash-1.5-8b-exp` model via OpenRouter (using the user's API key). Send the user's first message and this first model response with a hardcoded prompt requesting a short title.
-            - **Await Title Response:** Handle the title generation API response:
-              - **Title Success:** Receive the generated title. Update the chat record in IndexedDB, replacing the default date/time title with the new one. Update the corresponding entry's title in the Chat History sidebar UI to reflect the generated title.
-              - **Title Failure:** On title generation failure, log the error to the console. The chat title remains the default date/time title. No user-facing error alert is needed for title generation failure.
-        - **API Failure:** On API request failure (for model response):
-          - **UI - Remove Loading:** Remove the loading indicator from the chat window.
-          - **UI - Display Error:** Display an error message to the user (e.g., using an MUI Alert component) indicating the failure.
-          - The chat remains saved in its current state (with the user's message).
+  - **Action Sequence on Send:** (Remains largely the same, ensures rendered content is saved)
+    1.  **Display User Message:** Display the user's message immediately in the chat window (aligned right, rendered via MarkdownRenderer).
+    2.  **Clear Input:** Clear the input field.
+    3.  **Initial Chat Save (First Message):** (As before)
+    4.  **Else (if adding to an existing chat):** (As before)
+    5.  **Initiate API Request (Model Response):** (As before)
+    6.  **UI - Show Loading:** (As before)
+    7.  **Await API Response:**
+        - **API Success:**
+          - **Extract Response:** (As before)
+          - **UI - Display Response:** Replace loading indicator with the model message (rendered via MarkdownRenderer).
+          - **Update Chat Record:** (As before)
+          - **Title Generation (First Response):** (As before)
+        - **API Failure:** (As before)
 
 **4.5. Chat History Sidebar (Left Drawer / Bottom Drawer - Mobile)**
 
 - **4.5.1. Sidebar View:**
   - MUI Drawer storing/displaying chat sessions from IndexedDB.
-  - On mobile, uses a Bottom Drawer. Switching between History and Settings (if both use Bottom Drawers) will be handled via **tabs within the drawer as well as separate trigger icons in the header bar**.
+  - On mobile, uses a Bottom Drawer. Switching between History, Settings, and Model Info (if all use Bottom Drawers) will be handled via **tabs within the drawer as well as separate trigger icons in the header bar**.
 - **4.5.2. Chat Search:**
-  - Input field filters chat list based on **titles**. Search within message content might be considered later based on performance.
+  - Input field filters chat list based on **titles**.
 - **4.5.3. Chat List:**
   - Displays previous chat sessions loaded from IndexedDB. Each entry shows:
-    - **Chat Title:**
-      - Initially displayed as the **default date and time** when a new chat is created and saved upon sending the first message.
-      - **Updated asynchronously** to an auto-generated title after the _first successful model response_ is received and the subsequent title generation request to `google/gemini-flash-1.5-8b-exp` completes successfully.
-      - Remains the date/time if title generation fails.
-      - The title is **editable by the user** at any time by clicking on it (or via an edit icon) within the history list. User edits override any default or generated title.
+    - **Chat Title:** (Editable, default date/time, updated by auto-generation or user edit).
     - Timestamp (e.g., last modified).
-  - Clicking a chat in the history loads that conversation (messages, associated settings) into the main Chat Window and updates relevant UI elements.
+    - **Actions Menu:** A **3-dot icon button (`MoreVertIcon`)** reveals a menu on click.
+  - Clicking a chat title/item loads that conversation.
+- **4.5.4. Chat Item Actions Menu:**
+  - **Rename:** Allows inline editing of the chat title (reuses existing logic).
+  - **Duplicate:** Creates a copy of the selected chat session with a new ID, current timestamp, and appended title (e.g., "My Chat (Copy)"). The duplicated chat is immediately selected.
+  - **Delete:** Permanently removes the chat session (reuses existing logic).
 
 **4.6. Chat Settings Sidebar (Right Drawer / Bottom Drawer - Mobile)**
 
 - **4.6.1. Sidebar View:**
   - MUI Drawer. On mobile, uses a Bottom Drawer (see 4.5.1 for switching mechanism).
 - **4.6.2. API Key Input:**
-  - Text input (type="password" or with visibility toggle) for the user's OpenRouter API Key.
-  - Required for all LLM interactions.
-  - Stored in browser's persistent storage (LocalStorage).
+  - Text input (type="password" or with visibility toggle) for the user's OpenRouter API Key. Stored in LocalStorage.
 - **4.6.3. Total Token Count Display:**
-  - Displays the **sum of `usage.total_tokens`** reported by the OpenRouter API responses for message exchanges within the _current_ chat session. This provides an actual count based on API feedback, not a client-side estimation.
+  - Displays the **sum of `usage.total_tokens`** for the _current_ chat session.
 - **4.6.4. Model Temperature Slider:**
-  - MUI Slider (e.g., 0.0 to 2.0) to adjust temperature for the current chat. Value used in subsequent requests.
+  - MUI Slider to adjust temperature for the current chat.
 - **4.6.5. System Prompt Input:**
-  - Multi-line text area for the system prompt for the current chat. Included in LLM requests.
+  - Multi-line text area for the system prompt for the current chat.
+- **4.6.6. Free Models Toggle:**
+  - A **toggle switch** labeled "Show only free models".
+  - When enabled, filters the Model Selection Dropdown (4.2.4) to show only models with zero prompt and completion costs.
+  - Setting is persisted in LocalStorage.
+
+**4.7. Model Information View (Right Drawer / Bottom Drawer - Mobile)**
+
+- **4.7.1. View Trigger:**
+  - Opened by clicking the info icon button (4.2.3) in the header.
+- **4.7.2. View Container:**
+  - On Desktop: A Right-side MUI Drawer.
+  - On Mobile: A new tab within the unified Bottom Drawer (see 4.5.1).
+- **4.7.3. Content:** Displays details of the **currently selected model**:
+  - **Header:** Model Name (with 🎁 icon if free).
+  - **Model ID:** Displayed in monospace font with a copy-to-clipboard button.
+  - **Metadata:** Creation Date (formatted), Context Length.
+  - **Pricing:** Input token cost ($/M), Output token cost ($/M).
+  - **Description:** Full model description text.
 
 **5. Non-Functional Requirements**
 
-- **5.1. Technology Stack:** TypeScript, React, Next.js, MUI v5+, effector, idb, OpenRouter API.
+- **5.1. Technology Stack:** TypeScript, React, Next.js, MUI v5+, effector, idb, OpenRouter API, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
 - **5.2. Architecture:** Static Web Application. Logic runs client-side.
-  - **Data Persistence:**
-    - Chat history (messages, titles, chat-specific settings) in **IndexedDB**. No specific warnings or handling for IndexedDB storage limits will be implemented initially.
-    - Global settings (API key, default preferences) in **LocalStorage**. **Users accept the risk associated with storing API keys in browser storage.**
-- **5.3. Responsiveness & Adaptability:** Seamless adaptation to desktop, tablet, mobile. Layouts adjust. Sidebars become Bottom Drawers on mobile (switching via header icons implemented; tabs within drawer not implemented).
+  - **Data Persistence:** (As before - IndexedDB for chats, LocalStorage for settings including free model toggle).
+- **5.3. Responsiveness & Adaptability:** Seamless adaptation. Layouts adjust. Sidebars/Info become Bottom Drawers with tabs on mobile.
 - **5.4. Browser Compatibility:** Latest versions of Chrome, Firefox, Safari, Edge.
-- **5.5. Performance:** Responsive UI, smooth scrolling (consider virtualization if needed), efficient state updates. Clear loading indicators for API calls.
-- **5.6. Usability & Error Handling:** Intuitive interface, clear iconography (with tooltips), accessible message actions on touch. **User-facing errors (API, network, file) communicated via MUI Alert components.**
+- **5.5. Performance:** Responsive UI, smooth scrolling, efficient state updates. Clear loading indicators. Markdown rendering performance should be monitored for very long/complex messages.
+- **5.6. Usability & Error Handling:** Intuitive interface, clear iconography (with tooltips), accessible message actions. User-facing errors via MUI Alert components.
 
 **6. Design and UI/UX**
 
 - Material Design principles via MUI.
 - Prioritize understandable icon buttons.
 - Clear distinction between user/model messages.
-- Clear interactive element states (hover, focus, active).
-- Smooth transitions. Loading indicators (spinners).
+- Clear interactive element states.
+- Smooth transitions. Loading indicators.
+- **Rich content rendering should be clean and not disrupt the chat flow.**
 
 **7. Out of Scope**
 
-- Server-side logic/hosting (beyond static deployment).
+- (Largely unchanged)
+- Server-side logic/hosting.
 - User auth beyond local storage.
-- The LLM models themselves (via OpenRouter).
+- The LLM models themselves.
 - Advanced file management.
 - Real-time collaboration.
-- Backend storage/security for API keys or history.
+- Backend storage/security.
 - Client-side token estimation libraries.
 - Proactive management of IndexedDB storage limits.
 

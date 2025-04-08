@@ -7,9 +7,8 @@ import remarkMath from "remark-math"; // Parse $math$ and $$math$$
 import rehypeKatex from "rehype-katex"; // Render math using KaTeX
 // Removed remark-mermaid and mermaid imports
 import { MermaidDiagram } from "@lightenna/react-mermaid-diagram"; // Import the new component
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"; // Or choose another theme
-// Note: Mermaid rendering might require client-side initialization.
+// Prism React Renderer for syntax highlighting
+import { Highlight, themes } from "prism-react-renderer";
 // remark-mermaid attempts to handle this, but if diagrams don't render,
 // we might need a client-only wrapper component for the Mermaid part.
 
@@ -63,17 +62,33 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
             );
           }
 
-          // Render syntax-highlighted code blocks
+          // Render syntax-highlighted code blocks using prism-react-renderer
           return !inline && match ? (
-            <SyntaxHighlighter
-              style={vscDarkPlus as any} // Use 'as any' for now if types are problematic
-              language={match[1]}
-              PreTag="div"
-              // Pass down other props, but explicitly exclude 'ref' to avoid type conflict
-              {...props} // Spread remaining props
+            <Highlight
+              code={codeContent}
+              language={match[1] as any}
+              theme={themes.vsDark}
             >
-              {codeContent}
-            </SyntaxHighlighter>
+              {({ className, style, tokens, getLineProps, getTokenProps }) => (
+                <pre
+                  className={className}
+                  style={{
+                    ...style,
+                    padding: "12px",
+                    borderRadius: "6px",
+                    overflowX: "auto",
+                  }}
+                >
+                  {tokens.map((line, i) => (
+                    <div key={i} {...getLineProps({ line })}>
+                      {line.map((token, key) => (
+                        <span key={key} {...getTokenProps({ token })} />
+                      ))}
+                    </div>
+                  ))}
+                </pre>
+              )}
+            </Highlight>
           ) : (
             // Render inline code or code blocks without a language tag
             <code

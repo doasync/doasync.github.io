@@ -172,4 +172,33 @@ Here's a summary of what was done according to the `PLAN.md`:
    - Updated imports and props passing after refactor.
    - Modularized styles for maintainability.
 
+**Phase 10 (Rich Content & Feature Enhancements):**
+
+1.  **Message Content Rendering:**
+    - Implemented rich content rendering in messages using `react-markdown`.
+    - Added support for:
+      - GitHub Flavored Markdown (GFM) via `remark-gfm` (tables, strikethrough, etc.).
+      - Syntax highlighting for code blocks via `react-syntax-highlighter`.
+      - LaTeX math rendering (inline and block) via `remark-math` and `rehype-katex`.
+      - Mermaid diagram rendering via `@lightenna/react-mermaid-diagram`.
+    - Created `src/components/MarkdownRenderer.tsx` to encapsulate rendering logic.
+    - Integrated `MarkdownRenderer` into `src/components/MessageItem.tsx`.
+2.  **Model Selection Improvements (Based on `SHOW_FREE_PLAN.md`):**
+    - Added a "Show only free models" toggle switch in the Settings drawer (`ChatSettingsContent.tsx`).
+    - Implemented filtering logic in `ModelSelector.tsx` based on the toggle state and model pricing data.
+    - Updated the model display in the header (`ModelSelector.tsx`) to remove the provider prefix (e.g., showing "Llama 4 Scout" instead of "Meta: Llama 4 Scout").
+    - Added `$showFreeOnly` store and persistence to LocalStorage in `src/features/chat-settings/model.ts`.
+3.  **Model Info Display (Based on `INFO_TAB_PLAN.md`):**
+    - Added an info icon button next to the model selector in `ModelSelector.tsx`.
+    - Created `src/components/ModelInfoDrawer.tsx` to display detailed information (ID, name, description, context length, pricing, creation date) about the currently selected model.
+    - Implemented logic to open a right-side drawer (`ModelInfoDrawer`) on desktop when the info icon is clicked.
+    - Integrated the model info display as a new tab within `MobileUnifiedDrawer.tsx` for mobile devices.
+    - Added helper functions for date formatting and determining if a model is free.
+4.  **Chat History Actions (Based on `DUP_PLAN.md`):**
+    - Added a 3-dot menu (`MoreVertIcon`) to each item in the chat history list (`ChatHistoryContent.tsx`).
+    - Implemented a MUI `<Menu>` with options: "Rename", "Duplicate", and "Delete".
+    - Added `duplicateChatClicked` event and `duplicateChatFx` effect in `src/features/chat-history/model.ts` to handle chat duplication logic (cloning, saving, refreshing list, selecting new chat).
+    - Connected the "Duplicate" menu item to trigger the duplication flow.
+    - Reused existing logic for "Rename" and "Delete".
+
 ---
