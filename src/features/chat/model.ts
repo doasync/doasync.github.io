@@ -1,8 +1,8 @@
 import { sample, createDomain } from "effector";
-import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { debug } from "patronum/debug";
+import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
-import { showApiKeyDialog } from "@/features/ui-state";
+
 import {
   Message,
   OpenRouterResponseBody,
@@ -38,6 +38,7 @@ export const messageRetry = chatDomain.event<Message>("messageRetry");
 export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
 );
+export const apiKeyMissing = chatDomain.event("apiKeyMissing");
 export const apiRequestTokensUpdated = chatDomain.event<OpenRouterResponseBody>(
   "apiRequestTokensUpdated"
 );
@@ -45,6 +46,7 @@ export const apiRequestSuccess =
   chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess");
 export const userMessageCreated =
   chatDomain.event<Message>("userMessageCreated");
+export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
 
 // Internal Events (used within this model)
 const messageAdded = chatDomain.event<Message>("messageAdded");
@@ -86,6 +88,11 @@ export const $retryingMessageId = chatDomain
   .store<string | null>(null, { name: "$retryingMessageId" })
   // Reset when messages change (e.g., new chat loaded)
   .reset($messages);
+
+// Flag to temporarily prevent auto-scrolling
+export const $preventScroll = chatDomain
+  .store<boolean>(false, { name: "$preventScroll" })
+  .on(setPreventScroll, (_, value) => value);
 
 // --- Store Updates (.on/.reset) ---
 
@@ -196,12 +203,12 @@ sample({
   target: $messageText,
 });
 
-// Trigger API key dialog if message sent without key
+// Trigger API key missing event if message sent without key
 sample({
   clock: messageSent,
   source: $apiKey,
   filter: (key: string) => key.trim().length === 0,
-  target: showApiKeyDialog,
+  target: apiKeyMissing,
 });
 
 // --- API Response Handling ---
@@ -242,6 +249,40 @@ sample({
   clock: sendApiRequestFx.failData,
   fn: (error) => error.message,
   target: $apiError,
+});
+
+// --- Scroll Prevention Logic ---
+
+// Prevent scroll when editing a message
+sample({
+  clock: editMessage,
+  fn: () => true,
+  target: setPreventScroll,
+});
+
+// Prevent scroll when initiating a retry
+sample({
+  clock: messageRetryInitiated,
+  fn: () => true,
+  target: setPreventScroll,
+});
+
+// Allow scroll again after retry API call finishes
+sample({
+  clock: sendApiRequestFx.finally,
+  source: $retryingMessageId,
+  filter: (retryingId) => retryingId !== null, // Only act if we were retrying
+  fn: () => false,
+  target: setPreventScroll,
+});
+
+// Also reset retryingMessageId after the API call finishes in retry flow
+sample({
+  clock: sendApiRequestFx.finally,
+  source: $retryingMessageId,
+  filter: (retryingId) => retryingId !== null,
+  fn: () => null,
+  target: $retryingMessageId,
 });
 
 // --- Retry Logic Flow ---
@@ -315,6 +356,8 @@ debug(
   $apiError,
   $currentChatTokens,
   $retryingMessageId,
+  // Targets from other features
+  setPreventScroll,
 
   // User-facing events
   messageTextChanged,

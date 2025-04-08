@@ -6,12 +6,12 @@ import {
   $mobileDrawerTab,
   closeMobileDrawer,
   setMobileDrawerTab,
-} from "@/features/ui-state/model";
+} from "@/features/ui-state";
 
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
 import ModelInfoDrawer from "@/components/ModelInfoDrawer";
-import type { ModelInfo } from "@/features/models-select/model";
+import type { ModelInfo } from "@/features/models-select";
 
 interface MobileUnifiedDrawerProps {
   historyPanelProps: React.ComponentProps<typeof ChatHistoryContent>;

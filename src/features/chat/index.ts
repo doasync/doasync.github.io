@@ -16,6 +16,7 @@ export {
   $currentChatTokens, // Needed by settings display
   $apiError, // Needed by UI error display
   $retryingMessageId, // Needed by MessageItem to show spinner
+  $preventScroll, // Import scroll prevention state
 
   // Events - Triggered by UI or other features
   messageTextChanged,
@@ -23,9 +24,11 @@ export {
   editMessage, // Event triggered by MessageItem after confirming edit
   deleteMessage, // Event triggered by MessageItem
   messageRetry, // Event triggered by MessageItem (takes Message object)
+  setPreventScroll,
 
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,
+  apiKeyMissing,
   apiRequestTokensUpdated,
   apiRequestSuccess, // May be needed to trigger save in history
   userMessageCreated, // May be needed to trigger save in history

@@ -1,4 +1,4 @@
-import { createStore, createEvent, createEffect, sample } from "effector";
+import { createDomain, createStore, sample } from "effector";
 import { debug } from "patronum/debug";
 import {
   $messages,
@@ -8,9 +8,8 @@ import {
   editMessage,
   deleteMessage,
 } from "@/features/chat"; // Import apiRequestSuccess and initialChatSaveNeeded
-import { $apiKey } from "@/features/chat-settings";
+import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
-import { $temperature, $systemPrompt } from "@/features/chat-settings";
 import {
   ChatSession,
   ChatHistoryIndex,
@@ -29,27 +28,33 @@ import {
   updateIndexOnTitleEditFn,
   prepareChatSessionFn,
 } from "./lib";
+import { appStarted } from "@/app";
+
+// --- History Domain ---
+const historyDomain = createDomain("history");
 
 // --- Events ---
-export const appStarted = createEvent("appStarted");
-export const loadChatHistory = createEvent("loadChatHistory");
-export const chatSelected = createEvent<string>("chatSelected");
-export const deleteChat = createEvent<string>("deleteChat");
-export const newChatCreated = createEvent("newChatCreated");
-export const chatTitleEdited = createEvent<EditTitleParams>("chatTitleEdited");
-export const generateTitle = createEvent("generateTitle");
 
-export const duplicateChatClicked = createEvent<string>("duplicateChatClicked");
+export const loadChatHistory = historyDomain.event("loadChatHistory");
+export const chatSelected = historyDomain.event<string>("chatSelected");
+export const deleteChat = historyDomain.event<string>("deleteChat");
+export const newChatCreated = historyDomain.event("newChatCreated");
+export const chatTitleEdited =
+  historyDomain.event<EditTitleParams>("chatTitleEdited");
+export const generateTitle = historyDomain.event("generateTitle");
+export const duplicateChatClicked = historyDomain.event<string>(
+  "duplicateChatClicked"
+);
 
 // --- Effects ---
-export const loadChatHistoryIndexFx = createEffect<
+export const loadChatHistoryIndexFx = historyDomain.effect<
   void,
   ChatHistoryIndex[],
   Error
 >("loadChatHistoryIndexFx", {
   handler: loadChatHistoryIndexHandler,
 });
-export const duplicateChatFx = createEffect<string, string, Error>(
+export const duplicateChatFx = historyDomain.effect<string, string, Error>(
   "duplicateChatFx"
 );
 
@@ -91,7 +96,7 @@ sample({
   target: loadChatHistoryIndexFx,
 });
 
-export const loadSpecificChatFx = createEffect<
+export const loadSpecificChatFx = historyDomain.effect<
   string,
   ChatSession | null,
   Error
@@ -99,15 +104,21 @@ export const loadSpecificChatFx = createEffect<
   handler: loadSpecificChatHandler,
 });
 
-export const saveChatFx = createEffect<ChatSession, void, Error>("saveChatFx", {
-  handler: saveChatHandler,
-});
+export const saveChatFx = historyDomain.effect<ChatSession, void, Error>(
+  "saveChatFx",
+  {
+    handler: saveChatHandler,
+  }
+);
 
-export const deleteChatFx = createEffect<string, void, Error>("deleteChatFx", {
-  handler: deleteChatHandler,
-});
+export const deleteChatFx = historyDomain.effect<string, void, Error>(
+  "deleteChatFx",
+  {
+    handler: deleteChatHandler,
+  }
+);
 
-export const editChatTitleFx = createEffect<
+export const editChatTitleFx = historyDomain.effect<
   EditTitleParams,
   ChatHistoryIndex | null,
   Error
@@ -115,7 +126,7 @@ export const editChatTitleFx = createEffect<
   handler: editChatTitleHandler,
 });
 
-export const generateTitleFx = createEffect<
+export const generateTitleFx = historyDomain.effect<
   GenerateTitleParams,
   GenerateTitleResult,
   Error
@@ -124,18 +135,19 @@ export const generateTitleFx = createEffect<
 });
 
 // --- Stores ---
-export const $chatHistoryIndex = createStore<ChatHistoryIndex[]>([], {
+export const $chatHistoryIndex = historyDomain.store<ChatHistoryIndex[]>([], {
   name: "$chatHistoryIndex",
 });
 
-export const $currentChatSession = createStore<ChatSession | null>(null, {
-  name: "$currentChatSession",
-  skipVoid: false, // Allow null values
-});
+export const $currentChatSession = historyDomain.store<ChatSession | null>(
+  null,
+  {
+    name: "$currentChatSession",
+  }
+);
 
 export const $currentChatId = $currentChatSession.map(
-  (session) => session?.id ?? null,
-  { skipVoid: false } // Ensure null is mapped if session is null
+  (session) => session?.id ?? null
 );
 
 export const $isLoadingHistory = loadChatHistoryIndexFx.pending;

@@ -7,7 +7,7 @@ import {
   GenerateTitleResult,
   EditTitleParams,
 } from "./types";
-import { Message } from "@/features/chat"; // Import Message type
+import { Message } from "@/features/chat/types"; // Import Message type
 
 // --- IndexedDB Setup ---
 

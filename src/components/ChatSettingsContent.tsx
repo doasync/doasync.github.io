@@ -1,4 +1,5 @@
 import React from "react";
+import { closeSettingsDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
   Typography,
@@ -10,7 +11,8 @@ import {
   FormControlLabel,
   Switch,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
+import ChevronRightIcon from "@mui/icons-material/ChevronRight"; // Import icon for desktop close
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useUnit } from "effector-react";
@@ -27,7 +29,7 @@ interface ChatSettingsPanelProps {
   handleTemperatureChange: (v: number) => void;
   handleClickShowApiKey: () => void;
   handleMouseDownApiKey: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onClose?: () => void;
+  // onClose?: () => void; // Remove optional onClose prop
 }
 
 const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
@@ -41,7 +43,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   handleTemperatureChange,
   handleClickShowApiKey,
   handleMouseDownApiKey,
-  onClose,
+  // onClose, // Remove from destructuring
 }) => {
   const [showFreeOnlyValue, setShowFreeOnlyValue] = useUnit([
     $showFreeOnly,
@@ -69,7 +71,16 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         }}
       >
         <Typography variant="h6">Chat Settings</Typography>
-        {onClose && (
+        {/* Add dedicated close button for persistent drawer */}
+        <IconButton
+          onClick={() => closeSettingsDrawer()}
+          size="small"
+          aria-label="close settings drawer"
+        >
+          <ChevronRightIcon />
+        </IconButton>
+        {/* Keep original close button for mobile if needed, otherwise remove */}
+        {/* {onClose && (
           <IconButton
             onClick={onClose}
             aria-label="close settings"
@@ -77,7 +88,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           >
             <CloseIcon />
           </IconButton>
-        )}
+        )} */}
       </Box>
 
       <Box sx={{ mb: 3 }}>

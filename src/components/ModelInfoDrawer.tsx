@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
-import { ModelInfo } from "../features/models-select/model";
+import { ModelInfo } from "../features/models-select";
 
 interface ModelInfoDrawerProps {
   model: ModelInfo;

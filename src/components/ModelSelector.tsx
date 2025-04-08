@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useMediaQuery, useTheme } from "@mui/material";
-import { openMobileDrawer } from "@/features/ui-state/model";
+import { openMobileDrawer } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import {
   Button,

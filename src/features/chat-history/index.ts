@@ -16,13 +16,13 @@ export {
   $isLoadingChat, // Potentially show loading indicator when switching chats
 
   // Events - Triggered by UI or app initialization
-  appStarted, // Triggered on app load
   loadChatHistory, // Potentially for manual refresh
   chatSelected, // Triggered by ChatHistoryDrawer list item click
   deleteChat, // Triggered by delete button in ChatHistoryDrawer
   newChatCreated, // Triggered by New Chat button in Header
   chatTitleEdited, // Triggered by editing title in ChatHistoryDrawer
-
+  duplicateChatClicked, // Triggered by duplicate button in ChatHistoryDrawer
+  generateTitle, // Triggered by title generation button in ChatHistoryDrawer
   // Effects - Generally kept internal, triggered by events above
   // loadChatHistoryIndexFx,
   // loadSpecificChatFx,

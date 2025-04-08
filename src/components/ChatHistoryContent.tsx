@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useUnit } from "effector-react";
-import { duplicateChatClicked } from "@/features/chat-history/model";
+import { duplicateChatClicked } from "@/features/chat-history";
+import { closeHistoryDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
   Typography,
@@ -18,12 +19,13 @@ import {
   MenuItem,
   ListItemIcon,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"; // Import icon for desktop close
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
-import type { ChatHistoryIndex } from "@/features/chat-history/types";
+import type { ChatHistoryIndex } from "@/features/chat-history";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
@@ -41,7 +43,7 @@ interface ChatHistoryPanelProps {
   handleCancelEdit: () => void;
   handleDeleteChat: (id: string, e: React.MouseEvent) => void;
   handleSelectChat: (id: string) => void;
-  onClose?: () => void; // for optional close button in unified drawer
+  // onClose?: () => void; // Remove optional onClose prop
 }
 
 const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
@@ -58,7 +60,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
   handleCancelEdit,
   handleDeleteChat,
   handleSelectChat,
-  onClose,
+  // onClose, // Remove from destructuring
 }) => {
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuChatId, setMenuChatId] = useState<string | null>(null);
@@ -134,11 +136,20 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
           <Typography variant="h6" sx={{ ml: 1 }}>
             Chat History
           </Typography>
-          {onClose && (
+          {/* Add dedicated close button for persistent drawer */}
+          <IconButton
+            onClick={() => closeHistoryDrawer()}
+            size="small"
+            aria-label="close history drawer"
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+          {/* Keep original close button for mobile if needed, otherwise remove */}
+          {/* {onClose && (
             <IconButton onClick={onClose} size="small">
               <CloseIcon />
             </IconButton>
-          )}
+          )} */}
         </Box>
 
         <Box sx={{ p: 2 }}>

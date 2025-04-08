@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react"; // Added useRef, useEffect
 import { useUnit } from "effector-react";
 import {
   editMessage,
@@ -7,6 +7,7 @@ import {
   $isGenerating, // Import loading state
   $retryingMessageId, // Import retrying message ID store
 } from "@/features/chat";
+import { $activeMessageId, setActiveMessageId } from "@/features/ui-state"; // Import active message state
 import { Message } from "@/features/chat";
 import {
   Typography,
@@ -15,7 +16,8 @@ import {
   Paper,
   Card,
   CircularProgress,
-} from "@mui/material"; // Added CircularProgress
+  useTheme, // Import useTheme to access theme colors
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReplayIcon from "@mui/icons-material/Replay"; // Import Retry icon
@@ -33,19 +35,23 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isGenerating = useUnit($isGenerating);
   const retryingMessageId = useUnit($retryingMessageId);
-  const [isHovered, setIsHovered] = useState(false);
+  const activeMessageId = useUnit($activeMessageId); // Get active state/event
+  // const [isHovered, setIsHovered] = useState(false); // Remove hover state
   const isRetryingThisMessage =
     isGenerating && retryingMessageId === message.id;
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.content);
+  const [originalContentOnEdit, setOriginalContentOnEdit] = useState(""); // State to store original content
+  const messageItemRef = useRef<HTMLDivElement>(null); // Ref for the main Paper element
 
   const handleEditClick = () => {
+    setOriginalContentOnEdit(message.content); // Store original content before editing
     setIsEditing(true);
   };
 
   const handleEditCancel = () => {
     setIsEditing(false);
-    setEditedText(message.content); // Revert to original content
+    setEditedText(originalContentOnEdit); // Revert to stored original content
   };
 
   const handleEditConfirm = () => {
@@ -96,19 +102,53 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     }
   };
 
+  // Effect to handle clicks outside the message item during editing
+  useEffect(() => {
+    if (!isEditing) {
+      return; // Do nothing if not editing
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if the click is outside the Paper element referenced by messageItemRef
+      if (
+        messageItemRef.current &&
+        !messageItemRef.current.contains(event.target as Node)
+      ) {
+        handleEditConfirm(); // Confirm edit if click is outside
+      }
+    };
+
+    // Add listener when editing starts
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Cleanup: remove listener when editing stops or component unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEditing]); // Re-run effect if isEditing changes
+
   return (
     <Paper
+      ref={messageItemRef} // Attach the ref here
       variant="outlined"
       key={message.id}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      sx={{
+      // Remove hover handlers
+      // onMouseEnter={() => setIsHovered(true)}
+      // onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setActiveMessageId(message.id)} // Set active on click
+      sx={(theme) => ({
+        // Use theme callback for access
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        borderColor: isHovered ? "primary" : "transparent",
+        // Set border color based on active state
+        borderColor:
+          activeMessageId === message.id
+            ? theme.palette.primary.main
+            : "transparent",
         padding: 2.5,
-      }}
+        cursor: "pointer", // Indicate clickable area
+      })}
     >
       <Card
         raised
@@ -128,7 +168,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             fullWidth
             value={editedText}
             onChange={handleTextChange}
-            onBlur={handleEditConfirm}
+            // onBlur={handleEditConfirm} // Remove onBlur handler
             autoFocus
             sx={{
               padding: 0,
@@ -161,7 +201,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             top: -17,
             right: 4,
             gap: 1,
-            display: isHovered ? "flex" : "none", // Show on hover
+            display: activeMessageId === message.id ? "flex" : "none", // Show based on active state
             // backgroundColor: "primary.main",
           }}
         >
