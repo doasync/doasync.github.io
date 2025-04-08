@@ -76,6 +76,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           onClick={() => closeSettingsDrawer()}
           size="small"
           aria-label="close settings drawer"
+          sx={{ mr: 1 }} // Add margin to separate from tooltip
         >
           <ChevronRightIcon />
         </IconButton>
@@ -94,7 +95,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       <Box sx={{ mb: 3 }}>
         <Tooltip
           title="Your OpenRouter API Key. Stored locally in your browser."
-          placement="top"
+          placement="bottom" // Change tooltip placement to avoid overlap
         >
           <TextField
             fullWidth

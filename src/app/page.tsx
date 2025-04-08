@@ -45,6 +45,7 @@ import {
   $apiError, // Import error state
   $preventScroll, // Import scroll prevention state
   setPreventScroll,
+  scrollToBottomNeeded, // Import the new scroll trigger event
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -70,8 +71,9 @@ import {
   deleteChat,
   chatTitleEdited,
   ChatHistoryIndex,
+  // appStarted, // Moved to app/model
 } from "@/features/chat-history"; // Import history events and stores
-import { appStarted } from "@/app"; // Import app started event
+import { appStarted } from "@/app"; // Correct import path
 import {
   $apiKey,
   $temperature,
@@ -100,8 +102,6 @@ export default function HomePage() {
     $isHistoryDrawerPersistentOpen,
     $isSettingsDrawerPersistentOpen,
   ]);
-  // Removed useUnit for $isSettingsDrawerOpen and $isHistoryDrawerOpen as they are not used here
-  // If mobile logic needs separate state, it should be handled within MobileUnifiedDrawer or via different stores.
 
   const [currentChatSession, apiKey] = useUnit([$currentChatSession, $apiKey]);
 
@@ -201,7 +201,7 @@ export default function HomePage() {
     event.preventDefault();
   };
 
-  const closeSettings = () => closeSettingsDrawer();
+  const closeSettings = () => closeSettingsDrawer(); // Still needed for mobile?
 
   const changeMessage = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -254,27 +254,194 @@ export default function HomePage() {
     return models.find((m) => m.id === selectedModelId);
   }, [models, selectedModelId]);
 
+  // Effect to reset preventScroll flag after edit/retry potentially caused it to be true
   React.useEffect(() => {
-    const shouldScroll = !preventScroll; // Check the flag
-    if (shouldScroll) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-    // Reset the flag if it was true (primarily for the edit case)
     if (preventScroll) {
-      setPreventScroll(false);
+      // Use a small timeout to ensure this runs after other updates potentially triggered by the same action
+      const timer = setTimeout(() => {
+        setPreventScroll(false);
+      }, 0);
+      return () => clearTimeout(timer); // Cleanup timeout on unmount or if preventScroll changes again
     }
-  }, [messages, preventScroll]); // Add preventScroll to dependencies
+  }, [preventScroll]); // Only run when preventScroll changes
+
+  // Effect to scroll to bottom ONLY when the specific event is triggered
+  useUnit(scrollToBottomNeeded).watch(() => {
+    // We don't need to check preventScroll here, as scrollToBottomNeeded should only fire
+    // when scrolling is actually desired (i.e., after a new user message).
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  });
 
   React.useEffect(() => {
     loadSettings();
     fetchModels();
-    appStarted();
+    appStarted(); // Trigger app started event
   }, []);
 
   return (
     <Box sx={{ display: "flex" }}>
-      {" "}
-      {/* Outer box for potential drawer spacing */}
+      {/* AppBar */}
+      <AppBar
+        position="fixed" // Make AppBar fixed
+        sx={{
+          zIndex: theme.zIndex.drawer + 1, // Ensure AppBar is above drawers
+          transition: theme.transitions.create(["width", "margin"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+          ...(isHistoryPersistentOpen &&
+            !isMobile && {
+              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px)`,
+              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
+              transition: theme.transitions.create(["width", "margin"], {
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            }),
+          ...(isSettingsPersistentOpen &&
+            !isMobile && {
+              // Adjust width only if history is closed, otherwise handled below
+              ...(!isHistoryPersistentOpen && {
+                width: `calc(100% - ${SETTINGS_DRAWER_WIDTH}px)`,
+              }),
+              marginRight: `${SETTINGS_DRAWER_WIDTH}px`, // Add margin for right drawer
+              transition: theme.transitions.create(["width", "margin"], {
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            }),
+          ...(isHistoryPersistentOpen &&
+            isSettingsPersistentOpen &&
+            !isMobile && {
+              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px - ${SETTINGS_DRAWER_WIDTH}px)`, // Adjust width for both drawers
+              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
+              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
+            }),
+        }}
+      >
+        <Toolbar>
+          {/* Conditionally render History Button */}
+          {!isHistoryPersistentOpen && !isMobile && (
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="History"
+              onClick={clickHistory}
+              sx={{ mr: 2 }}
+            >
+              <HistoryIcon />
+            </IconButton>
+          )}
+          {/* Render History Button always on mobile */}
+          {isMobile && (
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="History"
+              onClick={clickHistory}
+              sx={{ mr: 2 }}
+            >
+              <HistoryIcon />
+            </IconButton>
+          )}
+          {/* Moved New Chat Button Here */}
+          <IconButton
+            size="large"
+            color="inherit"
+            aria-label="new chat"
+            onClick={clickNewChat}
+            sx={{ ml: 1 }} // Added margin-left for spacing
+          >
+            <AddCommentIcon />
+          </IconButton>
+          {/* End Moved New Chat Button */}
+          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+            <ModelSelector />
+          </Box>
+          <IconButton
+            size="large"
+            color="inherit"
+            aria-label="regenerate title"
+            onClick={clickRegenerateTitle}
+            title="Regenerate Title"
+          >
+            <RefreshIcon />
+          </IconButton>
+          {/* Conditionally render Settings Button */}
+          {!isSettingsPersistentOpen && !isMobile && (
+            <IconButton
+              size="large"
+              edge="end"
+              color="inherit"
+              aria-label="settings"
+              onClick={clickSettings}
+            >
+              <SettingsIcon />
+            </IconButton>
+          )}
+          {/* Render Settings Button always on mobile */}
+          {isMobile && (
+            <IconButton
+              size="large"
+              edge="end"
+              color="inherit"
+              aria-label="settings"
+              onClick={clickSettings}
+            >
+              <SettingsIcon />
+            </IconButton>
+          )}
+        </Toolbar>
+      </AppBar>
+      {/* Desktop Drawers (Persistent) */}
+      {!isMobile && (
+        <>
+          <Drawer
+            variant="persistent"
+            open={isHistoryPersistentOpen}
+            anchor="left"
+            sx={{
+              width: HISTORY_DRAWER_WIDTH,
+              flexShrink: 0,
+              "& .MuiDrawer-paper": {
+                width: HISTORY_DRAWER_WIDTH,
+                boxSizing: "border-box",
+              },
+            }}
+          >
+            {/* Add Toolbar spacer to push content below AppBar */}
+            <Toolbar />
+            <Box sx={{ overflow: "auto" }}>
+              {" "}
+              {/* Make drawer content scrollable if needed */}
+              <ChatHistoryContent {...historyPanelProps} />
+            </Box>
+          </Drawer>
+          <Drawer
+            variant="persistent"
+            open={isSettingsPersistentOpen}
+            anchor="right"
+            sx={{
+              width: SETTINGS_DRAWER_WIDTH,
+              flexShrink: 0,
+              "& .MuiDrawer-paper": {
+                width: SETTINGS_DRAWER_WIDTH,
+                boxSizing: "border-box",
+              },
+            }}
+          >
+            {/* Add Toolbar spacer */}
+            <Toolbar />
+            <Box sx={{ overflow: "auto" }}>
+              {" "}
+              {/* Make drawer content scrollable if needed */}
+              <ChatSettingsContent {...settingsPanelProps} />
+            </Box>
+          </Drawer>
+        </>
+      )}
       {/* Main Content Area Wrapper */}
       <Box
         component="main"
@@ -282,180 +449,53 @@ export default function HomePage() {
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
-          height: "100vh",
-          transition: theme.transitions.create(["margin", "width"], {
+          // Adjust transitions and margins for main content
+          transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
-          marginLeft: `-${HISTORY_DRAWER_WIDTH}px`, // Start shifted left
-          marginRight: 0, // Start with no right margin shift
+          marginLeft: 0, // Start at 0
+          marginRight: 0, // Start at 0
           ...(isHistoryPersistentOpen &&
             !isMobile && {
-              transition: theme.transitions.create(["margin", "width"], {
+              marginLeft: `${HISTORY_DRAWER_WIDTH}px`, // Add left margin when history open
+              transition: theme.transitions.create("margin", {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-              marginLeft: 0, // Shift back to 0 when open
             }),
           ...(isSettingsPersistentOpen &&
             !isMobile && {
-              transition: theme.transitions.create(["margin", "width"], {
+              marginRight: `${SETTINGS_DRAWER_WIDTH}px`, // Add right margin when settings open
+              transition: theme.transitions.create("margin", {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`, // Add right margin when open
             }),
+          // Ensure content below AppBar starts correctly
+          mt: "64px", // Adjust based on AppBar height (default is 64px)
+          height: "calc(100vh - 64px)", // Adjust height calculation
+          overflow: "hidden", // Prevent main box itself from scrolling
         }}
       >
-        <AppBar position="static">
-          <Toolbar>
-            {/* Conditionally render History Button */}
-            {!isHistoryPersistentOpen && !isMobile && (
-              <IconButton
-                size="large"
-                edge="start"
-                color="inherit"
-                aria-label="History"
-                onClick={clickHistory}
-                sx={{ mr: 2 }}
-              >
-                <HistoryIcon />
-              </IconButton>
-            )}
-            {/* Render History Button always on mobile */}
-            {isMobile && (
-              <IconButton
-                size="large"
-                edge="start"
-                color="inherit"
-                aria-label="History"
-                onClick={clickHistory}
-                sx={{ mr: 2 }}
-              >
-                <HistoryIcon />
-              </IconButton>
-            )}
-            {/* Moved New Chat Button Here */}
-            <IconButton
-              size="large"
-              color="inherit"
-              aria-label="new chat"
-              onClick={clickNewChat}
-              sx={{ ml: 1 }} // Added margin-left for spacing
-            >
-              <AddCommentIcon />
-            </IconButton>
-            {/* End Moved New Chat Button */}
-            <Box
-              sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}
-            >
-              <ModelSelector />
-            </Box>
-            {/* Removed New Chat Button from original position */}
-            {/* <IconButton
-              size="large"
-              color="inherit"
-              aria-label="new chat"
-              onClick={clickNewChat}
-            >
-              <AddCommentIcon />
-            </IconButton> */}
-            <IconButton
-              size="large"
-              color="inherit"
-              aria-label="regenerate title"
-              onClick={clickRegenerateTitle}
-              title="Regenerate Title"
-            >
-              <RefreshIcon />
-            </IconButton>
-            {/* Conditionally render Settings Button */}
-            {!isSettingsPersistentOpen && !isMobile && (
-              <IconButton
-                size="large"
-                edge="end"
-                color="inherit"
-                aria-label="settings"
-                onClick={clickSettings}
-              >
-                <SettingsIcon />
-              </IconButton>
-            )}
-            {/* Render Settings Button always on mobile */}
-            {isMobile && (
-              <IconButton
-                size="large"
-                edge="end"
-                color="inherit"
-                aria-label="settings"
-                onClick={clickSettings}
-              >
-                <SettingsIcon />
-              </IconButton>
-            )}
-          </Toolbar>
-          {!isMobile && (
-            <>
-              <Drawer
-                variant="persistent" // Change variant
-                open={isHistoryPersistentOpen} // Use persistent state
-                // onClose={() => closeHistoryDrawer()} // onClose might not be needed for persistent
-                anchor="left"
-                sx={{
-                  width: HISTORY_DRAWER_WIDTH,
-                  flexShrink: 0,
-                  "& .MuiDrawer-paper": {
-                    width: HISTORY_DRAWER_WIDTH,
-                    boxSizing: "border-box",
-                  },
-                }}
-              >
-                <ChatHistoryContent {...historyPanelProps} />
-              </Drawer>
-              <Drawer
-                variant="persistent" // Change variant
-                open={isSettingsPersistentOpen} // Use persistent state
-                // onClose={closeSettings} // onClose might not be needed for persistent
-                anchor="right"
-                sx={{
-                  width: SETTINGS_DRAWER_WIDTH,
-                  flexShrink: 0,
-                  "& .MuiDrawer-paper": {
-                    width: SETTINGS_DRAWER_WIDTH,
-                    boxSizing: "border-box",
-                  },
-                }}
-              >
-                <ChatSettingsContent {...settingsPanelProps} />
-              </Drawer>
-            </>
-          )}
-
-          {isMobile && (
-            <MobileUnifiedDrawer
-              historyPanelProps={historyPanelProps}
-              settingsPanelProps={settingsPanelProps}
-              modelInfo={selectedModel}
-            />
-          )}
-        </AppBar>
-
+        {/* Container for Chat Messages */}
         <Container
-          maxWidth="md"
+          maxWidth="md" // Keep container constraints
           sx={{
-            flexGrow: 1,
-            overflowY: "auto",
+            flexGrow: 1, // Takes remaining space
+            overflowY: "auto", // Make the container scrollable
             py: 2,
             display: "flex",
             flexDirection: "column",
           }}
         >
+          {/* Paper for message list background/padding */}
           <Paper
             elevation={0}
             sx={{
               flexGrow: 1,
               p: 2,
-              backgroundColor: "transparent",
+              backgroundColor: "transparent", // Or theme background
               display: "flex",
               flexDirection: "column",
             }}
@@ -475,6 +515,7 @@ export default function HomePage() {
           )}
         </Container>
 
+        {/* Input Area */}
         <Paper
           square
           elevation={3}
@@ -483,6 +524,8 @@ export default function HomePage() {
             display: "flex",
             alignItems: "center",
             gap: 1,
+            // Ensure input stays at bottom
+            mt: "auto",
           }}
         >
           <TextField
@@ -525,9 +568,16 @@ export default function HomePage() {
         </Paper>
 
         <ApiKeyMissingDialog />
-        {/* This closing Box tag corresponds to the component="main" Box */}
-      </Box>
-      {/* This closing Box tag corresponds to the outermost flex Box */}
-    </Box>
+      </Box>{" "}
+      {/* End Main Content Box */}
+      {/* Mobile Drawer (Temporary/Modal) */}
+      {isMobile && (
+        <MobileUnifiedDrawer
+          historyPanelProps={historyPanelProps}
+          settingsPanelProps={settingsPanelProps}
+          modelInfo={selectedModel}
+        />
+      )}
+    </Box> // End Outermost Box
   );
 }

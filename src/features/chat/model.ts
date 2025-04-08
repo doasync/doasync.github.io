@@ -46,6 +46,9 @@ export const apiRequestSuccess =
   chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess");
 export const userMessageCreated =
   chatDomain.event<Message>("userMessageCreated");
+export const scrollToBottomNeeded = chatDomain.event<void>(
+  "scrollToBottomNeeded"
+); // New event for scrolling
 export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
 
 // Internal Events (used within this model)
@@ -161,7 +164,15 @@ sample({
   clock: userMessageCreated,
   source: $messages,
   fn: (messages, newMsg) => [...messages, newMsg],
-  target: $messages,
+  target: $messages, // Add to messages store
+});
+
+// Trigger scroll after user message is added
+sample({
+  clock: $messages, // Trigger when messages list updates
+  source: userMessageCreated, // Check if the update was due to user message creation
+  filter: (userMsg, allMsgs) => allMsgs[allMsgs.length - 1]?.id === userMsg.id, // Ensure the last message IS the new user message
+  target: scrollToBottomNeeded,
 });
 
 // Trigger initial save if this is the first message

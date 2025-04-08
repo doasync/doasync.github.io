@@ -1,5 +1,5 @@
 import { sample } from "effector";
-import { createDomain } from "effector";
+import { createDomain, createEffect, createEvent, createStore } from "effector"; // Added createEffect, createStore
 import { debug } from "patronum/debug";
 import { chatSelected, newChatCreated } from "@/features/chat-history"; // Import chat history events
 import { appStarted } from "@/app"; // Import app started event
@@ -39,10 +39,8 @@ export const closeMobileDrawer = uiDomain.event("closeMobileDrawer");
 export const setMobileDrawerTab =
   uiDomain.event<DrawerTabs>("setMobileDrawerTab");
 
-// Active Message Outline
-export const setActiveMessageId = uiDomain.event<string | null>(
-  "setActiveMessageId"
-);
+// Scroll Prevention
+export const setPreventScroll = uiDomain.event<boolean>("setPreventScroll");
 
 // --- Effects ---
 const loadUiSettingsFx = uiDomain.effect<
@@ -143,12 +141,10 @@ export const $mobileDrawerTab = uiDomain
   .on(setMobileDrawerTab, (_, tab) => tab)
   .reset(closeMobileDrawer);
 
-// Currently active message ID for outline/actions display
-export const $activeMessageId = uiDomain
-  .store<string | null>(null, { name: "$activeMessageId" })
-  .on(setActiveMessageId, (_, id) => id)
-  .reset(chatSelected) // Reset when a different chat is selected
-  .reset(newChatCreated); // Reset when a new chat is created
+// Flag to temporarily prevent auto-scrolling
+export const $preventScroll = uiDomain
+  .store<boolean>(false, { name: "$preventScroll" })
+  .on(setPreventScroll, (_, value) => value);
 
 // --- Store Updates for Persistent Drawers ---
 $isHistoryDrawerPersistentOpen
@@ -213,7 +209,7 @@ debug(
   $isModelInfoDrawerOpen,
   $isMobileDrawerOpen,
   $mobileDrawerTab,
-  $activeMessageId, // Added store
+  $preventScroll, // Added store
 
   // Events
   showApiKeyDialog,
@@ -229,7 +225,7 @@ debug(
   openMobileDrawer,
   closeMobileDrawer,
   setMobileDrawerTab,
-  setActiveMessageId,
+  setPreventScroll, // Added event
 
   // Effects
   loadUiSettingsFx,

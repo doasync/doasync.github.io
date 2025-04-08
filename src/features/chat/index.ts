@@ -32,7 +32,7 @@ export {
   apiRequestTokensUpdated,
   apiRequestSuccess, // May be needed to trigger save in history
   userMessageCreated, // May be needed to trigger save in history
-
+  scrollToBottomNeeded,
   // Effects - Generally not exported unless specifically needed externally
   // sendApiRequestFx // Keep internal for now
 } from "./model";

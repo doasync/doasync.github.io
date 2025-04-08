@@ -1,13 +1,12 @@
-import React, { useState, useRef, useEffect } from "react"; // Added useRef, useEffect
+import React, { useState, useRef, useEffect } from "react";
 import { useUnit } from "effector-react";
 import {
   editMessage,
   deleteMessage,
   messageRetry,
-  $isGenerating, // Import loading state
-  $retryingMessageId, // Import retrying message ID store
+  $isGenerating,
+  $retryingMessageId,
 } from "@/features/chat";
-import { $activeMessageId, setActiveMessageId } from "@/features/ui-state"; // Import active message state
 import { Message } from "@/features/chat";
 import {
   Typography,
@@ -16,17 +15,16 @@ import {
   Paper,
   Card,
   CircularProgress,
-  useTheme, // Import useTheme to access theme colors
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ReplayIcon from "@mui/icons-material/Replay"; // Import Retry icon
-import ContentCopyIcon from "@mui/icons-material/ContentCopy"; // Import Copy icon
-import CodeIcon from "@mui/icons-material/Code"; // Import Code icon
+import ReplayIcon from "@mui/icons-material/Replay";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
-import MarkdownRenderer from "./MarkdownRenderer"; // Import the new renderer
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface MessageItemProps {
   message: Message;
@@ -35,23 +33,23 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isGenerating = useUnit($isGenerating);
   const retryingMessageId = useUnit($retryingMessageId);
-  const activeMessageId = useUnit($activeMessageId); // Get active state/event
-  // const [isHovered, setIsHovered] = useState(false); // Remove hover state
+  const [isHovered, setIsHovered] = useState(false);
   const isRetryingThisMessage =
     isGenerating && retryingMessageId === message.id;
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.content);
-  const [originalContentOnEdit, setOriginalContentOnEdit] = useState(""); // State to store original content
-  const messageItemRef = useRef<HTMLDivElement>(null); // Ref for the main Paper element
+  const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
+  const messageItemRef = useRef<HTMLDivElement>(null);
 
   const handleEditClick = () => {
-    setOriginalContentOnEdit(message.content); // Store original content before editing
+    if (isEditing) return;
+    setOriginalContentOnEdit(message.content);
     setIsEditing(true);
   };
 
   const handleEditCancel = () => {
     setIsEditing(false);
-    setEditedText(originalContentOnEdit); // Revert to stored original content
+    setEditedText(originalContentOnEdit);
   };
 
   const handleEditConfirm = () => {
@@ -75,91 +73,66 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     if (typeof message.content === "string") {
       navigator.clipboard
         .writeText(message.content)
-        .then(() => {
-          console.log("Text copied to clipboard");
-        })
-        .catch((err) => {
-          console.error("Failed to copy text: ", err);
-        });
+        .then(() => console.log("Text copied to clipboard"))
+        .catch((err) => console.error("Failed to copy text: ", err));
     } else {
       console.error("Cannot copy non-string content");
     }
   };
 
   const handleCopyCodeClick = () => {
-    // Simple implementation: Copy content as is
     if (typeof message.content === "string") {
       navigator.clipboard
         .writeText(message.content)
-        .then(() => {
-          console.log("Code/Markdown copied to clipboard");
-        })
-        .catch((err) => {
-          console.error("Failed to copy code/markdown: ", err);
-        });
+        .then(() => console.log("Code/Markdown copied to clipboard"))
+        .catch((err) => console.error("Failed to copy code/markdown: ", err));
     } else {
       console.error("Cannot copy non-string content as code/markdown");
     }
   };
 
-  // Effect to handle clicks outside the message item during editing
   useEffect(() => {
-    if (!isEditing) {
-      return; // Do nothing if not editing
-    }
-
+    if (!isEditing) return;
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if the click is outside the Paper element referenced by messageItemRef
       if (
         messageItemRef.current &&
         !messageItemRef.current.contains(event.target as Node)
       ) {
-        handleEditConfirm(); // Confirm edit if click is outside
+        handleEditConfirm();
       }
     };
-
-    // Add listener when editing starts
     document.addEventListener("mousedown", handleClickOutside);
-
-    // Cleanup: remove listener when editing stops or component unmounts
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isEditing]); // Re-run effect if isEditing changes
+  }, [isEditing]);
 
   return (
     <Paper
-      ref={messageItemRef} // Attach the ref here
+      ref={messageItemRef}
       variant="outlined"
       key={message.id}
-      // Remove hover handlers
-      // onMouseEnter={() => setIsHovered(true)}
-      // onMouseLeave={() => setIsHovered(false)}
-      onClick={() => setActiveMessageId(message.id)} // Set active on click
-      sx={(theme) => ({
-        // Use theme callback for access
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      sx={{
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        // Set border color based on active state
-        borderColor:
-          activeMessageId === message.id
-            ? theme.palette.primary.main
-            : "transparent",
+        borderColor: isHovered ? "primary.main" : "transparent",
         padding: 2.5,
-        cursor: "pointer", // Indicate clickable area
-      })}
+      }}
     >
       <Card
         raised
         elevation={1}
+        onDoubleClick={handleEditClick}
         sx={{
           p: 1.5,
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor: message.role === "user" ? "primary.dark" : "primary",
           width: "100%",
           maxWidth: "100%",
-          wordWrap: "break-word", // Ensure long words break
+          wordWrap: "break-word",
         }}
       >
         {isEditing ? (
@@ -168,7 +141,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             fullWidth
             value={editedText}
             onChange={handleTextChange}
-            // onBlur={handleEditConfirm} // Remove onBlur handler
             autoFocus
             sx={{
               padding: 0,
@@ -176,7 +148,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         ) : (
-          // Use Typography as a container, but render content with MarkdownRenderer
           <Typography component="div" variant="body1">
             <MarkdownRenderer content={message.content} />
           </Typography>
@@ -201,8 +172,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             top: -17,
             right: 4,
             gap: 1,
-            display: activeMessageId === message.id ? "flex" : "none", // Show based on active state
-            // backgroundColor: "primary.main",
+            display: isHovered ? "flex" : "none",
           }}
         >
           {isEditing ? (
@@ -246,7 +216,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 aria-label="copy code"
                 size="small"
                 color="inherit"
-                onClick={handleCopyCodeClick} // Added onClick handler
+                onClick={handleCopyCodeClick}
               >
                 <CodeIcon fontSize="small" />
               </IconButton>
