@@ -39,6 +39,8 @@ export const newChatCreated = createEvent("newChatCreated");
 export const chatTitleEdited = createEvent<EditTitleParams>("chatTitleEdited");
 export const generateTitle = createEvent("generateTitle");
 
+export const duplicateChatClicked = createEvent<string>("duplicateChatClicked");
+
 // --- Effects ---
 export const loadChatHistoryIndexFx = createEffect<
   void,
@@ -46,6 +48,47 @@ export const loadChatHistoryIndexFx = createEffect<
   Error
 >("loadChatHistoryIndexFx", {
   handler: loadChatHistoryIndexHandler,
+});
+export const duplicateChatFx = createEffect<string, string, Error>(
+  "duplicateChatFx"
+);
+
+duplicateChatFx.use(async (chatId) => {
+  const originalChat = await loadSpecificChatHandler(chatId);
+  if (!originalChat) throw new Error("Original chat not found");
+  const newId = crypto.randomUUID();
+  const now = Date.now();
+  const duplicatedChat: ChatSession = {
+    ...originalChat,
+    id: newId,
+    createdAt: now,
+    lastModified: now,
+    title: originalChat.title + " (Copy)",
+    messages: originalChat.messages ?? [],
+    settings: originalChat.settings ?? {
+      model: "",
+      temperature: 1,
+      systemPrompt: "",
+    },
+    totalTokens: originalChat.totalTokens ?? 0,
+  };
+  await saveChatHandler(duplicatedChat);
+  return newId;
+});
+
+sample({
+  clock: duplicateChatClicked,
+  target: duplicateChatFx,
+});
+
+sample({
+  clock: duplicateChatFx.doneData,
+  target: chatSelected,
+});
+
+sample({
+  clock: duplicateChatFx.doneData,
+  target: loadChatHistoryIndexFx,
 });
 
 export const loadSpecificChatFx = createEffect<

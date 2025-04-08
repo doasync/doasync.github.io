@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { useUnit } from "effector-react";
+import { duplicateChatClicked } from "@/features/chat-history/model";
 import {
   Box,
   Typography,
@@ -12,12 +14,18 @@ import {
   ListItemText,
   CircularProgress,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CheckIcon from "@mui/icons-material/Check";
 import type { ChatHistoryIndex } from "@/features/chat-history/types";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 interface ChatHistoryPanelProps {
   searchTerm: string;
@@ -51,171 +59,251 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
   handleDeleteChat,
   handleSelectChat,
   onClose,
-}) => (
-  <Box
-    sx={{
-      width: { xs: "100%", sm: 360, md: 400 },
-      maxWidth: "100%",
-      flexGrow: 1,
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-    }}
-    role="presentation"
-  >
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        p: 1,
-        borderBottom: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Typography variant="h6" sx={{ ml: 1 }}>
-        Chat History
-      </Typography>
-      {onClose && (
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      )}
-    </Box>
+}) => {
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuChatId, setMenuChatId] = useState<string | null>(null);
+  const [menuChatTitle, setMenuChatTitle] = useState<string>("");
 
-    <Box sx={{ p: 2 }}>
-      <TextField
-        fullWidth
-        variant="outlined"
-        size="small"
-        placeholder="Search chats..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon fontSize="small" />
-            </InputAdornment>
-          ),
+  const openMenu = Boolean(menuAnchorEl);
+
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    chatId: string,
+    chatTitle: string
+  ) => {
+    event.stopPropagation();
+    setMenuAnchorEl(event.currentTarget);
+    setMenuChatId(chatId);
+    setMenuChatTitle(chatTitle);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setMenuChatId(null);
+    setMenuChatTitle("");
+  };
+
+  const handleDuplicate = () => {
+    if (menuChatId) {
+      duplicateChatClicked(menuChatId);
+    }
+    handleMenuClose();
+  };
+
+  const handleRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleMenuClose();
+    if (menuChatId) {
+      setTimeout(() => {
+        handleStartEdit(menuChatId, menuChatTitle, e);
+      }, 0);
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (menuChatId) {
+      handleDeleteChat(menuChatId, e);
+    }
+    handleMenuClose();
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          width: { xs: "100%", sm: 360, md: 400 },
+          maxWidth: "100%",
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
         }}
-      />
-    </Box>
-
-    <Divider />
-
-    <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
-      {isLoading ? (
+        role="presentation"
+      >
         <Box
           sx={{
             display: "flex",
-            justifyContent: "center",
             alignItems: "center",
-            height: "100%",
+            justifyContent: "space-between",
+            p: 1,
+            borderBottom: 1,
+            borderColor: "divider",
           }}
         >
-          <CircularProgress />
-        </Box>
-      ) : (
-        <List disablePadding>
-          {filteredHistory.length === 0 && !isLoading && (
-            <Typography
-              sx={{ p: 2, textAlign: "center", color: "text.secondary" }}
-            >
-              {searchTerm ? "No matching chats found." : "No chat history yet."}
-            </Typography>
+          <Typography variant="h6" sx={{ ml: 1 }}>
+            Chat History
+          </Typography>
+          {onClose && (
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
           )}
-          {filteredHistory.map((chat) => (
-            <ListItem
-              key={chat.id}
-              disablePadding
-              secondaryAction={
-                <>
-                  {editingId === chat.id ? null : (
-                    <Tooltip title="Edit Title">
-                      <IconButton
-                        edge="end"
-                        aria-label="edit"
-                        size="small"
-                        sx={{ mr: 0.5 }}
-                        onClick={(e) => handleStartEdit(chat.id, chat.title, e)}
-                      >
-                        <EditIcon fontSize="inherit" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  <Tooltip title="Delete Chat">
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      size="small"
-                      onClick={(e) => handleDeleteChat(chat.id, e)}
-                    >
-                      <DeleteIcon fontSize="inherit" />
-                    </IconButton>
-                  </Tooltip>
-                </>
-              }
+        </Box>
+
+        <Box sx={{ p: 2 }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            size="small"
+            placeholder="Search chats..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+          {isLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
             >
-              <ListItemButton
-                onClick={() => handleSelectChat(chat.id)}
-                selected={chat.id === currentChatId}
-              >
-                {editingId === chat.id ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      width: "100%",
-                    }}
+              <CircularProgress />
+            </Box>
+          ) : (
+            <List disablePadding>
+              {filteredHistory.length === 0 && !isLoading && (
+                <Typography
+                  sx={{ p: 2, textAlign: "center", color: "text.secondary" }}
+                >
+                  {searchTerm
+                    ? "No matching chats found."
+                    : "No chat history yet."}
+                </Typography>
+              )}
+              {filteredHistory.map((chat) => (
+                <ListItem
+                  key={chat.id}
+                  disablePadding
+                  secondaryAction={
+                    <>
+                      {editingId === chat.id ? (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          aria-label="save"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveEdit(chat.id);
+                          }}
+                        >
+                          <CheckIcon fontSize="medium" />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          aria-label="more"
+                          onClick={(e) =>
+                            handleMenuOpen(e, chat.id, chat.title)
+                          }
+                        >
+                          <MoreVertIcon fontSize="medium" />
+                        </IconButton>
+                      )}
+                    </>
+                  }
+                >
+                  <ListItemButton
+                    onClick={() => handleSelectChat(chat.id)}
+                    selected={chat.id === currentChatId}
                   >
-                    <TextField
-                      size="small"
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSaveEdit(chat.id);
-                        } else if (e.key === "Escape") {
-                          e.preventDefault();
-                          handleCancelEdit();
-                        }
-                      }}
-                      onBlur={() => handleSaveEdit(chat.id)}
-                      autoFocus
-                      fullWidth
-                      variant="standard"
-                    />
-                  </Box>
-                ) : (
-                  <ListItemText
-                    primary={chat.title}
-                    secondary={new Date(chat.lastModified).toLocaleString()}
-                    primaryTypographyProps={{
-                      noWrap: true,
-                      sx: {
-                        maxWidth: 265,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight:
-                          chat.id === currentChatId ? "bold" : "normal",
-                      },
-                    }}
-                    secondaryTypographyProps={{
-                      noWrap: true,
-                      fontSize: "0.75rem",
-                    }}
-                  />
-                )}
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      )}
-    </Box>
-  </Box>
-);
+                    {editingId === chat.id ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          width: "100%",
+                        }}
+                      >
+                        <TextField
+                          size="small"
+                          value={editedTitle}
+                          onChange={(e) => setEditedTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSaveEdit(chat.id);
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              handleCancelEdit();
+                            }
+                          }}
+                          onBlur={() => handleSaveEdit(chat.id)}
+                          autoFocus
+                          fullWidth
+                          variant="standard"
+                        />
+                      </Box>
+                    ) : (
+                      <ListItemText
+                        primary={chat.title}
+                        secondary={new Date(chat.lastModified).toLocaleString()}
+                        primaryTypographyProps={{
+                          noWrap: true,
+                          sx: {
+                            maxWidth: 265,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontWeight:
+                              chat.id === currentChatId ? "bold" : "normal",
+                          },
+                        }}
+                        secondaryTypographyProps={{
+                          noWrap: true,
+                          fontSize: "0.75rem",
+                        }}
+                      />
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+      </Box>
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={openMenu}
+        onClose={handleMenuClose}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MenuItem onClick={handleRename}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Rename" />
+        </MenuItem>
+        <MenuItem onClick={handleDuplicate}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Duplicate" />
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+          <ListItemIcon sx={{ color: "error.main" }}>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Delete" />
+        </MenuItem>
+      </Menu>
+    </>
+  );
+};
 
 export default ChatHistoryPanel;
