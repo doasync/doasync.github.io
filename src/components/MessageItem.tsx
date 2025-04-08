@@ -15,6 +15,7 @@ import {
   Paper,
   Card,
   CircularProgress,
+  Box,
 } from "@mui/material"; // Added CircularProgress
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -23,6 +24,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy"; // Import Copy ic
 import CodeIcon from "@mui/icons-material/Code"; // Import Code icon
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import MarkdownRenderer from "./MarkdownRenderer";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
 
 interface MessageItemProps {
@@ -112,14 +114,21 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       <Card
         raised
         elevation={1}
-        sx={{
+        sx={(theme) => ({
           p: 1.5,
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
-          backgroundColor: message.role === "user" ? "primary.dark" : "primary",
+          backgroundColor:
+            message.role === "user"
+              ? theme.palette.primary.light
+              : theme.palette.primary.main,
+          color:
+            message.role === "user"
+              ? theme.palette.getContrastText(theme.palette.primary.light)
+              : theme.palette.getContrastText(theme.palette.primary.main),
           width: "100%",
           maxWidth: "100%",
           wordWrap: "break-word", // Ensure long words break
-        }}
+        })}
       >
         {isEditing ? (
           <InputBase
@@ -135,9 +144,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         ) : (
-          <Typography variant="body1" whiteSpace={"pre-wrap"}>
-            {message.content}
-          </Typography>
+          <Box
+            sx={(theme) => ({
+              color:
+                message.role === "user"
+                  ? theme.palette.getContrastText(theme.palette.primary.light)
+                  : theme.palette.getContrastText(theme.palette.primary.main),
+            })}
+          >
+            <MarkdownRenderer content={message.content} />
+          </Box>
         )}
         {isRetryingThisMessage && (
           <CircularProgress

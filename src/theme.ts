@@ -12,7 +12,7 @@ import { red } from "@mui/material/colors";
 // Create a theme instance.
 const theme = createTheme({
   palette: {
-    mode: "dark", // Start with dark mode, can be made dynamic later
+    mode: "dark",
     primary: {
       main: "#556cd6",
     },
@@ -22,6 +22,7 @@ const theme = createTheme({
     error: {
       main: red.A400,
     },
+    tonalOffset: 0.25,
   },
   // typography: { // Temporarily comment out for debugging
   //   fontFamily: roboto.style.fontFamily,

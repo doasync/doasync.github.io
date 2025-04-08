@@ -17,7 +17,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Removed Geist font classNames */}
       <body>
         <ThemeRegistry>{children}</ThemeRegistry>
       </body>
