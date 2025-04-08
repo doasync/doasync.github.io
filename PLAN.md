@@ -169,7 +169,7 @@ graph TD
   - `deleteChatFx`: Delete a chat from IndexedDB.
   - `fetchModelsFx`: Fetch model list from OpenRouter API (using Effector Effects).
   - `sendApiRequestFx`: Send chat completion request to OpenRouter.
-  - `generateTitleFx`: Send request to OpenRouter (`google/gemma-3-27b-it`) to generate chat title.
+  - `generateTitleFx`: Send request to OpenRouter (`google/gemini-flash-1.5-8b-exp`) to generate chat title.
   - `readFileFx`: Read file content client-side.
 - **Flow Example (Sending Message):**
   ```mermaid
@@ -206,7 +206,7 @@ graph TD
 - **Title Generation:**
   - Create `generateTitleFx` effect.
   - Input: `{ messages: FormattedMessage[], apiKey: string }`.
-  - Hardcode model to `google/gemma-3-27b-it`.
+  - Hardcode model to `google/gemini-flash-1.5-8b-exp`.
   - Use a simple summarization prompt (e.g., "Summarize this conversation in 5 words or less:").
   - Call OpenRouter API similar to `sendApiRequestFx`.
   - Return the generated title string.

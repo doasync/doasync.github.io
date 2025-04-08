@@ -19,7 +19,6 @@ export {
   appStarted, // Triggered on app load
   loadChatHistory, // Potentially for manual refresh
   chatSelected, // Triggered by ChatHistoryDrawer list item click
-  saveCurrentChat, // May be needed if manual save is ever implemented
   deleteChat, // Triggered by delete button in ChatHistoryDrawer
   newChatCreated, // Triggered by New Chat button in Header
   chatTitleEdited, // Triggered by editing title in ChatHistoryDrawer

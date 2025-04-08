@@ -110,7 +110,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
           - **UI - Display Response:** Replace the loading indicator with the received model message in the chat window (aligned left).
           - **Update Chat Record:** Add the model's message and its token count to the chat record in IndexedDB.
           - **Title Generation (First Response):** If this was the _first_ model response in the chat:
-            - **Title API Request:** Initiate an API request to the `google/gemma-3-27b-it` model via OpenRouter (using the user's API key). Send the user's first message and this first model response with a hardcoded prompt requesting a short title.
+            - **Title API Request:** Initiate an API request to the `google/gemini-flash-1.5-8b-exp` model via OpenRouter (using the user's API key). Send the user's first message and this first model response with a hardcoded prompt requesting a short title.
             - **Await Title Response:** Handle the title generation API response:
               - **Title Success:** Receive the generated title. Update the chat record in IndexedDB, replacing the default date/time title with the new one. Update the corresponding entry's title in the Chat History sidebar UI to reflect the generated title.
               - **Title Failure:** On title generation failure, log the error to the console. The chat title remains the default date/time title. No user-facing error alert is needed for title generation failure.
@@ -130,7 +130,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - Displays previous chat sessions loaded from IndexedDB. Each entry shows:
     - **Chat Title:**
       - Initially displayed as the **default date and time** when a new chat is created and saved upon sending the first message.
-      - **Updated asynchronously** to an auto-generated title after the _first successful model response_ is received and the subsequent title generation request to `google/gemma-3-27b-it` completes successfully.
+      - **Updated asynchronously** to an auto-generated title after the _first successful model response_ is received and the subsequent title generation request to `google/gemini-flash-1.5-8b-exp` completes successfully.
       - Remains the date/time if title generation fails.
       - The title is **editable by the user** at any time by clicking on it (or via an edit icon) within the history list. User edits override any default or generated title.
     - Timestamp (e.g., last modified).

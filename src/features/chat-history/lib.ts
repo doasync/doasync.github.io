@@ -124,9 +124,11 @@ export const editChatTitleHandler = async ({
 /**
  * Generates a chat title using the OpenRouter API.
  */
-const TITLE_GENERATION_MODEL = "google/gemma-3-27b-it";
-const TITLE_PROMPT =
-  "Summarize the beginning of this chat conversation in 5 words or less. Use title case. Focus on the main topic. Example: Exploring Effector Stores";
+const TITLE_GENERATION_MODEL = "google/gemini-2.0-flash-lite-001";
+const TITLE_PROMPT = `Summarize this chat conversation
+  in 1-5 words (maximum conciseness). Use title case. Focus on user's intent.
+  It will be used as a title. Do not mention yourself (assistant) or the user.
+  Example: Exploring Effector Stores`;
 
 export const generateTitleHandler = async ({
   chatId,
@@ -142,18 +144,19 @@ export const generateTitleHandler = async ({
 
   // Prepare messages for the title generation model
   const apiMessages = [
-    { role: "system", content: TITLE_PROMPT },
     // Include only the first few messages to keep the request small
     ...messages
-      .slice(0, 4)
+      .slice(0, 6)
       .map((msg) => ({ role: msg.role, content: msg.content })),
+    // Add the title prompt as the last message
+    { role: "user", content: TITLE_PROMPT },
   ];
 
   const body = {
     model: TITLE_GENERATION_MODEL,
     messages: apiMessages,
     temperature: 0.5, // Lower temperature for more deterministic title
-    max_tokens: 20, // Limit response length
+    max_tokens: 10, // Limit response length
   };
 
   const response = await fetch(
@@ -180,8 +183,10 @@ export const generateTitleHandler = async ({
   }
 
   const data = await response.json();
-  const generatedTitle = data.choices?.[0]?.message?.content?.trim();
-  if (!generatedTitle) {
+  const generatedTitle = data.choices?.[0]?.message?.content;
+  const sanitizedTitle = generatedTitle?.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+
+  if (!sanitizedTitle) {
     console.error(
       "Title generation API response content is empty or undefined:",
       data
@@ -189,10 +194,7 @@ export const generateTitleHandler = async ({
     throw new Error("Title generation resulted in an empty response.");
   }
 
-  // Clean up potential quotes or extra formatting
-  const cleanedTitle = generatedTitle.replace(/^"|"$|^\'|\'$/g, "").trim();
-
-  return { chatId, generatedTitle: cleanedTitle };
+  return { chatId, generatedTitle: sanitizedTitle };
 };
 
 // --- Pure Functions for Sample Logic ---

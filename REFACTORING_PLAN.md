@@ -1,64 +1,139 @@
-# Phase 9: Effector Model Refactoring Plan
+# Refactoring Plan: Consolidate Chat History & Settings Components
 
-**Goal:** Refactor the existing Effector models from `src/model/*` into a feature-based directory structure under `src/features/` to improve code organization, maintainability, and scalability.
+---
 
-**Proposed Target Structure:**
+## Context & Goals
+
+- Avoid code duplication between **desktop drawers** and **mobile bottom drawer tabs**.
+- Have **only one source of UI** for Chat History and Chat Settings each.
+- Eliminate redundant files like `ChatHistoryDrawer.tsx` and `ChatSettingsDrawer.tsx`.
+- Simplify layout by **wrapping content in `<Drawer>` directly inside `src/app/page.tsx`**.
+- Rename components to avoid "Drawer" or "Panel" suffixes, reflecting pure content.
+
+---
+
+## Step-by-step Plan
+
+### 1. Rename Content Components
+
+- Rename:
+  - `ChatHistoryPanel.tsx` → `ChatHistoryContent.tsx`
+  - `ChatSettingsPanel.tsx` → `ChatSettingsContent.tsx`
+- These become the **only UI components** for each feature.
+- They **accept props** but **do not contain any Drawer logic**.
+
+---
+
+### 2. Delete Drawer Components
+
+- Delete:
+  - `ChatHistoryDrawer.tsx`
+  - `ChatSettingsDrawer.tsx`
+- They are no longer needed.
+
+---
+
+### 3. Update Desktop Layout in `src/app/page.tsx`
+
+- Import the renamed components:
+
+```tsx
+import ChatHistoryContent from "@/components/ChatHistoryContent";
+import ChatSettingsContent from "@/components/ChatSettingsContent";
+```
+
+- Replace previous drawer components with **inline Drawer + content**:
+
+```tsx
+{
+  !isMobile && (
+    <>
+      <Drawer
+        open={isHistoryDrawerOpen}
+        onClose={closeHistoryDrawer}
+        anchor="left"
+      >
+        <ChatHistoryContent {...historyProps} />
+      </Drawer>
+      <Drawer
+        open={isSettingsDrawerOpen}
+        onClose={closeSettingsDrawer}
+        anchor="right"
+      >
+        <ChatSettingsContent {...settingsProps} />
+      </Drawer>
+    </>
+  );
+}
+```
+
+- This way, **desktop drawers** wrap the **same content components** as mobile.
+
+---
+
+### 4. Mobile Unified Drawer Tabs
+
+- Continue to embed **the same `ChatHistoryContent` and `ChatSettingsContent`** inside the bottom drawer tabs:
+
+```tsx
+<Tabs>
+  <Tab label="History" />
+  <Tab label="Settings" />
+</Tabs>;
+{
+  activeTab === "history" && <ChatHistoryContent {...historyProps} />;
+}
+{
+  activeTab === "settings" && <ChatSettingsContent {...settingsProps} />;
+}
+```
+
+---
+
+### 5. Props Management
+
+- Lift all necessary Effector stores, events, and local UI state **up to `src/app/page.tsx`**.
+- Pass them **once** to both desktop and mobile content components.
+- This avoids duplication of logic/state.
+
+---
+
+### 6. Summary Diagram
 
 ```mermaid
 graph TD
-    subgraph src
-        features[features]
-        components[components]
-        app[app]
-        %% shared[shared] %% Optional, create if needed
-    end
+  subgraph Desktop
+    Drawer1[Drawer (anchor=left)]
+    Drawer2[Drawer (anchor=right)]
+    Drawer1 --> ChatHistoryContent
+    Drawer2 --> ChatSettingsContent
+  end
 
-    subgraph features
-        chat[chat]
-        chat_history[chat-history]
-        chat_settings[chat-settings]
-        models_select[models-select]
-        ui_state[ui-state]
-    end
-
-    chat --> chat_model(model.ts)
-    chat --> chat_index(index.ts)
-    chat_history --> history_model(model.ts)
-    chat_history --> history_index(index.ts)
-    chat_settings --> settings_model(model.ts)
-    chat_settings --> settings_index(index.ts)
-    models_select --> models_model(model.ts)
-    models_select --> models_index(index.ts)
-    ui_state --> ui_model(model.ts)
-    ui_state --> ui_index(index.ts)
-
-    app --> page(page.tsx)
-    components --> Comp1(...)
-    components --> Comp2(...)
-
-    page --> chat_index
-    page --> history_index
-    page --> settings_index
-    page --> models_index
-    page --> ui_index
-
-    Comp1 --> chat_index %% Example component dependency
-    Comp2 --> history_index %% Example component dependency
-
-    %% Optional cross-feature dependencies (illustrative)
-    %% chat_model --> history_index %% e.g., chat triggers history save
+  subgraph Mobile
+    BottomDrawer[Bottom Drawer with Tabs]
+    BottomDrawer -->|Tab: History| ChatHistoryContent
+    BottomDrawer -->|Tab: Settings| ChatSettingsContent
+  end
 ```
 
-**Refactoring Steps:**
+---
 
-1.  **Create Directory Structure:** Create `src/features/` and subdirectories: `chat/`, `chat-history/`, `chat-settings/`, `models-select/`, `ui-state/`.
-2.  **Move Model Logic:** Move content from `src/model/*.ts` to the corresponding `src/features/*/model.ts` file.
-3.  **Create `index.ts` Exports:** Create `index.ts` in each feature directory, exporting only the necessary public Effector units.
-4.  **Update Imports:** Update all imports across the project (`src/app/page.tsx`, `src/components/*`, and within feature models) to use the new feature paths (e.g., `@/features/chat`).
-5.  **Remove Old `src/model` Directory:** Delete the `src/model/` directory.
-6.  **Verification (Manual):** Basic functional testing.
+### 7. Benefits
 
-**Next Steps (Post-Phase 9):**
+- **Single source of UI truth** for each feature.
+- No code duplication.
+- Easier to maintain, style, and extend.
+- Layout container logic is **centralized in page.tsx**.
+- Clean, predictable architecture.
 
-- **Phase 10:** Advanced Features (Responsiveness Polish, Error Display Improvements)
-- **Phase 11:** Testing & Refinement
+---
+
+## Next Steps
+
+- Rename files accordingly.
+- Delete old drawer components.
+- Refactor `src/app/page.tsx` to wrap content components in `<Drawer>` inline.
+- Test on desktop and mobile breakpoints.
+- Adjust styling as needed.
+
+---

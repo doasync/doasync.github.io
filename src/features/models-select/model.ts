@@ -1,10 +1,4 @@
-import {
-  createDomain,
-  createEffect,
-  createEvent,
-  createStore,
-  sample,
-} from "effector";
+import { createDomain, sample } from "effector";
 import { debug } from "patronum/debug";
 
 const modelsDomain = createDomain("models");
@@ -37,7 +31,7 @@ export const $availableModels = modelsDomain.store<ModelInfo[]>([], {
 // Holds the ID of the currently selected model
 // Initialize with a sensible default or the first model after fetch
 export const $selectedModelId = modelsDomain.store<string>(
-  "google/gemma-3-27b-it",
+  "google/gemini-2.0-flash-001",
   { name: "selectedModelId" }
 ); // Default to free model initially
 // Loading state for the models fetch

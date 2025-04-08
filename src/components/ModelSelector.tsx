@@ -10,8 +10,10 @@ import {
   CircularProgress,
   Tooltip,
   ListSubheader,
+  InputAdornment,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
   $availableModels,
@@ -115,6 +117,7 @@ export const ModelSelector: React.FC = () => {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        disableAutoFocusItem // Prevent auto-selecting first item
         MenuListProps={{
           "aria-labelledby": "model-selector-button",
         }}
@@ -126,16 +129,25 @@ export const ModelSelector: React.FC = () => {
         }}
       >
         {/* Sticky Search Input */}
-        <ListSubheader>
+        <ListSubheader sx={{ padding: 0 }}>
           <TextField
             fullWidth
             placeholder="Search models..."
-            variant="standard"
+            variant="outlined"
+            size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onClick={(e) => e.stopPropagation()} // Prevent menu close on click inside textfield
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()} // Prevent menu close on key presses
             sx={{ px: 2, py: 1 }}
             autoFocus
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
           />
         </ListSubheader>
         {filteredModels.length > 0 ? (

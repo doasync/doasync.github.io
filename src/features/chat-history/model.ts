@@ -34,10 +34,10 @@ import {
 export const appStarted = createEvent("appStarted");
 export const loadChatHistory = createEvent("loadChatHistory");
 export const chatSelected = createEvent<string>("chatSelected");
-export const saveCurrentChat = createEvent("saveCurrentChat"); // Note: Currently only used for debug watch
 export const deleteChat = createEvent<string>("deleteChat");
 export const newChatCreated = createEvent("newChatCreated");
-export const chatTitleEdited = createEvent<EditTitleParams>("chatTitleEdited"); // Use EditTitleParams type
+export const chatTitleEdited = createEvent<EditTitleParams>("chatTitleEdited");
+export const generateTitle = createEvent("generateTitle");
 
 // --- Effects ---
 export const loadChatHistoryIndexFx = createEffect<
@@ -286,7 +286,7 @@ sample({
   clock: saveChatFx.done,
   source: $apiKey,
   filter: (apiKey, { params: savedChat }) =>
-    !!apiKey && savedChat.messages.length === 2, // Assuming 2 messages = user + first assistant
+    !!apiKey && savedChat.messages.length > 0, // Assuming 2 messages = user + first assistant
   fn: (apiKey, { params: savedChat }): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
@@ -305,6 +305,19 @@ sample({
   target: editChatTitleFx,
 });
 
+sample({
+  clock: generateTitle,
+  source: { apiKey: $apiKey, currentChat: $currentChatSession },
+  filter: ({ apiKey, currentChat }) =>
+    !!apiKey && !!currentChat && currentChat.messages.length > 0,
+  fn: ({ apiKey, currentChat }) => ({
+    chatId: currentChat!.id,
+    messages: currentChat!.messages,
+    apiKey: apiKey,
+  }),
+  target: generateTitleFx,
+});
+
 // --- Debugging ---
 
 // Optional: Log errors during title generation
@@ -313,9 +326,6 @@ generateTitleFx.fail.watch(({ error, params }) => {
 });
 
 // Debug watches for development
-saveCurrentChat.watch(() => {
-  console.log("Event: saveCurrentChat triggered (Debug)");
-});
 saveChatFx.done.watch(() => {
   console.log("Effect: saveChatFx done (Debug)");
 });
@@ -335,7 +345,6 @@ debug(
   appStarted,
   loadChatHistory,
   chatSelected,
-  saveCurrentChat,
   deleteChat,
   newChatCreated,
   chatTitleEdited,

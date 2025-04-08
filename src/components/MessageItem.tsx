@@ -116,7 +116,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           p: 1.5,
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor: message.role === "user" ? "primary.dark" : "primary",
-          maxWidth: "90%",
+          width: "100%",
+          maxWidth: "100%",
           wordWrap: "break-word", // Ensure long words break
         }}
       >

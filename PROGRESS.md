@@ -129,3 +129,47 @@ Here's a summary of what was done according to the `PLAN.md`:
     - **Simplified logic:** `sample` blocks now mostly compose pure functions and effect calls.
     - **Easier maintenance:** Isolated effect handlers and pure functions can be tested or modified independently.
     - **Foundation for future:** New features can be added modularly without bloating core model files.
+
+**Phase 9 (Responsiveness Polish, Smoothness & Usability Enhancements):**
+
+1. **Unified Mobile Drawer:**
+   - Replaced separate Chat History and Settings drawers on small screens with a **single bottom drawer** featuring **tabs** for switching views.
+   - Created `MobileUnifiedDrawer.tsx` with MUI Tabs inside the drawer.
+   - Header icons now open the drawer and switch tabs instead of toggling separate drawers.
+   - Smooth tab switching animations added.
+2. **Removed Duplication & Refactored Drawers:**
+   - Deleted `ChatHistoryDrawer.tsx` and `ChatSettingsDrawer.tsx`.
+   - Introduced **single source** content components: `ChatHistoryContent.tsx` and `ChatSettingsContent.tsx`.
+   - Wrapped these directly in `<Drawer>` inline in `page.tsx` for desktop.
+   - Ensured consistent UI across mobile and desktop.
+3. **Responsiveness Improvements:**
+   - Adjusted drawer breakpoints to show unified drawer below 400px width.
+   - Made drawer contents stretch full width on mobile.
+   - Improved layout and sizing of inputs, buttons, and chat bubbles for all screen sizes.
+4. **Model Selector Enhancements:**
+   - Fixed search input so it no longer auto-selects on typing.
+   - Added a **search icon** inside the model search field.
+   - Made search input full width.
+   - Improved dropdown styling and usability.
+5. **Chat History List Polish:**
+   - Truncated long chat titles with ellipsis to avoid overlap.
+   - Improved title editing: now saves on Enter, persists changes.
+   - Added consistent hover and selected styles.
+6. **Message Editing Fixes:**
+   - Fixed narrow textarea issue during message edit.
+   - Message edit input now expands full width of the message bubble.
+   - Confirm/cancel buttons styled clearly.
+7. **Transitions & Feedback:**
+   - Added smooth animations for drawer open/close, tab switching, loading spinners, and alerts.
+   - Improved button hover, focus, disabled states.
+   - Enhanced interactive feedback on message actions.
+8. **Accessibility:**
+   - Improved aria-labels and tooltips.
+   - Ensured keyboard navigation works across drawers, tabs, menus.
+   - Increased color contrast where needed.
+9. **Code Cleanup:**
+   - Removed obsolete components and imports.
+   - Updated imports and props passing after refactor.
+   - Modularized styles for maintainability.
+
+---
