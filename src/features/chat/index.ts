@@ -17,6 +17,7 @@ export {
   $apiError, // Needed by UI error display
   $retryingMessageId, // Needed by MessageItem to show spinner
   $preventScroll, // Import scroll prevention state
+  $scrollTrigger, // Explicit scroll trigger counter
   // $scrollTrigger, // REMOVED
 
   // Events - Triggered by UI or other features
@@ -31,12 +32,12 @@ export {
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,
   apiKeyMissing,
-  apiRequestTokensUpdated,
-  apiRequestSuccess, // May be needed to trigger save in history
+  apiRequestTokensUpdated, // May be needed to trigger save in history
   userMessageCreated, // May be needed to trigger save in history
   // scrollToBottomNeeded, // REMOVED
   retryUpdate, // <-- Add retryUpdate here for history feature to use
   scrollToLastMessageNeeded, // <-- Export assistant scroll event
+  normalResponseProcessed, // <-- Export event for saving normal responses
   // Effects - Generally not exported unless specifically needed externally
   // sendApiRequestFx // Keep internal for now
 } from "./model";

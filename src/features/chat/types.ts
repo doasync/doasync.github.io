@@ -49,13 +49,32 @@ export interface OpenRouterErrorBody {
   };
 }
 
+// Define the types of request contexts
+export type RequestContextNormal = { type: "normal" };
+export type RequestContextGenerate = {
+  type: "generate";
+  placeholderId: string;
+};
+export type RequestContextRetry = {
+  type: "retry";
+  originalMessageId: string;
+  originalRole: Role;
+  retryPlaceholderId?: string; // ID of placeholder added if retrying user -> user/end
+};
+
+export type RequestContext =
+  | RequestContextNormal
+  | RequestContextGenerate
+  | RequestContextRetry;
+
 // Type for parameters passed to the API request effect/function
 export interface SendApiRequestParams {
   modelId: string;
-  messages: Message[];
+  messages: Message[]; // History slice to send
   apiKey: string;
   temperature: number;
   systemPrompt: string;
+  requestContext: RequestContext | null; // Explicit context for processing the response
 }
 
 // Type for the payload of the internal retryUpdate event
@@ -66,6 +85,7 @@ export interface RetryUpdatePayload {
 }
 
 // Type for the payload of the internal calculatedRetryUpdate event
+// This still represents the *result* of the calculation
 export type CalculatedRetryUpdatePayload = RetryUpdatePayload | null;
 
 // Type for the payload of the messageRetryInitiated event

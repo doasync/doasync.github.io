@@ -7,6 +7,7 @@ import {
   SendApiRequestParams,
   CalculatedRetryUpdatePayload,
   MessageRetryInitiatedPayload,
+  RequestContext, // <-- Import RequestContext
 } from "./types";
 
 /**
@@ -106,7 +107,8 @@ export const prepareRetryRequestParamsFn = (
     selectedModelId: string;
   },
   messageRetried: Message // Type is narrowed by filter in model.ts
-): SendApiRequestParams => {
+): Omit<SendApiRequestParams, "requestContext"> => {
+  // Fix return type annotation
   const retryIndex = messages.findIndex((msg) => msg.id === messageRetried.id);
 
   if (retryIndex === -1) {
@@ -127,12 +129,14 @@ export const prepareRetryRequestParamsFn = (
     historyToSend = messages.slice(0, retryIndex);
   }
 
+  // Return only the base parameters, context is added in the model sample
   return {
     modelId: selectedModelId,
     messages: historyToSend,
     apiKey,
     temperature,
     systemPrompt,
+    // requestContext is intentionally omitted here
   };
 };
 
@@ -143,144 +147,106 @@ export const prepareRetryRequestParamsFn = (
  */
 export const calculateRetryUpdatePayloadFn = (
   payload: {
-    // Renamed parameter to 'payload' for clarity
+    // This object contains the necessary data from the sample's source/params
     messages: Message[];
-    retryContext: { messageId: string; role: "user" | "assistant" } | null;
-    placeholderInfo: { id: string; originalUserId: string } | null;
-    generatingPlaceholderId?: string | null; // <-- Add optional placeholder ID for generation
+    requestContext: RequestContext | null; // Use the explicit context passed in params
   },
   response: OpenRouterResponseBody
 ): CalculatedRetryUpdatePayload => {
-  const { messages, retryContext, placeholderInfo, generatingPlaceholderId } =
-    payload; // <-- Destructure new ID
+  const { messages, requestContext } = payload; // Destructure messages and context
 
   // --- Determine action based on context ---
   let newAssistantMessage: Message;
   let targetIndex = -1;
   let insert = false; // Default to replacement
 
-  // Case 1: Generating a new response (placeholder exists)
-  if (generatingPlaceholderId) {
+  // Case 1: Generating a new response
+  if (requestContext?.type === "generate") {
     targetIndex = messages.findIndex(
-      (msg) => msg.id === generatingPlaceholderId
+      (msg) => msg.id === requestContext.placeholderId
     );
     if (targetIndex === -1) {
       console.error(
         "Generating placeholder message not found for replacement:",
-        generatingPlaceholderId
+        requestContext.placeholderId
       );
-      return null; // Cannot proceed
+      return null;
     }
     insert = false; // Replacing the placeholder
     newAssistantMessage = {
-      id: response.id || crypto.randomUUID(), // Use API response ID or generate
+      id: response.id || crypto.randomUUID(),
       role: "assistant",
       content:
         response.choices?.[0]?.message?.content ?? "Error: Empty response",
       timestamp: Date.now(),
-      isLoading: false, // Mark as no longer loading
+      isLoading: false,
     };
     console.log(
-      "[calculateRetryUpdatePayloadFn] Generation Placeholder Case:",
-      { targetIndex, insert }
-    );
+      "[DEBUG][lib] calculateRetryUpdatePayloadFn: GENERATE FLOW RETURNING:",
+      { targetIndex, newAssistantMessageId: newAssistantMessage.id, insert }
+    ); // DEBUG
+    console.log(
+      "[DEBUG] calculateRetryUpdatePayloadFn: GENERATE FLOW RETURNING:",
+      { targetIndex, newAssistantMessage, insert }
+    ); // DEBUG
 
-    // Case 2: Handling a retry (retryContext exists)
-  } else if (retryContext) {
-    const {
-      messageId: originalRetryMessageId,
-      role: originalRetryMessageRole,
-    } = retryContext;
-    console.log("[calculateRetryUpdatePayloadFn] Retry Case:", {
-      originalRetryMessageId,
-      originalRetryMessageRole,
-    });
+    // Case 2: Handling a retry
+  } else if (requestContext?.type === "retry") {
+    const { originalMessageId, originalRole } = requestContext;
 
-    // Sub-case 2a: Replacing a retry placeholder (Scenario 1.2.b)
-    if (
-      placeholderInfo &&
-      originalRetryMessageId === placeholderInfo.originalUserId &&
-      originalRetryMessageRole === "user"
-    ) {
-      targetIndex = messages.findIndex((msg) => msg.id === placeholderInfo!.id);
-      if (targetIndex === -1) {
+    // Create the new message content first
+    newAssistantMessage = {
+      id: response.id || crypto.randomUUID(), // Use response ID if available
+      role: "assistant",
+      content:
+        response.choices?.[0]?.message?.content ?? "Error: Empty response",
+      timestamp: Date.now(),
+    };
+
+    if (originalRole === "assistant") {
+      // Replace the original assistant message itself
+      targetIndex = messages.findIndex((msg) => msg.id === originalMessageId);
+    } else if (originalRole === "user") {
+      // Find the *next* assistant message to replace
+      const userIndex = messages.findIndex(
+        (msg) => msg.id === originalMessageId
+      );
+      if (userIndex === -1) {
         console.error(
-          "Retry placeholder message not found for replacement:",
-          placeholderInfo.id
-        );
-        return null; // Cannot proceed
-      }
-      insert = false; // Replacing the placeholder
-      newAssistantMessage = {
-        id: response.id || crypto.randomUUID(), // Use API response ID or generate
-        role: "assistant",
-        content:
-          response.choices?.[0]?.message?.content ?? "Error: Empty response",
-        timestamp: Date.now(),
-        isLoading: false, // Mark as no longer loading
-      };
-      console.log("[calculateRetryUpdatePayloadFn] Retry Placeholder Case:", {
-        targetIndex,
-        insert,
-      });
-    } else {
-      // Sub-case 2b: Regular retry (Assistant retry OR User retry -> Assistant)
-      newAssistantMessage = {
-        id: crypto.randomUUID(), // Generate a new ID for non-placeholder replacements
-        role: "assistant",
-        content:
-          response.choices?.[0]?.message?.content ?? "Error: Empty response",
-        timestamp: Date.now(),
-      };
-
-      if (originalRetryMessageRole === "assistant") {
-        // Replace the original assistant message
-        targetIndex = messages.findIndex(
-          (msg) => msg.id === originalRetryMessageId
-        );
-        console.log(
-          "[calculateRetryUpdatePayloadFn] Assistant Retry - Replace Case: targetIndex =",
-          targetIndex
-        );
-      } else if (originalRetryMessageRole === "user") {
-        // Replace the *next* assistant message
-        const userIndex = messages.findIndex(
-          (msg) => msg.id === originalRetryMessageId
-        );
-        const nextAssistantIndex = messages.findIndex(
-          (msg, index) => index > userIndex && msg.role === "assistant"
-        );
-        if (nextAssistantIndex !== -1) {
-          targetIndex = nextAssistantIndex;
-          console.log(
-            "[calculateRetryUpdatePayloadFn] User Retry - Replace Next Case: targetIndex =",
-            targetIndex
-          );
-        } else {
-          // Should ideally be handled by placeholder logic, but log error if reached
-          console.error(
-            "User retry case reached without a next assistant or placeholder - check logic."
-          );
-          return null;
-        }
-      } else {
-        console.error(
-          "Unexpected role for original retried message:",
-          originalRetryMessageRole
+          "Original user message for retry not found:",
+          originalMessageId
         );
         return null;
       }
-      insert = false; // All regular retry paths involve replacement
+      const nextAssistantIndex = messages.findIndex(
+        (msg, index) => index > userIndex && msg.role === "assistant"
+      );
+      if (nextAssistantIndex !== -1) {
+        targetIndex = nextAssistantIndex;
+      } else {
+        // This indicates an issue - if retrying a user message, there should ideally be
+        // an assistant message (or a placeholder was expected but logic failed).
+        console.error(
+          "Cannot find next assistant message to replace after user retry:",
+          originalMessageId
+        );
+        return null;
+      }
+    } else {
+      console.error("Unexpected original role in retry context:", originalRole);
+      return null;
     }
-    // Case 3: Neither generating nor retrying - should not calculate update payload
+    insert = false; // Retries always replace
+    // Case 3: Normal request - no update calculation needed here
   } else {
-    console.log(
-      "[calculateRetryUpdatePayloadFn] No retryContext or generatingPlaceholderId, returning null."
+    // This function should only be called with 'generate' or 'retry' context
+    // If called with 'normal' or null, something is wrong in the model logic.
+    console.error(
+      "calculateRetryUpdatePayloadFn called with unexpected context:",
+      requestContext
     );
     return null;
   }
-
-  // (Code block removed as logic is now restructured above)
 
   // --- Common validation and return ---
   // Validate final targetIndex/insert combination
@@ -346,7 +312,6 @@ export const updateMessagesOnRetryFn = (
   }
 ): Message[] => {
   if (insert) {
-    // Insert the new message after the target index
     const updatedMessages = [...currentMessages];
     if (targetIndex >= -1 && targetIndex < currentMessages.length) {
       updatedMessages.splice(targetIndex + 1, 0, newAssistantMessage);
@@ -363,8 +328,12 @@ export const updateMessagesOnRetryFn = (
     return currentMessages.map((msg, index) =>
       index === targetIndex ? newAssistantMessage : msg
     );
+  } else if (targetIndex === currentMessages.length) {
+    // Special case: replace at end (e.g., placeholder is last message)
+    const updatedMessages = [...currentMessages];
+    updatedMessages[updatedMessages.length - 1] = newAssistantMessage;
+    return updatedMessages;
   }
-  // If index is invalid or insertion wasn't requested
   console.error("Retry update (replace) received invalid index or state.");
   return currentMessages;
 };

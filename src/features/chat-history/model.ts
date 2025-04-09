@@ -3,11 +3,11 @@ import { debug } from "patronum/debug";
 import {
   $messages,
   $currentChatTokens,
-  apiRequestSuccess,
   initialChatSaveNeeded,
   editMessage,
   deleteMessage,
-  retryUpdate, // <-- Import the event that signals retry completion
+  retryUpdate, // For saving after retry/generate updates
+  normalResponseProcessed, // For saving after normal API responses <-- Added Import
 } from "@/features/chat";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
@@ -240,7 +240,7 @@ sample({
   source: $chatHistoryIndex,
   filter: (_, updatedIndexEntry) => !!updatedIndexEntry,
   fn: (currentIndex, updatedIndexEntry) =>
-    updateIndexOnTitleEditFn(currentIndex, updatedIndexEntry),
+    updateIndexOnTitleEditFn(currentIndex, updatedIndexEntry!), // Add non-null assertion
   target: $chatHistoryIndex,
 });
 
@@ -338,7 +338,7 @@ sample({
 sample({
   clock: loadSpecificChatFx.doneData,
   filter: isChatSession,
-  fn: (chat) => chat.totalTokens,
+  fn: (chat) => chat.totalTokens ?? 0, // Ensure default value if undefined
   target: $currentChatTokens,
 });
 
@@ -360,15 +360,15 @@ sample({
 
 // ** Saving Chat Session **
 
-// Prepare and save chat session on initial message, API success, edit, or delete
+// Prepare and save chat session whenever relevant state changes
 sample({
   clock: [
-    initialChatSaveNeeded,
-    apiRequestSuccess,
-    editMessage,
-    deleteMessage,
-    retryUpdate,
-  ], // <-- Add retryUpdate here
+    initialChatSaveNeeded, // First message sent
+    normalResponseProcessed, // Normal API response processed
+    editMessage, // Message edited
+    deleteMessage, // Message deleted
+    retryUpdate, // Message list updated after retry/generate
+  ],
   source: {
     currentSession: $currentChatSession,
     messages: $messages,
@@ -378,7 +378,20 @@ sample({
     tokens: $currentChatTokens,
   },
   filter: ({ messages }) => messages.length > 0, // Only save if there are messages
-  fn: (source) => prepareChatSessionFn(source), // Use unified function
+  fn: (source) => {
+    // Corrected logging function
+    console.log(
+      "[saveChatFx Trigger] Fired. Source Messages Length:",
+      source.messages.length
+    ); // DEBUG LOG
+    if (source.messages.length > 0) {
+      console.log(
+        "[saveChatFx Trigger] Last Message ID:",
+        source.messages[source.messages.length - 1].id
+      ); // Log ID for easier tracking
+    }
+    return prepareChatSessionFn(source);
+  },
   target: saveChatFx,
 });
 
@@ -389,7 +402,7 @@ sample({
   clock: saveChatFx.done,
   source: $apiKey,
   filter: (apiKey, { params: savedChat }) =>
-    !!apiKey && savedChat.messages.length > 0, // Assuming 2 messages = user + first assistant
+    !!apiKey && savedChat.messages.length > 0 && !savedChat.title, // Only generate if title doesn't exist
   fn: (apiKey, { params: savedChat }): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
@@ -401,13 +414,15 @@ sample({
 // Trigger title update in DB after successful generation
 sample({
   clock: generateTitleFx.doneData,
+  filter: ({ generatedTitle }) => !!generatedTitle, // Ensure title was generated
   fn: ({ chatId, generatedTitle }): EditTitleParams => ({
     id: chatId,
-    newTitle: generatedTitle,
+    newTitle: generatedTitle!, // Non-null assertion safe due to filter
   }),
   target: editChatTitleFx,
 });
 
+// Trigger title generation manually via event
 sample({
   clock: generateTitle,
   source: { apiKey: $apiKey, currentChat: $currentChatSession },
@@ -451,11 +466,16 @@ debug(
   deleteChat,
   newChatCreated,
   chatTitleEdited,
+  generateTitle, // Added manual trigger
+  duplicateChatClicked, // Added duplicate trigger
+  regenerateTitleForChat, // Added regenerate trigger
   // Effects
   loadChatHistoryIndexFx,
   loadSpecificChatFx,
   saveChatFx,
   deleteChatFx,
   editChatTitleFx,
-  generateTitleFx
+  generateTitleFx,
+  duplicateChatFx, // Added duplicate effect
+  regenerateTitleForChatFx // Added regenerate effect
 );

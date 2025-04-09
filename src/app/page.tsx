@@ -52,10 +52,7 @@ import {
   $apiError, // Import error state
   $preventScroll, // Import scroll prevention state
   setPreventScroll, // Import scroll prevention setter
-  // scrollToBottomNeeded, // No longer needed
-  // scrollToLastMessageNeeded, // No longer needed
-  // $scrollTrigger, // No longer needed
-  // Removed duplicate setPreventScroll import
+  $scrollTrigger, // Import explicit scroll trigger
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -108,6 +105,9 @@ export default function HomePage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [messages, messageText] = useUnit([$messages, $messageText]);
+  const lastMessage =
+    messages.length > 0 ? messages[messages.length - 1] : null;
+
   // Use persistent state for desktop drawers
   const [isHistoryPersistentOpen, isSettingsPersistentOpen] = useUnit([
     $isHistoryDrawerPersistentOpen,
@@ -231,19 +231,18 @@ export default function HomePage() {
 
   const handleSendButtonClick = () => {
     if (editingMessageId !== null) {
-      // Existing logic to prevent sending while editing
+      // Scroll to the editing message
       const element = document.getElementById(editingMessageId);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+
       setSnackbarMessage("Finish editing before sending a new message.");
       setSnackbarOpen(true);
       return; // Stop further processing
     }
 
     const isInputEmpty = messageText.trim().length === 0;
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
     const isLastMessageUser = lastMessage?.role === "user";
 
     if (!isInputEmpty) {
@@ -302,28 +301,20 @@ export default function HomePage() {
   // Effect to reset preventScroll flag after edit/retry potentially caused it to be true
   React.useEffect(() => {
     if (preventScroll) {
-      // Use a small timeout to ensure this runs after other updates potentially triggered by the same action
-      const timer = setTimeout(() => {
-        setPreventScroll(false);
-      }, 0);
-      return () => clearTimeout(timer); // Cleanup timeout on unmount or if preventScroll changes again
+      setPreventScroll(false);
     }
   }, [preventScroll]); // Only run when preventScroll changes
 
-  // Effect to scroll to bottom whenever messages change, unless prevented
   const preventScrollFlag = useUnit($preventScroll);
-  // Directly use 'messages' from the useUnit call earlier (line 110)
+  const scrollTrigger = useUnit($scrollTrigger);
 
   React.useEffect(() => {
-    // Only scroll if the flag is not set
     if (!preventScrollFlag) {
-      // Optional: Add a small delay to ensure rendering is complete, especially after complex updates
-      const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50); // 50ms delay, adjust if needed
-      return () => clearTimeout(timer); // Cleanup timeout
+      });
     }
-  }, [messages, preventScrollFlag]); // Depend on messages and the flag
+  }, [lastMessage, scrollTrigger, preventScrollFlag]); // Depend on explicit scroll trigger and flag
 
   // Remove the old effect that depended on scrollToLastMessageNeeded
 
