@@ -142,12 +142,14 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
       >
         {!isMobileDrawerOpen && (
           <Toolbar
-            disableGutters={true}
+            disableGutters
+            variant="dense"
             sx={{
               display: "flex",
               alignItems: "center",
               justifyContent: "start",
-              px: 2,
+              pl: 2,
+              pr: 1,
               borderBottom: 1,
               borderColor: "divider",
             }}
@@ -243,7 +245,6 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
                       ) : (
                         <IconButton
                           edge="end"
-                          size="small"
                           aria-label="more"
                           onClick={(e) =>
                             handleMenuOpen(e, chat.id, chat.title)

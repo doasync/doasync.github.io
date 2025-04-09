@@ -47,13 +47,13 @@ const ModelInfoDrawer: React.FC<ModelInfoDrawerProps> = ({ model }) => {
   return (
     <Box>
       {!isMobileDrawerOpen && (
-        <Toolbar disableGutters sx={{ p: 2 }}>
+        <Toolbar variant="dense" disableGutters>
           <Typography variant="h6" fontWeight="bold">
             Model Info
           </Typography>
         </Toolbar>
       )}
-      <Divider />
+
       <Box padding={2}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Typography variant="h6" fontWeight="bold">

@@ -1,5 +1,5 @@
 import React from "react";
-import { closeSettingsDrawer } from "@/features/ui-state"; // Import close event
+import { $isMobileDrawerOpen, closeSettingsDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
   Typography,
@@ -47,10 +47,8 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   handleMouseDownApiKey,
   // onClose, // Remove from destructuring
 }) => {
-  const [showFreeOnlyValue, setShowFreeOnlyValue] = useUnit([
-    $showFreeOnly,
-    setShowFreeOnly,
-  ]);
+  const showFreeOnlyValue = useUnit($showFreeOnly);
+  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
 
   return (
     <Box
@@ -63,23 +61,28 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         height: "100%",
       }}
     >
-      <Toolbar
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="h6">Chat Settings</Typography>
-        {/* Add dedicated close button for persistent drawer */}
-        <IconButton
-          onClick={() => closeSettingsDrawer()}
-          aria-label="close settings drawer"
-          edge="end"
+      {!isMobileDrawerOpen && (
+        <Toolbar
+          disableGutters
+          variant="dense"
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            px: 2,
+          }}
         >
-          <SettingsIcon />
-        </IconButton>
-      </Toolbar>
+          <Typography variant="h6">Chat Settings</Typography>
+          {/* Add dedicated close button for persistent drawer */}
+          <IconButton
+            onClick={() => closeSettingsDrawer()}
+            aria-label="close settings drawer"
+            edge="end"
+          >
+            <SettingsIcon />
+          </IconButton>
+        </Toolbar>
+      )}
 
       <Divider />
 
@@ -179,7 +182,11 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           multiline
           value={systemPrompt}
           onChange={(e) => handleSystemPromptChange(e.target.value)}
-          sx={{ flexGrow: 1 }}
+          sx={{
+            "& .MuiInputBase-input": {
+              resize: "vertical", // Allow vertical resizing
+            },
+          }}
           InputProps={{ sx: { height: "100%" } }}
         />
       </Box>

@@ -119,6 +119,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   // Effect to handle clicks outside the message item while editing
   useEffect(() => {
+    // Skip this for now
+    return;
+
     if (!isEditing) return; // Only run when editing
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -146,23 +149,23 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       ref={messageItemRef}
       variant="outlined"
       key={message.id}
+      id={message.id} // Add ID for scrolling
       // Only allow hover state change if nothing else is being edited
       onMouseEnter={() => canHover && setIsHovered(true)}
       onMouseLeave={() => canHover && setIsHovered(false)}
       sx={{
+        borderRadius: 2,
         display: "flex",
         flexDirection: "column",
         position: "relative",
         // Outline if editing this message OR (hovered AND nothing else is being edited)
         borderColor: isGloballyEditingThis
-          ? theme.palette.primary.main
+          ? theme.palette.secondary.light
           : isHovered && canHover
           ? theme.palette.primary.light // Use lighter color for hover to differentiate from edit
           : "transparent",
-        padding: 1.5, // Reduced padding slightly
-        borderWidth: isGloballyEditingThis ? 2 : 1, // Make border thicker when editing
+        padding: 2, // Reduced padding slightly
         transition: theme.transitions.create("border-color"), // Smooth transition for border color
-        alignSelf: "flex-start", // Align to start for better layout
       }}
     >
       <Card
@@ -170,15 +173,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
         elevation={1}
         onDoubleClick={handleEditClick} // Allow double-click to edit
         sx={{
-          p: 1.5,
+          p: 2,
+          borderRadius: 2,
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor:
             message.role === "user"
               ? "primary.dark"
               : theme.palette.background.paper, // Use paper background for assistant
           // Adjust width for alignment
-          width: "fit-content", // Let content determine width initially
+          width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
           maxWidth: "85%", // Limit max width
+          minWidth: "20%", // Limit max width
           wordWrap: "break-word",
         }}
       >
@@ -192,10 +197,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             autoFocus
             onKeyDown={(e) => {
               // Add keydown handler for Enter/Escape
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleEditConfirm();
-              } else if (e.key === "Escape") {
+              if (e.key === "Escape") {
                 handleEditCancel();
               }
             }}
@@ -206,13 +208,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               fontSize: "inherit",
               lineHeight: "inherit",
               color: "inherit", // Ensure text color matches
+              "& .MuiInputBase-input": {
+                resize: "vertical", // Allow vertical resizing
+              },
             }}
           />
         ) : (
           <Typography
             component="div"
             variant="body1"
-            sx={{ overflowWrap: "break-word", width: "100%" }}
+            sx={{
+              overflowWrap: "break-word",
+              width: "100%",
+            }}
           >
             {/* Ensure MarkdownRenderer is wrapped correctly */}
             <MarkdownRenderer content={message.content} />
@@ -238,7 +246,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           sx={{
             position: "absolute",
             borderRadius: 20,
-            top: -17, // Position above the card
+            top: -18, // Position above the card
             right: 4,
             bgcolor: "background.default", // Give it a background
             p: 0.25, // Small padding around buttons

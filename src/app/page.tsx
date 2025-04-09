@@ -1,9 +1,13 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
-import { useTheme, useMediaQuery } from "@mui/material";
+import { useTheme, useMediaQuery, Snackbar } from "@mui/material";
 import MobileUnifiedDrawer from "@/components/MobileUnifiedDrawer";
-import { $isMobileDrawerOpen, openMobileDrawer } from "@/features/ui-state";
+import {
+  $isMobileDrawerOpen,
+  openMobileDrawer,
+  $editingMessageId,
+} from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import Box from "@mui/material/Box";
 import AppBar from "@mui/material/AppBar";
@@ -21,6 +25,7 @@ import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import type { SnackbarCloseReason } from "@mui/material/Snackbar";
 
 // Import components
 import MessageItem from "@/components/MessageItem";
@@ -108,6 +113,7 @@ export default function HomePage() {
 
   const [currentChatSession, apiKey] = useUnit([$currentChatSession, $apiKey]);
 
+  const editingMessageId = useUnit($editingMessageId);
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
   const preventScroll = useUnit($preventScroll); // Get scroll prevention state
   const isMobileDrawerOpen = useUnit($isMobileDrawerOpen); // Get scroll prevention state
@@ -145,6 +151,15 @@ export default function HomePage() {
   const [editedTitle, setEditedTitle] = React.useState("");
 
   const [showApiKey, setShowApiKey] = React.useState(false);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState("");
+  const handleSnackbarClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: SnackbarCloseReason
+  ) => {
+    if (reason === "clickaway") return;
+    setSnackbarOpen(false);
+  };
 
   const filteredHistory = React.useMemo(() => {
     if (!historySearchTerm) return historyIndex;
@@ -211,14 +226,22 @@ export default function HomePage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => messageTextChanged(e.target.value);
 
-  const keyDownMessage = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      messageSent();
+  const clickSendMessage = () => messageSent();
+  const handleSendButtonClick = () => {
+    if (editingMessageId !== null) {
+      const element = document.getElementById(editingMessageId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setSnackbarMessage("Finish editing before sending a new message.");
+      setSnackbarOpen(true);
+    } else {
+      // Not editing: attempt to send if conditions met
+      if (messageText.trim().length > 0 && !isGenerating) {
+        messageSent();
+      }
     }
   };
-
-  const clickSendMessage = () => messageSent();
 
   const historyPanelProps = {
     searchTerm: historySearchTerm,
@@ -290,66 +313,11 @@ export default function HomePage() {
       {" "}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
-      <AppBar
-        position="fixed"
-        sx={() => {
-          const base = {
-            zIndex: theme.zIndex.drawer + 1,
-            transition: theme.transitions.create(["width", "margin"], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
-          };
-
-          if (
-            !isMobile &&
-            isHistoryPersistentOpen &&
-            isSettingsPersistentOpen
-          ) {
-            return {
-              ...base,
-              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px - ${SETTINGS_DRAWER_WIDTH}px)`,
-              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
-              transition: theme.transitions.create(["width", "margin"], {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            };
-          }
-
-          if (!isMobile && isHistoryPersistentOpen) {
-            return {
-              ...base,
-              width: `calc(100% - ${HISTORY_DRAWER_WIDTH}px)`,
-              marginLeft: `${HISTORY_DRAWER_WIDTH}px`,
-              transition: theme.transitions.create(["width", "margin"], {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            };
-          }
-
-          if (!isMobile && isSettingsPersistentOpen) {
-            return {
-              ...base,
-              width: `calc(100% - ${SETTINGS_DRAWER_WIDTH}px)`,
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`,
-              transition: theme.transitions.create(["width", "margin"], {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            };
-          }
-
-          return base;
-        }}
-      >
-        <Toolbar>
+      <AppBar position="fixed">
+        <Toolbar variant="dense" disableGutters sx={{ px: 1 }}>
           {/* Conditionally render History Button */}
           {!isHistoryPersistentOpen && !isMobile && (
             <IconButton
-              edge="start"
               color="inherit"
               aria-label="History"
               onClick={clickHistory}
@@ -383,8 +351,6 @@ export default function HomePage() {
           {/* Conditionally render Settings Button */}
           {!isSettingsPersistentOpen && !isMobile && (
             <IconButton
-              size="large"
-              edge="end"
               color="inherit"
               aria-label="settings"
               onClick={clickSettings}
@@ -477,7 +443,7 @@ export default function HomePage() {
               }),
             }),
           // Ensure content below AppBar starts correctly
-          pt: `${theme.mixins.toolbar.minHeight}px`, // Use theme value for AppBar height
+          pt: `${Number(theme.mixins.toolbar.minHeight) - 16}px`, // Use theme value for AppBar height
           pb: 0, // Remove potential bottom padding if any
           boxSizing: "border-box", // Include padding in height calculation
         })}
@@ -491,8 +457,9 @@ export default function HomePage() {
             flexDirection: "column", // Stack items vertically
             alignItems: "center", // Center items horizontally
             width: "100%",
-            px: isMobile ? 1 : 3, // Add horizontal padding
-            py: 2,
+            p: isMobile ? 1 : 2, // Add horizontal padding
+            pt: isMobile ? 2 : 3,
+            position: "relative",
           }}
         >
           {/* Inner container for centering message content */}
@@ -510,8 +477,6 @@ export default function HomePage() {
             <Paper
               elevation={0}
               sx={{
-                flexGrow: 1, // Make paper grow to fill container
-                p: 1, // Reduced padding
                 backgroundColor: "transparent", // Or theme background
                 display: "flex",
                 flexDirection: "column",
@@ -521,8 +486,11 @@ export default function HomePage() {
             >
               <Stack
                 alignItems="center"
-                spacing={1}
-                sx={{ flexGrow: 1, width: "100%" }}
+                // spacing={0.5}
+                sx={{
+                  alignItems: "stretch", // Align items to stretch full width
+                  width: "100%",
+                }}
               >
                 {messages.map((msg) => (
                   <MessageItem message={msg} key={msg.id} />
@@ -532,6 +500,23 @@ export default function HomePage() {
             </Paper>{" "}
             {/* End Message List Paper */}
           </Container>{" "}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={2000}
+            onClose={handleSnackbarClose}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            sx={(theme) => {
+              // Adjust based on AppBar height
+              const top = Number(theme.mixins.toolbar.minHeight) + 8;
+              return {
+                top: `${top}px !important`, // Use important
+              };
+            }}
+          >
+            <Alert onClose={handleSnackbarClose} severity="warning">
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
           {/* End Centering Container */}
         </Box>{" "}
         {/* End Scrollable Area Box */}
@@ -544,73 +529,73 @@ export default function HomePage() {
           </Container>
         )}
         {/* Input Area Wrapper - Sticks to the bottom */}
-        <Box
+        <Paper
+          square
           sx={{
             mt: "auto",
             width: "100%",
             backgroundColor: "background.paper",
             flexShrink: 0,
+            borderTop: 1,
+            borderColor: "divider",
+            p: 1,
           }}
         >
           {" "}
           {/* Added flexShrink */}
           {/* Centering Container for Input */}
-          <Container maxWidth="md" sx={{ py: 1, px: isMobile ? 1 : 2 }}>
-            <Paper
-              square
-              elevation={0} // Can adjust elevation if needed
-              sx={{
-                p: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                width: "100%", // Ensure paper takes full width of container
-              }}
-            >
-              <IconButton color="primary" aria-label="attach file" disabled>
-                {" "}
-                {/* Disabled Attach for now */}
-                <AttachFileIcon />
+          <Box
+            maxWidth="md"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              width: "100%", // Ensure paper takes full width of container
+            }}
+          >
+            <IconButton color="primary" aria-label="attach file" disabled>
+              {" "}
+              {/* Disabled Attach for now */}
+              <AttachFileIcon />
+            </IconButton>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={5}
+              variant="outlined"
+              placeholder="Type your message..."
+              sx={{ flexGrow: 1 }}
+              value={messageText}
+              onChange={changeMessage}
+            />
+            <Box sx={{ position: "relative" }}>
+              <IconButton
+                size="large"
+                color="primary"
+                aria-label="send message"
+                onClick={handleSendButtonClick} // Use new handler
+                disabled={messageText.trim().length === 0 || isGenerating} // Disable only for non-editing reasons
+              >
+                <SendIcon />
               </IconButton>
-              <TextField
-                fullWidth
-                multiline
-                maxRows={5}
-                variant="outlined"
-                placeholder="Type your message..."
-                sx={{ flexGrow: 1 }}
-                value={messageText}
-                onChange={changeMessage}
-                onKeyDown={keyDownMessage}
-              />
-              <Box sx={{ position: "relative" }}>
-                <IconButton
-                  color="primary"
-                  aria-label="send message"
-                  onClick={clickSendMessage}
-                  disabled={messageText.trim().length === 0 || isGenerating}
-                >
-                  <SendIcon />
-                </IconButton>
-                {isGenerating && (
-                  <CircularProgress
-                    size={24}
-                    sx={{
-                      color: "primary.main",
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      marginTop: "-12px",
-                      marginLeft: "-12px",
-                    }}
-                  />
-                )}
-              </Box>
-            </Paper>{" "}
-            {/* End Input Paper */}
-          </Container>{" "}
+              {isGenerating && (
+                <CircularProgress
+                  size={24}
+                  sx={{
+                    color: "primary.main",
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    marginTop: "-12px",
+                    marginLeft: "-12px",
+                  }}
+                />
+              )}
+            </Box>
+          </Box>{" "}
+          {/* End Input Paper */}
           {/* End Input Centering Container */}
-        </Box>{" "}
+        </Paper>{" "}
         {/* End Input Area Wrapper Box */}
         <ApiKeyMissingDialog />
       </Box>{" "}

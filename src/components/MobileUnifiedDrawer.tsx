@@ -1,5 +1,5 @@
 import React from "react";
-import { Drawer, Tabs, Tab, Box } from "@mui/material";
+import { Drawer, Tabs, Tab, Box, Divider } from "@mui/material";
 import { useUnit } from "effector-react";
 import {
   $isMobileDrawerOpen,
@@ -49,6 +49,9 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
           variant="fullWidth"
           indicatorColor="secondary"
           textColor="inherit"
+          sx={{
+            backgroundColor: "background.paper",
+          }}
         >
           <Tab
             sx={{ fontWeight: activeTab === "history" ? "bold" : "normal" }}
@@ -66,7 +69,7 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
             label="Settings"
           />
         </Tabs>
-
+        <Divider />
         <Box sx={{ flexGrow: 1, overflow: "auto" }}>
           {activeTab === "history" && (
             <ChatHistoryContent {...historyPanelProps} onClose={close} />
