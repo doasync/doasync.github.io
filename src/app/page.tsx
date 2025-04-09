@@ -19,13 +19,15 @@ import IconButton from "@mui/material/IconButton";
 import SubjectIcon from "@mui/icons-material/Subject";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import SendIcon from "@mui/icons-material/Send";
+import SendIcon from "@mui/icons-material/Send"; // Keep for reference if needed, but we'll use AutoAwesome
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"; // Import the new icon
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import type { SnackbarCloseReason } from "@mui/material/Snackbar";
+import { generateResponseClicked } from "@/features/chat";
 
 // Import components
 import MessageItem from "@/components/MessageItem";
@@ -226,20 +228,35 @@ export default function HomePage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => messageTextChanged(e.target.value);
 
-  const clickSendMessage = () => messageSent();
   const handleSendButtonClick = () => {
     if (editingMessageId !== null) {
+      // Existing logic to prevent sending while editing
       const element = document.getElementById(editingMessageId);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       setSnackbarMessage("Finish editing before sending a new message.");
       setSnackbarOpen(true);
-    } else {
-      // Not editing: attempt to send if conditions met
-      if (messageText.trim().length > 0 && !isGenerating) {
+      return; // Stop further processing
+    }
+
+    const isInputEmpty = messageText.trim().length === 0;
+    const lastMessage =
+      messages.length > 0 ? messages[messages.length - 1] : null;
+    const isLastMessageUser = lastMessage?.role === "user";
+
+    if (!isInputEmpty) {
+      // Case 3 & 4: Input has text, send it as a new message
+      if (!isGenerating) {
         messageSent();
       }
+    } else {
+      // Input is empty
+      // Case 2: Input empty, last message was user -> Generate new response
+      if (isLastMessageUser && !isGenerating) {
+        generateResponseClicked(); // Trigger the new event
+      }
+      // Case 1: Input empty, last message was assistant -> Button is disabled, do nothing onClick
     }
   };
 
@@ -569,15 +586,28 @@ export default function HomePage() {
               onChange={changeMessage}
             />
             <Box sx={{ position: "relative" }}>
-              <IconButton
-                size="large"
-                color="primary"
-                aria-label="send message"
-                onClick={handleSendButtonClick} // Use new handler
-                disabled={messageText.trim().length === 0 || isGenerating} // Disable only for non-editing reasons
-              >
-                <SendIcon />
-              </IconButton>
+              {/* Calculate disabled state based on new logic */}
+              {(() => {
+                const isInputEmpty = messageText.trim().length === 0;
+                const lastMessage =
+                  messages.length > 0 ? messages[messages.length - 1] : null;
+                const isLastMessageUser = lastMessage?.role === "user";
+                // Disable if generating OR (input is empty AND last message was NOT user)
+                const isDisabled =
+                  isGenerating || (isInputEmpty && !isLastMessageUser);
+
+                return (
+                  <IconButton
+                    size="large"
+                    color="primary"
+                    aria-label="Generate" // Updated tooltip
+                    onClick={handleSendButtonClick} // Use updated handler
+                    disabled={isDisabled} // Use new disabled logic
+                  >
+                    <AutoAwesomeIcon /> {/* Use new icon */}
+                  </IconButton>
+                );
+              })()}
               {isGenerating && (
                 <CircularProgress
                   size={24}

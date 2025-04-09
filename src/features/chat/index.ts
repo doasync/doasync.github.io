@@ -26,6 +26,7 @@ export {
   deleteMessage, // Event triggered by MessageItem
   messageRetry, // Event triggered by MessageItem (takes Message object)
   setPreventScroll,
+  generateResponseClicked, // <-- Export the new event for the UI
 
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,

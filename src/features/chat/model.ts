@@ -50,6 +50,9 @@ export const scrollToBottomNeeded = chatDomain.event<void>(
   "scrollToBottomNeeded"
 ); // New event for scrolling
 export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
+export const generateResponseClicked = chatDomain.event<void>(
+  "generateResponseClicked"
+); // New event
 
 // Internal Events (used within this model)
 const messageAdded = chatDomain.event<Message>("messageAdded");
@@ -332,6 +335,149 @@ sample({
   filter: (retryingId) => retryingId !== null,
   fn: () => null,
   target: $retryingMessageId,
+});
+
+// --- Generate Response Logic (No New User Message) ---
+
+// Trigger API request when generateResponseClicked is called (if API key exists and not already generating)
+sample({
+  clock: generateResponseClicked,
+  source: {
+    messages: $messages,
+    apiKey: $apiKey,
+    temperature: $temperature,
+    systemPrompt: $systemPrompt,
+    selectedModelId: $selectedModelId,
+    isGenerating: $isGenerating, // Source generating state
+  },
+  filter: ({ apiKey, messages, isGenerating }) =>
+    apiKey.length > 0 && messages.length > 0 && !isGenerating, // Ensure API key, messages exist, and not already generating
+  fn: ({
+    messages,
+    apiKey,
+    temperature,
+    systemPrompt,
+    selectedModelId,
+  }): SendApiRequestParams => ({
+    modelId: selectedModelId,
+    messages: messages, // Send the current messages as is
+    apiKey,
+    temperature,
+    systemPrompt,
+  }),
+  target: sendApiRequestFx,
+});
+
+// Trigger API key missing event if generate clicked without key
+sample({
+  clock: generateResponseClicked,
+  source: $apiKey,
+  filter: (key: string) => key.trim().length === 0,
+  target: apiKeyMissing,
+});
+
+// Prevent scroll when generating response this way too
+sample({
+  clock: generateResponseClicked,
+  source: $isGenerating,
+  filter: (isGen) => !isGen, // Only prevent if not already generating
+  fn: () => true,
+  target: setPreventScroll,
+});
+
+// Need to show spinner on the *next* potential message slot
+// For simplicity, let's reuse the retry logic's spinner mechanism,
+// but we need a way to signal *what* to show loading on.
+// Let's add a temporary loading message.
+
+const addPlaceholderForGeneration = chatDomain.event<void>(
+  "addPlaceholderForGeneration"
+);
+const placeholderGenerated = chatDomain.event<Message>("placeholderGenerated");
+
+sample({
+  clock: generateResponseClicked,
+  source: $isGenerating,
+  filter: (isGen) => !isGen, // Only add placeholder if not already generating
+  target: addPlaceholderForGeneration,
+});
+
+sample({
+  clock: addPlaceholderForGeneration,
+  source: $messages,
+  fn: (messages): Message => {
+    const placeholder: Message = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+      isLoading: true,
+    };
+    return placeholder;
+  },
+  target: placeholderGenerated,
+});
+
+sample({
+  clock: placeholderGenerated,
+  source: $messages,
+  fn: (messages, placeholder) => [...messages, placeholder],
+  target: $messages,
+});
+
+// Update retryingMessageId to the placeholder ID when generating
+sample({
+  clock: placeholderGenerated,
+  fn: (placeholder) => placeholder.id,
+  target: $retryingMessageId,
+});
+
+// Clear the placeholder ID from retryingMessageId when the API call finishes
+// This reuses the existing logic that resets $retryingMessageId on sendApiRequestFx.finally
+
+// Update the placeholder message with the actual response
+// This requires modifying the retry update logic slightly or adding a new path.
+// Let's modify calculateRetryUpdatePayloadFn to handle this.
+// We'll need to pass the placeholder ID.
+// Let's store the generated placeholder ID temporarily.
+
+const $generatingPlaceholderId = chatDomain
+  .store<string | null>(null)
+  .on(placeholderGenerated, (_, placeholder) => placeholder.id)
+  .reset(sendApiRequestFx.finally); // Reset after API call
+
+// Modify the sample that calls calculateRetryUpdatePayloadFn
+// Remove the existing sample at lines 470-492
+// Add a new sample that includes $generatingPlaceholderId
+
+// Remove existing sample:
+// sample({ clock: sendApiRequestFx.done, ... target: calculatedRetryUpdate });
+
+// Add new sample:
+sample({
+  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
+  source: {
+    // Source stores needed *at the time clock fires*
+    messages: $messages,
+    retryContext: $retryContext,
+    placeholderInfo: $placeholderInfo,
+    generatingPlaceholderId: $generatingPlaceholderId, // <-- Add generating placeholder ID
+  },
+  // NO filter here - always run the calculation. lib.ts function will decide what to do.
+  fn: (
+    { messages, retryContext, placeholderInfo, generatingPlaceholderId }, // Source data (values at clock time)
+    { result: response } // Clock data (effect result)
+  ) =>
+    calculateRetryUpdatePayloadFn(
+      {
+        messages, // Use sourced messages
+        retryContext, // Use sourced retryContext (captured before reset)
+        placeholderInfo, // Use sourced placeholderInfo
+        generatingPlaceholderId, // <-- Pass generating placeholder ID
+      },
+      response // Use response from clock data
+    ),
+  target: calculatedRetryUpdate,
 });
 
 // --- Retry Logic Flow ---
