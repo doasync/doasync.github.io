@@ -223,20 +223,21 @@ export const calculateRetryUpdatePayloadFn = (
       );
       if (nextAssistantIndex !== -1) {
         targetIndex = nextAssistantIndex;
+        insert = false; // Replace next assistant
       } else {
-        // This indicates an issue - if retrying a user message, there should ideally be
-        // an assistant message (or a placeholder was expected but logic failed).
-        console.error(
-          "Cannot find next assistant message to replace after user retry:",
+        // No assistant message found after retried user message
+        // Insert new assistant message immediately after the user message
+        targetIndex = userIndex;
+        insert = true;
+        console.log(
+          "[calculateRetryUpdatePayloadFn] No assistant after retried user message, inserting new assistant message after user:",
           originalMessageId
         );
-        return null;
       }
     } else {
       console.error("Unexpected original role in retry context:", originalRole);
       return null;
     }
-    insert = false; // Retries always replace
     // Case 3: Normal request - no update calculation needed here
   } else {
     // This function should only be called with 'generate' or 'retry' context

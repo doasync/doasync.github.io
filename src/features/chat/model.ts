@@ -175,8 +175,8 @@ $retryingMessageId
   .reset(sendApiRequestFx.finally);
 
 $preventScroll
-  .on([editMessage, messageRetryInitiated], () => true)
-  .on(generateResponseClicked, () => false)
+  .on([editMessage], () => true)
+  .on([messageRetryInitiated, generateResponseClicked], () => false)
   .on(sendApiRequestFx.finally, (current, _) => {
     // Use underscore for unused 'payload'
     const spinnerId = $retryingMessageId.getState();
