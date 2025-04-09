@@ -226,8 +226,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             <MarkdownRenderer content={message.content} />
           </Typography>
         )}
-        {/* Loading spinner during retry */}
-        {isRetryingThisMessage && (
+        {/* Loading spinner during retry or for placeholder */}
+        {(isRetryingThisMessage || message.isLoading) && (
           <CircularProgress
             size={20}
             sx={{

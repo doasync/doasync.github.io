@@ -72,12 +72,12 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
         <Divider />
         <Box sx={{ flexGrow: 1, overflow: "auto" }}>
           {activeTab === "history" && (
-            <ChatHistoryContent {...historyPanelProps} onClose={close} />
+            <ChatHistoryContent {...historyPanelProps} />
           )}
           {activeTab === "settings" && (
             <ChatSettingsContent
               {...settingsPanelProps}
-              onClose={() => close()}
+              // onClose prop removed as it's not expected by ChatSettingsContent
             />
           )}
           {activeTab === "modelInfo" && modelInfo && (

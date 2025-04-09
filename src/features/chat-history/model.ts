@@ -7,7 +7,8 @@ import {
   initialChatSaveNeeded,
   editMessage,
   deleteMessage,
-} from "@/features/chat"; // Import apiRequestSuccess and initialChatSaveNeeded
+  retryUpdate, // <-- Import the event that signals retry completion
+} from "@/features/chat";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
 import {
@@ -361,7 +362,13 @@ sample({
 
 // Prepare and save chat session on initial message, API success, edit, or delete
 sample({
-  clock: [initialChatSaveNeeded, apiRequestSuccess, editMessage, deleteMessage],
+  clock: [
+    initialChatSaveNeeded,
+    apiRequestSuccess,
+    editMessage,
+    deleteMessage,
+    retryUpdate,
+  ], // <-- Add retryUpdate here
   source: {
     currentSession: $currentChatSession,
     messages: $messages,

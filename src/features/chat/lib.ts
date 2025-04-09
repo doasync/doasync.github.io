@@ -118,24 +118,13 @@ export const prepareRetryRequestParamsFn = (
     historyToSend = messages.slice(0, retryIndex + 1);
   } else {
     // Retrying an assistant message
-    let precedingUserIndex = -1;
-    for (let i = retryIndex - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
-        precedingUserIndex = i;
-        break;
-      }
+    // Send all messages *before* the one being retried.
+    // This includes any preceding user messages AND assistant messages.
+    if (retryIndex < 0) {
+      // Should not happen based on previous check, but safety first
+      throw new Error("Invalid retryIndex for assistant message retry.");
     }
-    if (precedingUserIndex === -1) {
-      console.error(
-        "Could not find preceding user message for assistant retry:",
-        messageRetried.id
-      );
-      throw new Error(
-        "Could not find preceding user message for assistant retry."
-      );
-    } else {
-      historyToSend = messages.slice(0, precedingUserIndex + 1);
-    }
+    historyToSend = messages.slice(0, retryIndex);
   }
 
   return {
@@ -153,72 +142,123 @@ export const prepareRetryRequestParamsFn = (
  * Used in the sample triggered by `apiRequestSuccess` when a retry is in progress.
  */
 export const calculateRetryUpdatePayloadFn = (
-  {
-    messages,
-    retryContext,
-  }: {
+  payload: {
+    // Renamed parameter to 'payload' for clarity
     messages: Message[];
     retryContext: { messageId: string; role: "user" | "assistant" } | null;
+    placeholderInfo: { id: string; originalUserId: string } | null; // Added placeholderInfo
   },
   response: OpenRouterResponseBody
 ): CalculatedRetryUpdatePayload => {
-  // Use the passed retryContext directly
+  const { messages, retryContext, placeholderInfo } = payload;
+
+  // If no retry context was captured when the API call succeeded, this wasn't a retry.
+  // Return null to indicate no retry-specific update is needed.
   if (!retryContext) {
-    console.error("calculateRetryUpdatePayloadFn called without retryContext");
     return null;
   }
 
   const { messageId: originalRetryMessageId, role: originalRetryMessageRole } =
     retryContext;
 
-  const newAssistantMessage: Message = {
-    id: crypto.randomUUID(), // Ensure a unique ID for the new message
-    role: "assistant",
-    content: response.choices?.[0]?.message?.content ?? "Error: Empty response",
-    timestamp: Date.now(),
-  };
-
+  let newAssistantMessage: Message;
   let targetIndex = -1;
   let insert = false;
 
-  // Determine target index based on the role of the *original* message that was retried
-  if (originalRetryMessageRole === "assistant") {
-    // Retrying an assistant message: Replace the message itself
-    targetIndex = messages.findIndex(
-      (msg) => msg.id === originalRetryMessageId
-    );
-  } else if (originalRetryMessageRole === "user") {
-    // Retrying a user message: Find the *next* assistant message index to replace, or insert if none
-    const userIndex = messages.findIndex(
-      (msg) => msg.id === originalRetryMessageId
-    );
-    const nextAssistantIndex = messages.findIndex(
-      (msg, index) => index > userIndex && msg.role === "assistant"
-    );
-    if (nextAssistantIndex !== -1) {
-      // Found next assistant message to replace
-      targetIndex = nextAssistantIndex;
-    } else {
-      // No next assistant message, insert after the original user message
-      targetIndex = userIndex; // Use original index for insertion point
-      insert = true;
+  // Check if we are replacing a placeholder created in Scenario 1.2.b
+  if (
+    placeholderInfo &&
+    originalRetryMessageId === placeholderInfo.originalUserId &&
+    originalRetryMessageRole === "user" // Double-check role consistency
+  ) {
+    targetIndex = messages.findIndex((msg) => msg.id === placeholderInfo!.id);
+    if (targetIndex === -1) {
+      console.error(
+        "Placeholder message not found for replacement:",
+        placeholderInfo.id
+      );
+      return null; // Cannot proceed
     }
+    insert = false; // We are replacing, not inserting
+    newAssistantMessage = {
+      // Use the API response ID or generate a new one, DO NOT reuse placeholder ID
+      id: response.id || crypto.randomUUID(),
+      role: "assistant",
+      content:
+        response.choices?.[0]?.message?.content ?? "Error: Empty response",
+      timestamp: Date.now(),
+      isLoading: false, // Mark as no longer loading
+    };
   } else {
-    // Should not happen if retryingMessageId is set correctly
-    console.error(
-      "Unexpected role for original retried message:",
-      originalRetryMessageRole
-    );
-    return null;
-  }
+    // --- Existing logic for other scenarios (assistant retry or user retry -> assistant) ---
+    newAssistantMessage = {
+      id: crypto.randomUUID(), // Generate a new ID for non-placeholder replacements/insertions
+      role: "assistant",
+      content:
+        response.choices?.[0]?.message?.content ?? "Error: Empty response",
+      timestamp: Date.now(),
+    };
 
+    // Determine target index based on the role of the *original* message that was retried
+    if (originalRetryMessageRole === "assistant") {
+      // Retrying an assistant message: Replace the message itself
+      targetIndex = messages.findIndex(
+        (msg) => msg.id === originalRetryMessageId
+      );
+    } else if (originalRetryMessageRole === "user") {
+      // Retrying a user message: Find the *next* assistant message index to replace, or insert if none
+      // (This branch now only handles the case where the next message WAS an assistant)
+      const userIndex = messages.findIndex(
+        (msg) => msg.id === originalRetryMessageId
+      );
+      const nextAssistantIndex = messages.findIndex(
+        (msg, index) => index > userIndex && msg.role === "assistant"
+      );
+
+      if (nextAssistantIndex !== -1) {
+        // Found next assistant message to replace
+        targetIndex = nextAssistantIndex;
+      } else {
+        // No next assistant message, insert after the original user message
+        // This case *shouldn't* be reached if placeholder logic is correct,
+        // but kept as fallback/for clarity. Placeholder logic handles insertion implicitly now.
+        targetIndex = userIndex; // Use original index for insertion point
+        insert = true;
+        console.warn(
+          "Insertion case reached in calculateRetryUpdatePayloadFn - check placeholder logic."
+        );
+      }
+    } else {
+      // Should not happen
+      console.error(
+        "Unexpected role for original retried message:",
+        originalRetryMessageRole
+      );
+      return null;
+    }
+  } // End of the main 'else' block (non-placeholder case)
+
+  // --- Common validation and return ---
   // Validate final targetIndex/insert combination
-  if (targetIndex === -1 && !insert) {
-    console.error("Retry logic error: Could not determine target index.");
+  if (targetIndex === -1) {
+    // Note: insert=true implies targetIndex is the *preceding* user message index, which is valid.
+    // So we only fail if targetIndex is -1 AND we weren't inserting based on placeholder logic.
+    console.error("Retry logic error: Could not determine target index."); // Restored original message
     return null; // Cannot proceed
   }
 
-  return { targetIndex, newAssistantMessage, insert };
+  // Redundant validation block removed, handled above
+
+  const result = { targetIndex, newAssistantMessage, insert };
+  // Add final validation log
+  if (targetIndex === -1) {
+    // This check is technically redundant now but kept for safety
+    console.error(
+      "Retry logic error: Final targetIndex is -1. Returning null."
+    ); // Restored original message
+    return null;
+  }
+  return result;
 };
 
 /**

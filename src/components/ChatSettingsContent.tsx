@@ -153,7 +153,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           control={
             <Switch
               checked={showFreeOnlyValue}
-              onChange={(e) => setShowFreeOnlyValue(e.target.checked)}
+              onChange={(e) => setShowFreeOnly(e.target.checked)}
               color="primary"
             />
           }

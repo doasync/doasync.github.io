@@ -34,6 +34,7 @@ export {
   apiRequestSuccess, // May be needed to trigger save in history
   userMessageCreated, // May be needed to trigger save in history
   scrollToBottomNeeded,
+  retryUpdate, // <-- Add retryUpdate here for history feature to use
   // Effects - Generally not exported unless specifically needed externally
   // sendApiRequestFx // Keep internal for now
 } from "./model";

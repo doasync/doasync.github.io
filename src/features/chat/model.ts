@@ -53,7 +53,7 @@ export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
 
 // Internal Events (used within this model)
 const messageAdded = chatDomain.event<Message>("messageAdded");
-const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate");
+export const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate"); // <-- Add export
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
@@ -94,10 +94,10 @@ export const $currentChatTokens = chatDomain.store<number>(0, {
 export const $apiError = chatDomain.store<string | null>(null, {
   name: "$apiError",
 });
-export const $retryingMessageId = chatDomain
-  .store<string | null>(null, { name: "$retryingMessageId" })
-  // Reset when messages change (e.g., new chat loaded)
-  .reset($messages);
+export const $retryingMessageId = chatDomain.store<string | null>(null, {
+  name: "$retryingMessageId",
+});
+// Resetting on $messages change removed, rely on sendApiRequestFx.finally
 
 // Flag to temporarily prevent auto-scrolling
 export const $preventScroll = chatDomain
@@ -115,7 +115,16 @@ export const $retryContext = chatDomain
     name: "$retryContext",
   })
   .on(retryTriggered, (_, payload) => payload)
-  .reset(sendApiRequestFx.finally); // Reset when API call finishes
+  // Reset *after* the calculation payload has been determined (or determined to be null)
+  // This ensures the context is available *during* the calculation sample.
+  .reset(calculatedRetryUpdate);
+
+// Store placeholder info when retrying user message followed by another user message
+export const $placeholderInfo = chatDomain
+  .store<{ id: string; originalUserId: string } | null>(null, {
+    name: "$placeholderInfo",
+  })
+  .reset(sendApiRequestFx.finally); // Also reset when API call finishes
 
 // --- Store Updates (.on/.reset) ---
 
@@ -152,8 +161,18 @@ $apiError.reset(apiRequestSuccess);
 // Determine which message ID should show the spinner during retry
 sample({
   clock: messageRetryInitiated,
-  source: $messages,
-  fn: determineRetryingMessageIdFn,
+  source: { messages: $messages, placeholderInfo: $placeholderInfo }, // Source placeholder info
+  fn: ({ messages, placeholderInfo }, payload) => {
+    // If a placeholder was just created for this retry, use its ID
+    if (
+      placeholderInfo &&
+      payload.messageId === placeholderInfo.originalUserId
+    ) {
+      return placeholderInfo.id;
+    }
+    // Otherwise, use the standard logic
+    return determineRetryingMessageIdFn(messages, payload);
+  },
   target: $retryingMessageId,
 });
 
@@ -244,24 +263,23 @@ sample({
 
 // --- API Response Handling ---
 
-// Forward successful API response data to apiRequestSuccess event
-sample({
-  clock: sendApiRequestFx.doneData,
-  target: apiRequestSuccess,
-});
+// apiRequestSuccess event is removed as direct clocking on sendApiRequestFx.done/doneData is preferred
 
-// Add assistant message to list after successful API response (non-retry flow)
+// Add assistant message to list after successful API response (NON-RETRY flow)
 sample({
-  clock: apiRequestSuccess,
-  source: { messages: $messages, retryingId: $retryingMessageId },
-  filter: ({ retryingId }) => retryingId === null, // Only run if not retrying
-  fn: addAssistantMessageFn,
+  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
+  source: { messages: $messages, retryContext: $retryContext }, // Source messages and retry context
+  // Filter runs *at the time clock fires*. Only proceed if retryContext was null then.
+  filter: ({ retryContext }) => retryContext === null,
+  // Extract response from clock data ({ result }) and pass with sourced messages
+  fn: ({ messages }, { result: response }) =>
+    addAssistantMessageFn({ messages }, response),
   target: $messages,
 });
 
-// Update token count after successful API response
+// Update token count after successful API response (can run for both retry/non-retry)
 sample({
-  clock: apiRequestSuccess,
+  clock: sendApiRequestFx.doneData, // Clock directly on effect success data
   source: $currentChatTokens,
   fn: (currentTokens, response) =>
     currentTokens + (response.usage?.total_tokens ?? 0),
@@ -270,7 +288,7 @@ sample({
 
 // Forward successful API response data to apiRequestTokensUpdated event
 sample({
-  clock: apiRequestSuccess,
+  clock: sendApiRequestFx.doneData, // Clock directly on effect success data
   fn: (response) => response,
   target: apiRequestTokensUpdated,
 });
@@ -325,16 +343,90 @@ const isRetryableMessage = (
   return !!message && (message.role === "user" || message.role === "assistant");
 };
 
-// When messageRetry is called, store its context and prepare API params
+// When messageRetry is called:
+// 1. Create placeholder if needed (Scenario 1.2.b)
+// 2. Store original retry context
+// 3. Prepare API params
+// 4. Trigger spinner update
+
+// 1. Create placeholder if retrying user message followed by user/end
+// Define a helper event to carry the result of the placeholder calculation
+const placeholderCalculated = chatDomain.event<{
+  updatedMessages: Message[];
+  placeholderInfo: { id: string; originalUserId: string };
+}>("placeholderCalculated");
+
+// Sample to calculate placeholder data when needed
 sample({
   clock: messageRetry,
-  filter: isRetryableMessage, // Ensure it's a valid message to retry
+  source: $messages,
+  filter: (messages: Message[], messageToRetry: Message): boolean => {
+    if (!isRetryableMessage(messageToRetry) || messageToRetry.role !== "user") {
+      return false; // Only for user messages
+    }
+    const retryIndex = messages.findIndex(
+      (msg) => msg.id === messageToRetry.id
+    );
+    if (retryIndex === -1) return false; // Should not happen
+    const nextMessage = messages[retryIndex + 1];
+    // Condition: next message is user or does not exist
+    return !nextMessage || nextMessage.role === "user";
+  },
+  fn: (
+    messages: Message[],
+    messageToRetry: Message
+  ): {
+    updatedMessages: Message[];
+    placeholderInfo: { id: string; originalUserId: string };
+  } => {
+    const tempId = crypto.randomUUID();
+    const placeholderMessage: Message = {
+      id: tempId,
+      role: "assistant",
+      content: "", // Placeholder content
+      timestamp: Date.now(),
+      isLoading: true, // Mark as loading
+    };
+    const retryIndex = messages.findIndex(
+      (msg) => msg.id === messageToRetry.id
+    );
+    // Insert placeholder immediately after the retried user message
+    const updatedMessages = [
+      ...messages.slice(0, retryIndex + 1),
+      placeholderMessage,
+      ...messages.slice(retryIndex + 1),
+    ];
+    return {
+      updatedMessages,
+      placeholderInfo: { id: tempId, originalUserId: messageToRetry.id },
+    };
+  },
+  target: placeholderCalculated, // Target the helper event
+});
+
+// Sample to update $messages from the helper event
+sample({
+  clock: placeholderCalculated,
+  fn: (payload) => payload.updatedMessages,
+  target: $messages,
+});
+
+// Sample to update $placeholderInfo from the helper event
+sample({
+  clock: placeholderCalculated,
+  fn: (payload) => payload.placeholderInfo,
+  target: $placeholderInfo,
+});
+
+// 2. Store original retry context (runs for all valid retries)
+sample({
+  clock: messageRetry,
+  filter: isRetryableMessage,
   fn: (messageToRetry) => ({
-    // Extract context for $retryContext store
     messageId: messageToRetry.id,
     role: messageToRetry.role,
   }),
-  target: retryTriggered, // Store the context
+  target: retryTriggered,
 });
 
 sample({
@@ -376,14 +468,28 @@ sample({
 });
 
 // Calculate how to update the message list after a successful retry response
-// Use the stored $retryContext to know which message was originally retried
+// Use the stored $retryContext *at the time the effect completed*
 sample({
-  clock: apiRequestSuccess, // Triggered after API success
-  source: { messages: $messages, retryContext: $retryContext }, // Get messages and the original retry context
-  filter: ({ retryContext }) => retryContext !== null, // Only run if a retry was triggered
-  // Ensure the fn here correctly uses the source defined above
-  fn: ({ messages, retryContext }, response) =>
-    calculateRetryUpdatePayloadFn({ messages, retryContext }, response),
+  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
+  source: {
+    // Source stores needed *at the time clock fires*
+    messages: $messages,
+    retryContext: $retryContext,
+    placeholderInfo: $placeholderInfo,
+  },
+  // NO filter here - always run the calculation. lib.ts function will return null if not a retry.
+  fn: (
+    { messages, retryContext, placeholderInfo }, // Source data (values at clock time)
+    { result: response } // Clock data (effect result)
+  ) =>
+    calculateRetryUpdatePayloadFn(
+      {
+        messages, // Use sourced messages
+        retryContext, // Use sourced retryContext (captured before reset)
+        placeholderInfo, // Use sourced placeholderInfo
+      },
+      response // Use response from clock data
+    ),
   target: calculatedRetryUpdate,
 });
 
@@ -405,6 +511,7 @@ debug(
   $retryingMessageId, // Spinner state
   $scrollTrigger,
   $retryContext, // Original retry context
+  $placeholderInfo, // Added placeholder store
   // Targets from other features
   setPreventScroll, // Scroll prevention setter
 
@@ -426,6 +533,7 @@ debug(
   apiRequestSuccess,
   initialChatSaveNeeded,
   retryTriggered, // Added internal event
+  placeholderCalculated, // Added helper event for split sample
 
   // Effects
   sendApiRequestFx

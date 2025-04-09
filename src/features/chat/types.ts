@@ -9,6 +9,7 @@ export interface Message {
   timestamp: number;
   isEdited?: boolean;
   originalContent?: string | any; // Consider refining 'any' if possible
+  isLoading?: boolean; // Added for placeholder/retry state
 }
 
 // Internal types related to OpenRouter API structure
