@@ -1,10 +1,11 @@
-# Project Plan: LLM Chat Interface (v1.1)
+# Project Plan: LLM Chat Interface (v1.2)
 
 **1. Goals Recap:**
 
 - Build a static, responsive React/Next.js web app using TypeScript, MUI, Effector, and fetch API.
 - Interface with OpenRouter API for LLM interactions using user-provided keys (stored locally).
-- Support multiple chat histories (IndexedDB) with rename/delete/duplicate actions, dynamic model selection with filtering and info display, message editing/deletion/retry, rich message content rendering (Markdown, code, LaTeX, Mermaid), basic settings (LocalStorage), and file attachments (text/image - future).
+- Support multiple chat histories (IndexedDB) with rename/delete/duplicate/regenerate title actions, dynamic model selection with filtering and info display, message editing (double-click/button)/deletion/retry, rich message content rendering (Markdown, code, LaTeX, Mermaid), basic settings (LocalStorage), and file attachments (text/image - future).
+- Provide persistent side drawers on desktop for History and Settings.
 
 **2. Core Technologies & Setup:**
 
@@ -15,7 +16,7 @@
 - **Data Fetching/Caching:** Effector Effects, fetch API
 - **Local Storage:**
   - IndexedDB (via `idb` library) for chat history.
-  - LocalStorage for global settings (API Key, default temperature/system prompt, show free models toggle).
+  - LocalStorage for global settings (API Key, default temperature/system prompt, show free models toggle, persistent drawer states).
 - **Rich Content Rendering:**
   - `react-markdown` (Core Markdown)
   - `remark-gfm` (GitHub Flavored Markdown)
@@ -82,7 +83,7 @@ graph TD
     APIInteraction -- Sends Chat Request --> OpenRouterChat[OpenRouter API /chat/completions];
 
     LocalPersistence --> IndexedDB[(IndexedDB - Chat History)];
-    LocalPersistence --> LocalStorage[(LocalStorage - Settings)];
+    LocalPersistence --> LocalStorage[(LocalStorage - Settings, UI State)]; %% Updated LocalStorage usage
 
     subgraph Client-Side Application
         BrowserUI
@@ -107,54 +108,60 @@ graph TD
         Header[Header Bar]
         ChatArea[Chat Area]
         InputArea[Message Input Area]
-        DesktopDrawers[Desktop Drawers]
+        DesktopDrawers[Desktop Drawers (Persistent)] %% Updated: Persistent
         MobileDrawer[Mobile Unified Drawer]
         ErrorDisplay[Error Display (MUI Alert)]
+        ModelInfoAlert[Model Info Alert] %% Updated: Alert instead of Drawer
     end
 
     subgraph Header
         HistoryButton(History Icon Button)
+        NewChatButton(New Chat Icon Button) %% Moved
         ModelSelector[Model Selector Button]
         ModelInfoButton(Model Info Icon Button)
-        NewChatButton(New Chat Icon Button)
         SettingsButton(Settings Icon Button)
     end
 
     ChatArea --> MessageList[Scrollable Message List];
     MessageList --> MessageItem[Message Item];
-    MessageItem --> MarkdownRenderer[Markdown Renderer]; %% Added Renderer
+    MessageItem --> MarkdownRenderer[Markdown Renderer];
     MessageItem --> MessageActions[Message Action Icons (Copy, Edit, Delete, Retry)];
 
-    InputArea --> TextInput(Text Input Field);
     InputArea --> AttachButton(Attach File Icon Button)  -- "(Not Implemented)";
+    InputArea --> TextInput(Text Input Field);
     InputArea --> SendButton(Send Icon Button);
 
     subgraph Desktop Drawers
         LeftDrawer[Left History Drawer]
         RightDrawer[Right Settings Drawer]
-        ModelInfoDrawer[Right Model Info Drawer] %% Added Model Info Drawer
+        %% ModelInfoDrawer removed, replaced by Alert
     end
 
     LeftDrawer --> ChatHistoryContent[Chat History Content];
     RightDrawer --> ChatSettingsContent[Chat Settings Content];
-    ModelInfoDrawer --> ModelInfoContent[Model Info Content]; %% Content for Model Info
+    %% ModelInfoDrawer removed
 
+    ChatHistoryContent --> HistoryToolbar[History Toolbar (Title, New Chat, Close Button)]; %% Added Close
     ChatHistoryContent --> SearchInput(Chat Search Input);
     ChatHistoryContent --> ChatList[Chat List View];
     ChatList --> ChatListItem[Chat List Item (Title, Timestamp)];
-    ChatListItem --> ChatListItemMenu[3-Dot Menu (Rename, Duplicate, Delete)]; %% Added Menu
+    ChatListItem --> ChatListItemMenu[3-Dot Menu (Rename, Duplicate, Regenerate Title, Delete)]; %% Added Regenerate Title
 
+    ChatSettingsContent --> SettingsToolbar[Settings Toolbar (Title, Close Button)]; %% Added Close
     ChatSettingsContent --> APIKeyInput(API Key Input);
     ChatSettingsContent --> TokenCount(Token Count Display);
     ChatSettingsContent --> TempSlider(Temperature Slider);
     ChatSettingsContent --> SystemPromptInput(System Prompt Input);
-    ChatSettingsContent --> FreeModelsToggle(Free Models Toggle Switch); %% Added Toggle
+    ChatSettingsContent --> FreeModelsToggle(Free Models Toggle Switch);
+
+    %% Model Info Alert replaces drawer content
+    ModelInfoAlert --> ModelInfoContent[Model Info Content];
 
     subgraph Mobile Unified Drawer
-        Tabs[Tabs (History, Settings, Model Info)] %% Updated Tabs
+        Tabs[Tabs (History, Settings, Model Info)]
         TabPanelHistory[History Panel] --> ChatHistoryContent;
         TabPanelSettings[Settings Panel] --> ChatSettingsContent;
-        TabPanelModelInfo[Model Info Panel] --> ModelInfoContent; %% Added Model Info Tab
+        TabPanelModelInfo[Model Info Panel] --> ModelInfoContent; %% Content rendered in tab
     end
 
     %% Interactions
@@ -162,11 +169,11 @@ graph TD
     HistoryButton --> MobileDrawer; %% Opens History Tab
     SettingsButton --> RightDrawer;
     SettingsButton --> MobileDrawer; %% Opens Settings Tab
-    ModelInfoButton --> ModelInfoDrawer; %% Opens Model Info Drawer
+    ModelInfoButton --> ModelInfoAlert; %% Opens Model Info Alert
     ModelInfoButton --> MobileDrawer; %% Opens Model Info Tab
     ModelSelector --> Header;
     ChatListItem -- Click --> App; %% Loads chat
-    ChatListItemMenu -- Click --> App; %% Triggers Rename/Duplicate/Delete
+    ChatListItemMenu -- Click --> App; %% Triggers Rename/Duplicate/Regenerate/Delete
     SendButton --> App; %% Triggers send logic
     NewChatButton --> App; %% Triggers new chat logic
     AttachButton --> App; %% Triggers file logic (future)
@@ -179,14 +186,16 @@ graph TD
   - `$currentChatSession`: Holds the state of the active chat (ID, title, messages array, settings). (From `chat-history` feature)
   - `$chatHistoryIndex`: An array holding summaries (ID, title, timestamp) of all saved chats. (From `chat-history` feature)
   - `$globalSettings`: Holds API key, default temperature, default system prompt, **`showFreeOnly` boolean**. (From `chat-settings` feature)
-  - `$uiState`: Holds UI-related state (e.g., drawer open/closed, loading indicators, current error, **`isModelInfoDrawerOpen` boolean**). (From `ui-state` feature)
+  - `$uiState`: Holds UI-related state (e.g., drawer open/closed, loading indicators, current error, **`isModelInfoAlertOpen` boolean**, **`isHistoryDrawerPersistentOpen`**, **`isSettingsDrawerPersistentOpen`**, **`editingMessageId`**). **(Updated)** (From `ui-state` feature)
   - `$messageText`: Current input field text. (From `chat` feature)
   - `$messages`: Array of messages for the current chat. (From `chat` feature)
   - `$selectedModelId`: ID of the currently selected model. (From `models-select` feature)
   - `$isGenerating`: Boolean indicating if an API request is in progress. (From `chat` feature)
-  - `$retryingMessageId`: ID of the message being retried. (From `chat` feature)
+  - `$retryingMessageId`: ID of the message being retried (for spinner). (From `chat` feature)
+  - `$retryContext`: Holds `{ id, role }` of the original message that triggered a retry. **(New)** (From `chat` feature)
+  - `$preventScroll`: Boolean flag to temporarily disable auto-scroll. **(New)** (From `chat` feature)
 - **Events:**
-  - `appStarted`: Triggered on initial load. (From `chat-history`)
+  - `appStarted`: Triggered on initial load. (From `app`)
   - `fetchModels`: Initiates fetching the model list. (From `models-select`)
   - `chatSelected`: Loads a specific chat from history. (From `chat-history`)
   - `newChatCreated`: Clears the current chat state for a new session. (From `chat-history`)
@@ -199,12 +208,14 @@ graph TD
   - `messageRetry`: User clicks retry on a message. (From `chat`)
   - `chatTitleEdited`: User finishes editing a chat title. (From `chat-history`)
   - `deleteChat`: User confirms deleting a chat from history. (From `chat-history`)
-  - `duplicateChatClicked`: User clicks "Duplicate" in history menu. **(New)** (From `chat-history`)
+  - `duplicateChatClicked`: User clicks "Duplicate" in history menu. (From `chat-history`)
+  - `regenerateTitleForChat`: User clicks "Regenerate Title" in history menu. **(New)** (From `chat-history`)
   - `attachFile`: User selects a file. (Future)
   - `fileRead`: File content successfully read. (Future)
   - `showError`: An error occurred. (From `ui-state`)
   - `dismissError`: User closes the error dialog. (From `ui-state`)
-  - `toggleHistoryDrawer`, `toggleSettingsDrawer`, `toggleModelInfoDrawer`. **(Updated)** (From `ui-state`)
+  - `toggleHistoryDrawer`, `toggleSettingsDrawer`, `openModelInfoAlert`, `closeModelInfoAlert`, `openMobileDrawer`, `closeMobileDrawer`, `setMobileDrawerTab`, `startEditingMessage`, `stopEditingMessage`. **(Updated)** (From `ui-state`)
+  - `setPreventScroll`. **(New)** (From `chat`)
 - **Effects:**
   - `loadGlobalSettingsFx`: Load settings from LocalStorage. (From `chat-settings`)
   - `saveGlobalSettingsFx`: Save settings to LocalStorage. (From `chat-settings`)
@@ -213,12 +224,13 @@ graph TD
   - `saveChatFx`: Save/update a chat (messages, title, settings) to IndexedDB. (From `chat-history`)
   - `deleteChatFx`: Delete a chat from IndexedDB. (From `chat-history`)
   - `editChatTitleFx`: Update chat title in IndexedDB. (From `chat-history`)
-  - `duplicateChatFx`: Load, clone, and save a chat session. **(New)** (From `chat-history`)
+  - `duplicateChatFx`: Load, clone, and save a chat session. (From `chat-history`)
   - `fetchModelsFx`: Fetch model list from OpenRouter API. (From `models-select`)
   - `sendApiRequestFx`: Send chat completion request to OpenRouter. (From `chat`)
-  - `generateTitleFx`: Send request to OpenRouter to generate chat title. (From `chat`)
+  - `generateTitleFx`: Send request to OpenRouter to generate chat title. (From `chat-history`)
   - `readFileFx`: Read file content client-side. (Future)
-- **Flow Example (Sending Message):** (Remains the same conceptually, but UI renders markdown)
+  - `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(New)** (From `ui-state`)
+- **Flow Example (Sending Message):** (Conceptually same, UI renders markdown)
   ```mermaid
   graph LR
       A[User Clicks Send] --> B(messageSent Event);
@@ -255,19 +267,20 @@ graph TD
   - **Index:** `lastModified`.
   - Effects: `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`, `deleteChatFx`, `editChatTitleFx`, `duplicateChatFx`.
 - **LocalStorage:**
-  - **Keys:** `openrouter_api_key`, `default_temperature`, `default_system_prompt`, `show_free_only`.
-  - Effects: `loadGlobalSettingsFx`, `saveGlobalSettingsFx`.
+  - **Keys:** `openrouter_api_key`, `default_temperature`, `default_system_prompt`, `show_free_only`, `ui_historyDrawerOpen`, `ui_settingsDrawerOpen`. **(Updated)**
+  - Effects: `loadGlobalSettingsFx`, `saveGlobalSettingsFx`, `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(Updated)**
 
 **8. Key Feature Implementation Notes:**
 
-- **Responsiveness:** Unified mobile drawer with tabs for History, Settings, Model Info. Desktop uses separate drawers.
-- **Message Edits/Deletes/Retry:** Handled via Effector events and updates to `$messages` store, persisted via `saveChatFx`.
-- **Rich Content Rendering:** `MarkdownRenderer` component handles Markdown, GFM, code syntax highlighting (react-syntax-highlighter), LaTeX (KaTeX), and Mermaid diagrams (@lightenna/react-mermaid-diagram).
+- **Responsiveness:** Unified mobile drawer with tabs. Desktop uses persistent side drawers that shift content.
+- **Message Edits/Deletes/Retry:** Handled via Effector events and updates to `$messages` store, persisted via `saveChatFx`. Edit via double-click or button. Retry logic fixed.
+- **Rich Content Rendering:** `MarkdownRenderer` component handles Markdown, GFM, code syntax highlighting, LaTeX, and Mermaid diagrams.
 - **Model Selection:** Filter by search term and "Show Free Only" toggle. Display cleaned model name.
-- **Model Info:** Dedicated drawer/tab showing details of the selected model.
-- **Chat History Actions:** 3-dot menu on list items for Rename, Duplicate, Delete. Duplication handled by `duplicateChatFx`.
+- **Model Info:** Displayed in a dismissible Alert dialog.
+- **Chat History Actions:** 3-dot menu on list items for Rename, Duplicate, Regenerate Title, Delete.
 - **File Attachments:** (Future) Use `<input type="file">`, `FileReader`, check model capabilities.
-- **Error Handling:** User-facing errors via MUI Alert components managed by `$uiState.error`.
+- **Error Handling:** User-facing errors via MUI Alert components.
+- **Scroll Behavior:** Auto-scrolls only after sending a new user message.
 
 **9. Development Phasing (Updated):**
 
@@ -281,7 +294,8 @@ graph TD
 8.  **Architecture Refactoring:** Feature modularization. **(Complete)**
 9.  **Responsiveness & Polish:** Unified mobile drawer, UI/UX improvements. **(Complete)**
 10. **Rich Content & Feature Enhancements:** Markdown/Code/LaTeX/Mermaid rendering, Free Model Toggle, Model Info Panel, Chat Duplication. **(Complete)**
-11. **File Attachments:** Implement file input, reading, multimodal checks, API updates. **(Next)**
-12. **Testing & Refinement:** Unit/integration tests, UI testing, bug fixing. **(Ongoing)**
+11. **UI/UX Refinements & Fixes:** Persistent drawers, layout fixes, editing fixes, scroll fixes, hover outline restore, regenerate title action, double-click edit. **(Complete)**
+12. **File Attachments:** Implement file input, reading, multimodal checks, API updates. **(Next)**
+13. **Testing & Refinement:** Unit/integration tests, UI testing, bug fixing. **(Ongoing)**
 
 ---

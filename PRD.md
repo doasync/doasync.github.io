@@ -1,9 +1,9 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.5
-**Date:** 2025-04-08
+**Version:** 1.6
+**Date:** 2025-04-09
 **Author:** doasync
-**Status:** Updated after Phase 10 (Rich Content, Model Enhancements, History Actions)
+**Status:** Updated after Phase 11 (UI Refinements & Fixes)
 
 **1. Introduction**
 
@@ -12,13 +12,13 @@ This document outlines the requirements for a static, adaptive web application d
 **2. Goals**
 
 - Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter.
-- Enable users to manage multiple chat conversations (history) persistently using IndexedDB, including duplication.
+- Enable users to manage multiple chat conversations (history) persistently using IndexedDB, including duplication and title regeneration.
 - Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically, with options to filter and view detailed model information.
-- Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, and retry with resubmission.
+- Offer robust chat message interactions including copy, **editing of both user and model messages** (via button or double-click), delete, and retry with resubmission.
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) stored locally.
 - Support client-side file attachment (text/images) for multimodal interaction where supported by the model.
-- Ensure a seamless experience across desktop and mobile devices.
+- Ensure a seamless experience across desktop and mobile devices, including persistent side drawers on desktop.
 
 **3. Target Audience**
 
@@ -33,37 +33,38 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - State management will use `effector` library, structured according to its best practices to handle complex state interactions reliably.
 - Asynchronous operations, primarily LLM API calls via OpenRouter and dynamic model list fetching, are handled using Effector Effects and fetch API directly.
 - The layout will adapt fluidly to different screen sizes.
+- On desktop/tablet, History and Settings sidebars can be opened persistently, shifting the main content area. On mobile, these become tabs in a bottom drawer.
 
 **4.2. Header Bar (Top)**
 
 - **4.2.1. Chat History Button (Left):**
   - An icon button located on the far left.
-  - On click: Opens the "Chat History" sidebar (Left Drawer on Desktop/Tablet, Bottom Drawer on Mobile).
-- **4.2.2. Current Model Display (Center):**
+  - On click: Opens/closes the "Chat History" sidebar (Persistent Left Drawer on Desktop/Tablet, Bottom Drawer on Mobile). Button is hidden if the drawer is persistently open on desktop.
+- **4.2.2. New Chat Button (Left):**
+  - An icon button located next to the Chat History Button.
+  - On click: Clears the current chat window, preserves settings (API key, temperature, system prompt), starts a new chat session UI-wise, and prepares for storage upon first message exchange. Hidden if the History drawer is persistently open on desktop.
+- **4.2.3. Current Model Display (Center):**
   - Displays the **cleaned name** of the currently selected LLM model (provider prefix removed, e.g., "Llama 4 Scout" instead of "Meta: Llama 4 Scout").
   - On click: Opens the "Model Selection Dropdown".
-- **4.2.3. Model Info Button (Center):**
+- **4.2.4. Model Info Button (Center):**
   - An **info icon button** located next to the "Current Model Display".
-  - On click: Opens the "Model Information" view (Right Drawer on Desktop/Tablet, new Tab in Bottom Drawer on Mobile).
-- **4.2.4. Model Selection Dropdown:**
+  - On click: Opens the "Model Information" view (Alert Dialog, previously right drawer/tab).
+- **4.2.5. Model Selection Dropdown:**
   - A dropdown menu appearing below the "Current Model Display".
   - Contains a list of available LLM models, **fetched dynamically from an OpenRouter endpoint on App startup**.
   - Includes a search input field at the top to filter the model list by name.
   - **Filters models based on the "Show only free models" setting** (see 4.6.6).
   - Selecting a model updates the "Current Model Display" and sets the model for **subsequent interactions** in the current chat. The UI will **not** explicitly indicate points in the history where the model was changed.
-- **4.2.5. New Chat Button (Right):**
-  - An icon button located to the right of the model display/info button.
-  - On click: Clears the current chat window, preserves settings (API key, temperature, system prompt), starts a new chat session UI-wise, and prepares for storage upon first message exchange.
 - **4.2.6. Chat Settings Button (Far Right):**
   - An icon button located on the far right.
-  - On click: Opens the "Chat Settings" sidebar (Right Drawer on Desktop/Tablet, Bottom Drawer on Mobile).
+  - On click: Opens/Closes the "Chat Settings" sidebar (Persistent Right Drawer on Desktop/Tablet, Bottom Drawer on Mobile). Button is hidden if the drawer is persistently open on desktop.
 
 **4.3. Chat Window (Middle Area)**
 
 - **4.3.1. Display Area:**
   - The main area displaying the conversation history for the _current_ chat.
-  - Must be scrollable vertically. Consider virtualization for very long chats if performance degrades.
-  - New messages appear at the bottom.
+  - Must be scrollable vertically. Auto-scrolls only when a new user message is added.
+  - Centered horizontally within the available space.
 - **4.3.2. Message Rendering:**
   - Messages are rendered using `react-markdown` and associated plugins.
   - **Supports:**
@@ -73,34 +74,36 @@ Users who need a web-based interface to interact with various LLM APIs via the O
     - LaTeX math notation (`$...$` and `$$...$$`) rendered using KaTeX via `rehype-katex`.
     - Mermaid diagrams (`mermaid ... `) rendered using `@lightenna/react-mermaid-diagram`.
 - **4.3.3. Message Alignment:**
-  - Messages from the LLM model are aligned to the left.
-  - Messages from the user are aligned to the right and have highlighted background (different color).
+  - Messages from the LLM model are aligned to the left (using `theme.palette.background.paper` background).
+  - Messages from the user are aligned to the right and have highlighted background (`primary.dark`).
+  - Message cards use `width: 'fit-content'` and `maxWidth: '85%'` for proper sizing.
 - **4.3.4. Message Interaction:**
   - Hovering over a message reveals a small set of action icons in a popover/toolbar.
+  - Double-clicking a message activates inline editing mode.
 - **4.3.5. Message Actions (Icons):**
   - **Copy Text:** Copies the plain text content using `navigator.clipboard`. **(Implemented)**
   - **Copy Markdown/Code:** Copies the raw content as-is using `navigator.clipboard`. **(Implemented)**
-  - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests. **(Implemented)**
+  - **Edit:** Allows the user to modify the text content of **both user and model messages** via inline editing (activated by button or double-click). Edit confirmed on Enter or click outside, cancelled on Escape. Original content restored on cancel. The edited version **replaces the original in the stored history**. This edited history is then used as context for all subsequent LLM requests. **(Implemented & Fixed)**
   - **Delete:**
     - Deleting a **User Message**: Removes only that specific user message from the chat view and the history sent to the LLM. **(Implemented)**
     - Deleting a **Model Response**: Removes only that specific model response from the chat view and the history sent to the LLM. **(Implemented)**
     - Deleted messages are treated as if they never existed for future LLM interactions. **(Implemented)**
   - **Retry/Resubmit:**
-    - **On a User Message:** Resubmits history up to and including this message. Replaces the _next_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented)**
-    - **On an LLM Message:** Resubmits history up to the _preceding_ user message. Replaces the _current_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented)**
+    - **On a User Message:** Resubmits history up to and including this message. Replaces the _next_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented & Fixed)**
+    - **On an LLM Message:** Resubmits history up to the _preceding_ user message. Replaces the _current_ model response with the new one. History below is preserved. Shows loader on the affected model response during regeneration. **(Implemented & Fixed)**
 
 **4.4. Message Input Area (Bottom)**
 
 - **4.4.1. Text Input Field:**
-  - Multi-line text input, resizes vertically up to a max height.
-- **4.4.2. Attach File Button (Inside Field, Right):** **(Not Implemented in this version)**
+  - Multi-line text input, resizes vertically up to a max height. Positioned correctly below scrollable chat area.
+- **4.4.2. Attach File Button (Inside Field, Left):** **(Not Implemented in this version)**
   - Icon button to select local text or image files (approx. **~20MB client-side limit**). **(Not Implemented in this version)**
   - Reads content client-side (text content or **base64 encoded image data formatted as a data URL, e.g., `data:image/png;base64,...`**). **(Not Implemented in this version)**
   - The UI must **clearly indicate** when a file is attached and staged for sending. **(Not Implemented in this version)**
   - Includes a check (using model metadata from the dynamic list, e.g., `architecture.input_modalities`) to verify if the **currently selected model supports multimodal input** before attempting to send image data. **(Not Implemented in this version)**
   - Errors during file reading or for unsupported types will trigger user alerts. No server uploads. **(Not Implemented in this version)**
 - **4.4.3. Send Button (Inside Field, Right):**
-  - Icon button. Sends text and attached file data (if any) upon click or Enter press.
+  - Icon button. Sends text upon click or Enter press.
   - **Action Sequence on Send:** (Remains largely the same, ensures rendered content is saved)
     1.  **Display User Message:** Display the user's message immediately in the chat window (aligned right, rendered via MarkdownRenderer).
     2.  **Clear Input:** Clear the input field.
@@ -120,6 +123,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 - **4.5.1. Sidebar View:**
   - MUI Drawer storing/displaying chat sessions from IndexedDB.
+  - On desktop/tablet, uses a persistent `variant="persistent"` drawer that shifts main content. Includes an internal close button.
   - On mobile, uses a Bottom Drawer. Switching between History, Settings, and Model Info (if all use Bottom Drawers) will be handled via **tabs within the drawer as well as separate trigger icons in the header bar**.
 - **4.5.2. Chat Search:**
   - Input field filters chat list based on **titles**.
@@ -132,14 +136,16 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - **4.5.4. Chat Item Actions Menu:**
   - **Rename:** Allows inline editing of the chat title (reuses existing logic).
   - **Duplicate:** Creates a copy of the selected chat session with a new ID, current timestamp, and appended title (e.g., "My Chat (Copy)"). The duplicated chat is immediately selected.
+  - **Regenerate Title:** Triggers automatic title generation for the selected chat. **(New)**
   - **Delete:** Permanently removes the chat session (reuses existing logic).
 
 **4.6. Chat Settings Sidebar (Right Drawer / Bottom Drawer - Mobile)**
 
 - **4.6.1. Sidebar View:**
-  - MUI Drawer. On mobile, uses a Bottom Drawer (see 4.5.1 for switching mechanism).
+  - MUI Drawer. On desktop/tablet, uses a persistent `variant="persistent"` drawer that shifts main content. Includes an internal close button.
+  - On mobile, uses a Bottom Drawer (see 4.5.1 for switching mechanism).
 - **4.6.2. API Key Input:**
-  - Text input (type="password" or with visibility toggle) for the user's OpenRouter API Key. Stored in LocalStorage.
+  - Text input (type="password" or with visibility toggle) for the user's OpenRouter API Key. Stored in LocalStorage. Tooltip placement adjusted.
 - **4.6.3. Total Token Count Display:**
   - Displays the **sum of `usage.total_tokens`** for the _current_ chat session.
 - **4.6.4. Model Temperature Slider:**
@@ -148,16 +154,15 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - Multi-line text area for the system prompt for the current chat.
 - **4.6.6. Free Models Toggle:**
   - A **toggle switch** labeled "Show only free models".
-  - When enabled, filters the Model Selection Dropdown (4.2.4) to show only models with zero prompt and completion costs.
+  - When enabled, filters the Model Selection Dropdown (4.2.5) to show only models with zero prompt and completion costs.
   - Setting is persisted in LocalStorage.
 
-**4.7. Model Information View (Right Drawer / Bottom Drawer - Mobile)**
+**4.7. Model Information View (Alert Dialog)**
 
 - **4.7.1. View Trigger:**
-  - Opened by clicking the info icon button (4.2.3) in the header.
+  - Opened by clicking the info icon button (4.2.4) in the header.
 - **4.7.2. View Container:**
-  - On Desktop: A Right-side MUI Drawer.
-  - On Mobile: A new tab within the unified Bottom Drawer (see 4.5.1).
+  - Displays as a dismissible MUI Alert Dialog.
 - **4.7.3. Content:** Displays details of the **currently selected model**:
   - **Header:** Model Name (with 🎁 icon if free).
   - **Model ID:** Displayed in monospace font with a copy-to-clipboard button.
@@ -168,9 +173,9 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 **5. Non-Functional Requirements**
 
 - **5.1. Technology Stack:** TypeScript, React, Next.js, MUI v5+, effector, idb, OpenRouter API, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
-- **5.2. Architecture:** Static Web Application. Logic runs client-side.
-  - **Data Persistence:** (As before - IndexedDB for chats, LocalStorage for settings including free model toggle).
-- **5.3. Responsiveness & Adaptability:** Seamless adaptation. Layouts adjust. Sidebars/Info become Bottom Drawers with tabs on mobile.
+- **5.2. Architecture:** Static Web Application. Logic runs client-side. Feature-based modular structure.
+  - **Data Persistence:** (As before - IndexedDB for chats, LocalStorage for settings including free model toggle and persistent drawer states).
+- **5.3. Responsiveness & Adaptability:** Seamless adaptation. Layouts adjust. Sidebars become Bottom Drawers with tabs on mobile. Desktop drawers are persistent and shift content.
 - **5.4. Browser Compatibility:** Latest versions of Chrome, Firefox, Safari, Edge.
 - **5.5. Performance:** Responsive UI, smooth scrolling, efficient state updates. Clear loading indicators. Markdown rendering performance should be monitored for very long/complex messages.
 - **5.6. Usability & Error Handling:** Intuitive interface, clear iconography (with tooltips), accessible message actions. User-facing errors via MUI Alert components.
@@ -180,7 +185,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - Material Design principles via MUI.
 - Prioritize understandable icon buttons.
 - Clear distinction between user/model messages.
-- Clear interactive element states.
+- Clear interactive element states (hover, selected, editing).
 - Smooth transitions. Loading indicators.
 - **Rich content rendering should be clean and not disrupt the chat flow.**
 

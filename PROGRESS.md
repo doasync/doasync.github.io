@@ -190,8 +190,8 @@ Here's a summary of what was done according to the `PLAN.md`:
     - Added `$showFreeOnly` store and persistence to LocalStorage in `src/features/chat-settings/model.ts`.
 3.  **Model Info Display (Based on `INFO_TAB_PLAN.md`):**
     - Added an info icon button next to the model selector in `ModelSelector.tsx`.
-    - Created `src/components/ModelInfoDrawer.tsx` to display detailed information (ID, name, description, context length, pricing, creation date) about the currently selected model.
-    - Implemented logic to open a right-side drawer (`ModelInfoDrawer`) on desktop when the info icon is clicked.
+    - Created `src/components/ModelInfoDrawer.tsx` (later renamed/refactored to `ModelInfoAlert`) to display detailed information about the selected model.
+    - Implemented logic to open a right-side drawer (`ModelInfoDrawer`) on desktop when the info icon is clicked. (Later changed to Alert)
     - Integrated the model info display as a new tab within `MobileUnifiedDrawer.tsx` for mobile devices.
     - Added helper functions for date formatting and determining if a model is free.
 4.  **Chat History Actions (Based on `DUP_PLAN.md`):**
@@ -200,5 +200,26 @@ Here's a summary of what was done according to the `PLAN.md`:
     - Added `duplicateChatClicked` event and `duplicateChatFx` effect in `src/features/chat-history/model.ts` to handle chat duplication logic (cloning, saving, refreshing list, selecting new chat).
     - Connected the "Duplicate" menu item to trigger the duplication flow.
     - Reused existing logic for "Rename" and "Delete".
+
+**Phase 11 (Fixes & UI Refinements):**
+
+1.  **Layout & Core Functionality Fixes:**
+    - Corrected persistent drawer layout behavior (`page.tsx`), including content shifting and conditional header button visibility.
+    - Ensured proper message alignment and width constraints (`MessageItem.tsx`).
+    - Moved "New Chat" button in header (`page.tsx`).
+2.  **Message Editing Fixes:**
+    - Ensured click-outside confirmation reliably updates UI (`MessageItem.tsx`).
+    - Added double-click-to-edit functionality (`MessageItem.tsx`).
+    - Ensured original content is restored on edit cancel (`MessageItem.tsx`).
+3.  **Scroll Behavior Fixes:**
+    - Modified scroll logic (`page.tsx`, `chat/model.ts`) to prevent auto-scroll on edit/retry actions and only scroll after a new user message is sent.
+4.  **Message Interaction Refinements:**
+    - Reverted click-to-outline behavior back to hover-based outline and action button visibility (`MessageItem.tsx`, `ui-state/model.ts`).
+5.  **Retry Logic Fix:**
+    - Corrected retry update calculation (`chat/model.ts`, `chat/lib.ts`) to ensure UI updates correctly, especially when retrying the last user message.
+6.  **History Menu Update:**
+    - Added "Regenerate Title" action to the 3-dot menu in `ChatHistoryContent.tsx` and removed the button from the header.
+7.  **Settings UI Fix:**
+    - Adjusted API Key tooltip placement in `ChatSettingsContent.tsx` to prevent overlap with the close button.
 
 ---
