@@ -8,7 +8,7 @@ import { apiKeyMissing } from "@/features/chat"; // Import API key missing store
 
 const uiDomain = createDomain("ui");
 
-type DrawerTabs = "history" | "settings" | "modelInfo";
+type DrawerTabs = "history" | "settings" | "modelInfo" | "usage";
 
 // --- Events ---
 

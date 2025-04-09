@@ -9,6 +9,7 @@ import {
 } from "@/features/ui-state";
 
 import ChatHistoryContent from "@/components/ChatHistoryContent";
+import UsageInfoContent from "@/components/UsageInfoContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
 import ModelInfoDrawer from "@/components/ModelInfoDrawer";
 import type { ModelInfo } from "@/features/models-select";
@@ -68,6 +69,11 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
             value="settings"
             label="Settings"
           />
+          <Tab
+            sx={{ fontWeight: activeTab === "usage" ? "bold" : "normal" }}
+            value="usage"
+            label="Usage"
+          />
         </Tabs>
         <Divider />
         <Box sx={{ flexGrow: 1, overflow: "auto" }}>
@@ -82,6 +88,11 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
           )}
           {activeTab === "modelInfo" && modelInfo && (
             <ModelInfoDrawer model={modelInfo} />
+          )}
+          {activeTab === "usage" && (
+            <Box p={2}>
+              <UsageInfoContent />
+            </Box>
           )}
         </Box>
       </Box>
