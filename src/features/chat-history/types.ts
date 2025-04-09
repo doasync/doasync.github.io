@@ -17,6 +17,7 @@ export interface ChatSession {
   messages: Message[];
   settings: ChatSettings;
   totalTokens: number; // Store the token count with the chat
+  draft?: string; // <-- Optional draft input
 }
 
 // Represents the summarized data shown in the history list

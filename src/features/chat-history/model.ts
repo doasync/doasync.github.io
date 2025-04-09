@@ -1,5 +1,7 @@
 import { createDomain, createStore, sample } from "effector";
 import { debug } from "patronum/debug";
+import { debounce } from "patronum/debounce";
+import { $messageText } from "@/features/chat";
 import {
   $messages,
   $currentChatTokens,
@@ -246,11 +248,16 @@ sample({
 
 // ** Current Chat Session Updates **
 
-// Update $currentChatSession when a specific chat is loaded from DB
 sample({
   clock: loadSpecificChatFx.doneData,
   fn: (chat) => chat,
   target: $currentChatSession,
+});
+
+sample({
+  clock: loadSpecificChatFx.doneData,
+  fn: (chat) => chat?.draft ?? "",
+  target: $messageText,
 });
 
 // Update $currentChatSession after a successful save (ensures consistency)
@@ -351,6 +358,32 @@ sample({
   target: $messages,
 });
 
+// Debounced draft input
+const debouncedDraft = debounce({
+  source: $messageText,
+  timeout: 1000, // 1 second debounce
+});
+
+// Update current chat session draft field when debounced draft changes
+sample({
+  clock: debouncedDraft,
+  source: $currentChatSession,
+  filter: (session) => session !== null,
+  fn: (session: ChatSession, draft) => ({
+    ...session,
+    draft,
+    lastModified: Date.now(),
+  }),
+  target: $currentChatSession,
+});
+
+// Save chat when current session is updated (draft or anything else)
+sample({
+  clock: $currentChatSession,
+  filter: (session): session is ChatSession => session !== null,
+  target: saveChatFx,
+});
+
 // Reset $currentChatTokens in chat feature when new chat is created
 sample({
   clock: newChatCreated,
@@ -376,6 +409,7 @@ sample({
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     tokens: $currentChatTokens,
+    draft: $messageText, // <-- Add draft input
   },
   filter: ({ messages }) => messages.length > 0, // Only save if there are messages
   fn: (source) => {

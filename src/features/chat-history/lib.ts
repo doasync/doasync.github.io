@@ -253,6 +253,7 @@ export const prepareChatSessionFn = ({
   temperature,
   systemPrompt,
   tokens,
+  draft,
 }: {
   currentSession: ChatSession | null;
   messages: Message[];
@@ -260,6 +261,7 @@ export const prepareChatSessionFn = ({
   temperature: number;
   systemPrompt: string;
   tokens: number;
+  draft?: string; // <-- Add draft param
 }): ChatSession => {
   const now = Date.now();
   const existingId = currentSession?.id;
@@ -280,5 +282,6 @@ export const prepareChatSessionFn = ({
     messages: messages,
     settings: { model, temperature, systemPrompt },
     totalTokens: finalTokens,
+    draft: draft ?? "", // <-- Save draft input
   };
 };
