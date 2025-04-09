@@ -52,8 +52,9 @@ import {
   $apiError, // Import error state
   $preventScroll, // Import scroll prevention state
   setPreventScroll, // Import scroll prevention setter
-  scrollToBottomNeeded, // Import the new scroll trigger event
-  $scrollTrigger,
+  // scrollToBottomNeeded, // No longer needed
+  // scrollToLastMessageNeeded, // No longer needed
+  // $scrollTrigger, // No longer needed
   // Removed duplicate setPreventScroll import
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
@@ -309,15 +310,22 @@ export default function HomePage() {
     }
   }, [preventScroll]); // Only run when preventScroll changes
 
-  // Effect to scroll to bottom ONLY when the specific event is triggered
-  const scrollTrigger = useUnit($scrollTrigger);
+  // Effect to scroll to bottom whenever messages change, unless prevented
   const preventScrollFlag = useUnit($preventScroll);
+  // Directly use 'messages' from the useUnit call earlier (line 110)
 
   React.useEffect(() => {
+    // Only scroll if the flag is not set
     if (!preventScrollFlag) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      // Optional: Add a small delay to ensure rendering is complete, especially after complex updates
+      const timer = setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50); // 50ms delay, adjust if needed
+      return () => clearTimeout(timer); // Cleanup timeout
     }
-  }, [scrollTrigger, preventScrollFlag]);
+  }, [messages, preventScrollFlag]); // Depend on messages and the flag
+
+  // Remove the old effect that depended on scrollToLastMessageNeeded
 
   React.useEffect(() => {
     loadSettings();
@@ -598,13 +606,15 @@ export default function HomePage() {
 
                 return (
                   <IconButton
-                    size="large"
-                    color="primary"
+                    size="small"
                     aria-label="Generate" // Updated tooltip
                     onClick={handleSendButtonClick} // Use updated handler
                     disabled={isDisabled} // Use new disabled logic
+                    sx={{
+                      color: "primary.light",
+                    }}
                   >
-                    <AutoAwesomeIcon /> {/* Use new icon */}
+                    <AutoAwesomeIcon fontSize="large" /> {/* Use new icon */}
                   </IconButton>
                 );
               })()}

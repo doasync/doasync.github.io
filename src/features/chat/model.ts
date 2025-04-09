@@ -46,9 +46,10 @@ export const apiRequestSuccess =
   chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess");
 export const userMessageCreated =
   chatDomain.event<Message>("userMessageCreated");
-export const scrollToBottomNeeded = chatDomain.event<void>(
-  "scrollToBottomNeeded"
-); // New event for scrolling
+// export const scrollToBottomNeeded = chatDomain.event<void>("scrollToBottomNeeded"); // REMOVED
+export const scrollToLastMessageNeeded = chatDomain.event<void>(
+  "scrollToLastMessageNeeded"
+); // Scroll after assistant reply added/updated
 export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
 export const generateResponseClicked = chatDomain.event<void>(
   "generateResponseClicked"
@@ -56,22 +57,27 @@ export const generateResponseClicked = chatDomain.event<void>(
 
 // Internal Events (used within this model)
 const messageAdded = chatDomain.event<Message>("messageAdded");
-export const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate"); // <-- Add export
+export const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate");
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
-
-// Internal event to capture original retry trigger context
 const retryTriggered = chatDomain.event<{
   messageId: string;
   role: "user" | "assistant";
 }>("retryTriggered");
-
 const prepareRetryParams =
   chatDomain.event<SendApiRequestParams>("prepareRetryParams");
 const calculatedRetryUpdate = chatDomain.event<CalculatedRetryUpdatePayload>(
   "calculatedRetryUpdate"
 );
+const addPlaceholderForGeneration = chatDomain.event<void>(
+  "addPlaceholderForGeneration"
+);
+const placeholderGenerated = chatDomain.event<Message>("placeholderGenerated");
+const placeholderCalculated = chatDomain.event<{
+  updatedMessages: Message[];
+  placeholderInfo: { id: string; originalUserId: string };
+}>("placeholderCalculated");
 
 // --- Effects ---
 export const sendApiRequestFx = chatDomain.effect<
@@ -98,19 +104,11 @@ export const $apiError = chatDomain.store<string | null>(null, {
   name: "$apiError",
 });
 export const $retryingMessageId = chatDomain.store<string | null>(null, {
-  name: "$retryingMessageId",
+  name: "$retryingMessageId", // Used for showing spinner during retry OR generate
 });
-// Resetting on $messages change removed, rely on sendApiRequestFx.finally
-
-// Flag to temporarily prevent auto-scrolling
 export const $preventScroll = chatDomain
   .store<boolean>(false, { name: "$preventScroll" })
   .on(setPreventScroll, (_, value) => value);
-
-// Scroll trigger counter, increments on scrollToBottomNeeded event
-export const $scrollTrigger = chatDomain
-  .store<number>(0, { name: "$scrollTrigger" })
-  .on(scrollToBottomNeeded, (n) => n + 1);
 
 // Store the context of the message that triggered the current retry
 export const $retryContext = chatDomain
@@ -118,23 +116,26 @@ export const $retryContext = chatDomain
     name: "$retryContext",
   })
   .on(retryTriggered, (_, payload) => payload)
-  // Reset *after* the calculation payload has been determined (or determined to be null)
-  // This ensures the context is available *during* the calculation sample.
-  .reset(calculatedRetryUpdate);
+  .reset(calculatedRetryUpdate); // Reset after calculation is done
 
 // Store placeholder info when retrying user message followed by another user message
 export const $placeholderInfo = chatDomain
   .store<{ id: string; originalUserId: string } | null>(null, {
     name: "$placeholderInfo",
   })
-  .reset(sendApiRequestFx.finally); // Also reset when API call finishes
+  .on(placeholderCalculated, (_, payload) => payload.placeholderInfo) // Set when calculated
+  .reset(sendApiRequestFx.finally); // Reset after API call
+
+// Store the ID of the placeholder created specifically for generation
+const $generatingPlaceholderId = chatDomain
+  .store<string | null>(null)
+  .on(placeholderGenerated, (_, placeholder) => placeholder.id)
+  .reset(sendApiRequestFx.finally); // Reset after API call
 
 // --- Store Updates (.on/.reset) ---
 
-// Update message text input
 $messageText.on(messageTextChanged, (_, text) => text);
 
-// Handle message edits and deletions directly on the store
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
     list.map((msg) =>
@@ -148,44 +149,71 @@ $messages
         : msg
     )
   )
-  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id));
+  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
+  // Add new user message
+  .on(userMessageCreated, (messages, newMsg) => [...messages, newMsg])
+  // Add placeholder for generation
+  .on(placeholderGenerated, (messages, placeholder) => [
+    ...messages,
+    placeholder,
+  ])
+  // Add placeholder for retry
+  .on(placeholderCalculated, (_, payload) => payload.updatedMessages)
+  // Update messages after retry/generation calculation
+  .on(retryUpdate, (currentMessages, payload) =>
+    updateMessagesOnRetryFn(currentMessages, payload)
+  )
+  // Add assistant message in non-retry/non-generate flow
+  .on(sendApiRequestFx.done, (messages, { result: response }) => {
+    // Check conditions *before* potentially adding
+    const retryCtx = $retryContext.getState();
+    const genPlaceholderId = $generatingPlaceholderId.getState();
+    if (retryCtx === null && genPlaceholderId === null) {
+      return addAssistantMessageFn({ messages }, response);
+    }
+    return messages; // Return unchanged messages if it was a retry or generation
+  });
 
-// Reset API error when a new message is sent
-$apiError.reset(messageSent);
+$apiError.reset(
+  messageSent,
+  generateResponseClicked,
+  messageRetry,
+  apiRequestSuccess
+);
 
-// Update generating state based on API effect
 $isGenerating.on(sendApiRequestFx, () => true).reset(sendApiRequestFx.finally);
 
-// Reset API error on successful API request
-$apiError.reset(apiRequestSuccess);
+$currentChatTokens.on(
+  sendApiRequestFx.doneData,
+  (currentTokens, response) =>
+    currentTokens + (response.usage?.total_tokens ?? 0)
+);
 
-// --- Samples (Flow Logic) ---
-
-// Determine which message ID should show the spinner during retry
-sample({
-  clock: messageRetryInitiated,
-  source: { messages: $messages, placeholderInfo: $placeholderInfo }, // Source placeholder info
-  fn: ({ messages, placeholderInfo }, payload) => {
-    // If a placeholder was just created for this retry, use its ID
+$retryingMessageId
+  .on(messageRetryInitiated, (_, payload) => {
+    // Determine spinner target for retry
+    const messages = $messages.getState();
+    const placeholderInfo = $placeholderInfo.getState();
     if (
       placeholderInfo &&
       payload.messageId === placeholderInfo.originalUserId
     ) {
       return placeholderInfo.id;
     }
-    // Otherwise, use the standard logic
     return determineRetryingMessageIdFn(messages, payload);
-  },
-  target: $retryingMessageId,
-});
+  })
+  .on(placeholderGenerated, (_, placeholder) => placeholder.id) // Set spinner target for generation
+  .reset(sendApiRequestFx.finally); // Reset spinner after API call finishes
 
-// Handle message updates (insert/replace) after a successful retry
-sample({
-  clock: retryUpdate,
-  source: $messages,
-  fn: updateMessagesOnRetryFn,
-  target: $messages,
-});
+$preventScroll
+  .on([editMessage, messageRetryInitiated, generateResponseClicked], () => true) // Prevent scroll on these actions
+  .on(sendApiRequestFx.finally, (current, _) => {
+    // Allow scroll again *if* we were previously showing a spinner
+    const spinnerId = $retryingMessageId.getState();
+    return spinnerId !== null ? false : current; // Only change to false if spinner was active
+  });
+
+// --- Samples (Flow Logic) ---
 
 // Create a new user message object when message is sent
 sample({
@@ -201,31 +229,22 @@ sample({
   target: userMessageCreated,
 });
 
-// Add the newly created user message to the messages list
+// Clear message input after sending
 sample({
   clock: userMessageCreated,
-  source: $messages,
-  fn: (messages, newMsg) => [...messages, newMsg],
-  target: $messages, // Add to messages store
-});
-
-// Trigger scroll after user message is added
-sample({
-  clock: $messages, // Trigger when messages list updates
-  source: userMessageCreated, // Check if the update was due to user message creation
-  filter: (userMsg, allMsgs) => allMsgs[allMsgs.length - 1]?.id === userMsg.id, // Ensure the last message IS the new user message
-  target: scrollToBottomNeeded,
+  fn: () => "",
+  target: $messageText,
 });
 
 // Trigger initial save if this is the first message
 sample({
   clock: userMessageCreated,
   source: $messages,
-  filter: (msgs) => msgs.length === 1, // Check if it's exactly the first message
+  filter: (msgs) => msgs.length === 1,
   target: initialChatSaveNeeded,
 });
 
-// Trigger API request when a user message is created (if API key exists)
+// Trigger API request when a user message is created
 sample({
   clock: userMessageCreated,
   source: {
@@ -235,123 +254,7 @@ sample({
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
   },
-  filter: ({ apiKey }) => apiKey.length > 0,
-  fn: (
-    { messages, apiKey, temperature, systemPrompt, selectedModelId },
-    userMsg // userMsg is the clock payload here
-  ): SendApiRequestParams => ({
-    modelId: selectedModelId,
-    messages: messages, // $messages already includes the new userMsg due to previous sample
-    apiKey,
-    temperature,
-    systemPrompt,
-  }),
-  target: sendApiRequestFx,
-});
-
-// Clear message input after sending
-sample({
-  clock: userMessageCreated, // Use userMessageCreated to ensure it clears after adding
-  fn: () => "",
-  target: $messageText,
-});
-
-// Trigger API key missing event if message sent without key
-sample({
-  clock: messageSent,
-  source: $apiKey,
-  filter: (key: string) => key.trim().length === 0,
-  target: apiKeyMissing,
-});
-
-// --- API Response Handling ---
-
-// apiRequestSuccess event is removed as direct clocking on sendApiRequestFx.done/doneData is preferred
-
-// Add assistant message to list after successful API response (NON-RETRY flow)
-sample({
-  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
-  source: { messages: $messages, retryContext: $retryContext }, // Source messages and retry context
-  // Filter runs *at the time clock fires*. Only proceed if retryContext was null then.
-  filter: ({ retryContext }) => retryContext === null,
-  // Extract response from clock data ({ result }) and pass with sourced messages
-  fn: ({ messages }, { result: response }) =>
-    addAssistantMessageFn({ messages }, response),
-  target: $messages,
-});
-
-// Update token count after successful API response (can run for both retry/non-retry)
-sample({
-  clock: sendApiRequestFx.doneData, // Clock directly on effect success data
-  source: $currentChatTokens,
-  fn: (currentTokens, response) =>
-    currentTokens + (response.usage?.total_tokens ?? 0),
-  target: $currentChatTokens,
-});
-
-// Forward successful API response data to apiRequestTokensUpdated event
-sample({
-  clock: sendApiRequestFx.doneData, // Clock directly on effect success data
-  fn: (response) => response,
-  target: apiRequestTokensUpdated,
-});
-
-// Update API error store on API request failure
-sample({
-  clock: sendApiRequestFx.failData,
-  fn: (error) => error.message,
-  target: $apiError,
-});
-
-// --- Scroll Prevention Logic ---
-
-// Prevent scroll when editing a message
-sample({
-  clock: editMessage,
-  fn: () => true,
-  target: setPreventScroll,
-});
-
-// Prevent scroll when initiating a retry
-sample({
-  clock: messageRetryInitiated,
-  fn: () => true,
-  target: setPreventScroll,
-});
-
-// Allow scroll again after retry API call finishes
-sample({
-  clock: sendApiRequestFx.finally,
-  source: $retryingMessageId,
-  filter: (retryingId) => retryingId !== null, // Only act if we were retrying
-  fn: () => false,
-  target: setPreventScroll,
-});
-
-// Also reset retryingMessageId after the API call finishes in retry flow
-sample({
-  clock: sendApiRequestFx.finally,
-  source: $retryingMessageId,
-  filter: (retryingId) => retryingId !== null,
-  fn: () => null,
-  target: $retryingMessageId,
-});
-
-// --- Generate Response Logic (No New User Message) ---
-
-// Trigger API request when generateResponseClicked is called (if API key exists and not already generating)
-sample({
-  clock: generateResponseClicked,
-  source: {
-    messages: $messages,
-    apiKey: $apiKey,
-    temperature: $temperature,
-    systemPrompt: $systemPrompt,
-    selectedModelId: $selectedModelId,
-    isGenerating: $isGenerating, // Source generating state
-  },
-  filter: ({ apiKey, messages, isGenerating }) =>
-    apiKey.length > 0 && messages.length > 0 && !isGenerating, // Ensure API key, messages exist, and not already generating
+  filter: ({ apiKey }) => !!apiKey,
   fn: ({
     messages,
     apiKey,
@@ -360,7 +263,46 @@ sample({
     selectedModelId,
   }): SendApiRequestParams => ({
     modelId: selectedModelId,
-    messages: messages, // Send the current messages as is
+    messages: messages, // $messages already includes the new userMsg
+    apiKey,
+    temperature,
+    systemPrompt,
+  }),
+  target: sendApiRequestFx,
+});
+
+// Trigger API key missing event if message sent without key
+sample({
+  clock: messageSent,
+  source: $apiKey,
+  filter: (key) => !key,
+  target: apiKeyMissing,
+});
+
+// --- Generate Response Logic ---
+
+// Trigger API request when generateResponseClicked is called
+sample({
+  clock: generateResponseClicked,
+  source: {
+    messages: $messages,
+    apiKey: $apiKey,
+    temperature: $temperature,
+    systemPrompt: $systemPrompt,
+    selectedModelId: $selectedModelId,
+    isGenerating: $isGenerating,
+  },
+  filter: ({ apiKey, messages, isGenerating }) =>
+    !!apiKey && messages.length > 0 && !isGenerating,
+  fn: ({
+    messages,
+    apiKey,
+    temperature,
+    systemPrompt,
+    selectedModelId,
+  }): SendApiRequestParams => ({
+    modelId: selectedModelId,
+    messages: messages, // Send the current messages
     apiKey,
     temperature,
     systemPrompt,
@@ -372,112 +314,30 @@ sample({
 sample({
   clock: generateResponseClicked,
   source: $apiKey,
-  filter: (key: string) => key.trim().length === 0,
+  filter: (key) => !key,
   target: apiKeyMissing,
 });
 
-// Prevent scroll when generating response this way too
+// Trigger placeholder creation for generation
 sample({
   clock: generateResponseClicked,
   source: $isGenerating,
-  filter: (isGen) => !isGen, // Only prevent if not already generating
-  fn: () => true,
-  target: setPreventScroll,
-});
-
-// Need to show spinner on the *next* potential message slot
-// For simplicity, let's reuse the retry logic's spinner mechanism,
-// but we need a way to signal *what* to show loading on.
-// Let's add a temporary loading message.
-
-const addPlaceholderForGeneration = chatDomain.event<void>(
-  "addPlaceholderForGeneration"
-);
-const placeholderGenerated = chatDomain.event<Message>("placeholderGenerated");
-
-sample({
-  clock: generateResponseClicked,
-  source: $isGenerating,
-  filter: (isGen) => !isGen, // Only add placeholder if not already generating
+  filter: (isGen) => !isGen,
   target: addPlaceholderForGeneration,
 });
 
+// Create the placeholder message
 sample({
   clock: addPlaceholderForGeneration,
-  source: $messages,
-  fn: (messages): Message => {
-    const placeholder: Message = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: "",
-      timestamp: Date.now(),
-      isLoading: true,
-    };
-    return placeholder;
-  },
+  source: $messages, // Source messages to ensure it runs after potential updates
+  fn: (): Message => ({
+    id: crypto.randomUUID(),
+    role: "assistant",
+    content: "",
+    timestamp: Date.now(),
+    isLoading: true,
+  }),
   target: placeholderGenerated,
-});
-
-sample({
-  clock: placeholderGenerated,
-  source: $messages,
-  fn: (messages, placeholder) => [...messages, placeholder],
-  target: $messages,
-});
-
-// Update retryingMessageId to the placeholder ID when generating
-sample({
-  clock: placeholderGenerated,
-  fn: (placeholder) => placeholder.id,
-  target: $retryingMessageId,
-});
-
-// Clear the placeholder ID from retryingMessageId when the API call finishes
-// This reuses the existing logic that resets $retryingMessageId on sendApiRequestFx.finally
-
-// Update the placeholder message with the actual response
-// This requires modifying the retry update logic slightly or adding a new path.
-// Let's modify calculateRetryUpdatePayloadFn to handle this.
-// We'll need to pass the placeholder ID.
-// Let's store the generated placeholder ID temporarily.
-
-const $generatingPlaceholderId = chatDomain
-  .store<string | null>(null)
-  .on(placeholderGenerated, (_, placeholder) => placeholder.id)
-  .reset(sendApiRequestFx.finally); // Reset after API call
-
-// Modify the sample that calls calculateRetryUpdatePayloadFn
-// Remove the existing sample at lines 470-492
-// Add a new sample that includes $generatingPlaceholderId
-
-// Remove existing sample:
-// sample({ clock: sendApiRequestFx.done, ... target: calculatedRetryUpdate });
-
-// Add new sample:
-sample({
-  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
-  source: {
-    // Source stores needed *at the time clock fires*
-    messages: $messages,
-    retryContext: $retryContext,
-    placeholderInfo: $placeholderInfo,
-    generatingPlaceholderId: $generatingPlaceholderId, // <-- Add generating placeholder ID
-  },
-  // NO filter here - always run the calculation. lib.ts function will decide what to do.
-  fn: (
-    { messages, retryContext, placeholderInfo, generatingPlaceholderId }, // Source data (values at clock time)
-    { result: response } // Clock data (effect result)
-  ) =>
-    calculateRetryUpdatePayloadFn(
-      {
-        messages, // Use sourced messages
-        retryContext, // Use sourced retryContext (captured before reset)
-        placeholderInfo, // Use sourced placeholderInfo
-        generatingPlaceholderId, // <-- Pass generating placeholder ID
-      },
-      response // Use response from clock data
-    ),
-  target: calculatedRetryUpdate,
 });
 
 // --- Retry Logic Flow ---
@@ -489,38 +349,24 @@ const isRetryableMessage = (
   return !!message && (message.role === "user" || message.role === "assistant");
 };
 
-// When messageRetry is called:
-// 1. Create placeholder if needed (Scenario 1.2.b)
-// 2. Store original retry context
-// 3. Prepare API params
-// 4. Trigger spinner update
-
-// 1. Create placeholder if retrying user message followed by user/end
-// Define a helper event to carry the result of the placeholder calculation
-const placeholderCalculated = chatDomain.event<{
-  updatedMessages: Message[];
-  placeholderInfo: { id: string; originalUserId: string };
-}>("placeholderCalculated");
-
-// Sample to calculate placeholder data when needed
+// Calculate placeholder data for user retry -> user/end scenario
 sample({
   clock: messageRetry,
   source: $messages,
-  filter: (messages: Message[], messageToRetry: Message): boolean => {
+  filter: (messages, messageToRetry): boolean => {
     if (!isRetryableMessage(messageToRetry) || messageToRetry.role !== "user") {
-      return false; // Only for user messages
+      return false;
     }
     const retryIndex = messages.findIndex(
       (msg) => msg.id === messageToRetry.id
     );
-    if (retryIndex === -1) return false; // Should not happen
+    if (retryIndex === -1) return false;
     const nextMessage = messages[retryIndex + 1];
-    // Condition: next message is user or does not exist
     return !nextMessage || nextMessage.role === "user";
   },
   fn: (
-    messages: Message[],
-    messageToRetry: Message
+    messages,
+    messageToRetry
   ): {
     updatedMessages: Message[];
     placeholderInfo: { id: string; originalUserId: string };
@@ -529,14 +375,13 @@ sample({
     const placeholderMessage: Message = {
       id: tempId,
       role: "assistant",
-      content: "", // Placeholder content
+      content: "",
       timestamp: Date.now(),
-      isLoading: true, // Mark as loading
+      isLoading: true,
     };
     const retryIndex = messages.findIndex(
       (msg) => msg.id === messageToRetry.id
     );
-    // Insert placeholder immediately after the retried user message
     const updatedMessages = [
       ...messages.slice(0, retryIndex + 1),
       placeholderMessage,
@@ -550,21 +395,7 @@ sample({
   target: placeholderCalculated, // Target the helper event
 });
 
-// Sample to update $messages from the helper event
-sample({
-  clock: placeholderCalculated,
-  fn: (payload) => payload.updatedMessages,
-  target: $messages,
-});
-
-// Sample to update $placeholderInfo from the helper event
-sample({
-  clock: placeholderCalculated,
-  fn: (payload) => payload.placeholderInfo,
-  target: $placeholderInfo,
-});
-
-// 2. Store original retry context (runs for all valid retries)
+// Store original retry context
 sample({
   clock: messageRetry,
   filter: isRetryableMessage,
@@ -575,8 +406,9 @@ sample({
   target: retryTriggered,
 });
 
+// Prepare API params for retry
 sample({
-  clock: messageRetry, // Also trigger param preparation
+  clock: messageRetry,
   source: {
     messages: $messages,
     apiKey: $apiKey,
@@ -584,21 +416,16 @@ sample({
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
   },
-  filter: (
-    { apiKey },
-    messageRetried // Ensure API key exists
-  ) => apiKey.length > 0 && isRetryableMessage(messageRetried),
-  fn: prepareRetryRequestParamsFn, // Prepare params using original message
+  filter: ({ apiKey }, messageRetried) =>
+    !!apiKey && isRetryableMessage(messageRetried),
+  fn: prepareRetryRequestParamsFn,
   target: prepareRetryParams,
 });
 
-// Trigger the event to update the retrying message ID state
+// Trigger spinner update event for retry
 sample({
   clock: messageRetry,
-  filter: (
-    messageToRetry
-  ): messageToRetry is Message & { role: "user" | "assistant" } =>
-    isRetryableMessage(messageToRetry),
+  filter: isRetryableMessage,
   fn: (messageToRetry): MessageRetryInitiatedPayload => ({
     messageId: messageToRetry.id,
     role: messageToRetry.role,
@@ -606,44 +433,53 @@ sample({
   target: messageRetryInitiated,
 });
 
-// Trigger the API request effect with the prepared retry parameters
+// Trigger the API request effect for retry
 sample({
   clock: prepareRetryParams,
   filter: (params): params is SendApiRequestParams => params !== null,
   target: sendApiRequestFx,
 });
 
-// Calculate how to update the message list after a successful retry response
-// Use the stored $retryContext *at the time the effect completed*
+// --- Common Post-API Logic ---
+
+// Calculate how to update message list after API success (handles retry & generation)
 sample({
-  clock: sendApiRequestFx.done, // Clock on effect completion { params, result }
+  clock: sendApiRequestFx.done,
   source: {
-    // Source stores needed *at the time clock fires*
     messages: $messages,
     retryContext: $retryContext,
     placeholderInfo: $placeholderInfo,
+    generatingPlaceholderId: $generatingPlaceholderId,
   },
-  // NO filter here - always run the calculation. lib.ts function will return null if not a retry.
   fn: (
-    { messages, retryContext, placeholderInfo }, // Source data (values at clock time)
-    { result: response } // Clock data (effect result)
+    { messages, retryContext, placeholderInfo, generatingPlaceholderId },
+    { result: response }
   ) =>
     calculateRetryUpdatePayloadFn(
-      {
-        messages, // Use sourced messages
-        retryContext, // Use sourced retryContext (captured before reset)
-        placeholderInfo, // Use sourced placeholderInfo
-      },
-      response // Use response from clock data
+      { messages, retryContext, placeholderInfo, generatingPlaceholderId },
+      response
     ),
   target: calculatedRetryUpdate,
 });
 
-// Trigger the message list update if the calculation was successful
+// Trigger the message list update if calculation was successful
 sample({
   clock: calculatedRetryUpdate,
   filter: (payload): payload is RetryUpdatePayload => payload !== null,
-  target: retryUpdate,
+  target: retryUpdate, // Use retryUpdate for both retry and generation updates
+});
+
+// Forward successful API response data to apiRequestTokensUpdated event
+sample({
+  clock: sendApiRequestFx.doneData,
+  target: apiRequestTokensUpdated,
+});
+
+// Trigger scroll after assistant reply is added/replaced
+sample({
+  clock: [retryUpdate, placeholderGenerated], // Trigger after update OR placeholder generation
+  fn: () => undefined,
+  target: scrollToLastMessageNeeded,
 });
 
 // --- Debug ---
@@ -655,11 +491,10 @@ debug(
   $apiError,
   $currentChatTokens,
   $retryingMessageId, // Spinner state
-  $scrollTrigger,
   $retryContext, // Original retry context
   $placeholderInfo, // Added placeholder store
-  // Targets from other features
-  setPreventScroll, // Scroll prevention setter
+  $generatingPlaceholderId, // Added generation placeholder ID store
+  $preventScroll, // Added preventScroll store to debug
 
   // User-facing events
   messageTextChanged,
@@ -667,12 +502,15 @@ debug(
   editMessage,
   deleteMessage,
   messageRetry,
+  generateResponseClicked, // Added generate event
+  setPreventScroll, // Moved event here
 
   // Internal events
   messageAdded,
   retryUpdate,
   messageRetryInitiated,
   userMessageCreated,
+  scrollToLastMessageNeeded, // Keep this debug target
   prepareRetryParams,
   calculatedRetryUpdate,
   apiRequestTokensUpdated,
@@ -680,6 +518,8 @@ debug(
   initialChatSaveNeeded,
   retryTriggered, // Added internal event
   placeholderCalculated, // Added helper event for split sample
+  addPlaceholderForGeneration, // Added internal event
+  placeholderGenerated, // Added internal event
 
   // Effects
   sendApiRequestFx
