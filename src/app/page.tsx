@@ -1,6 +1,9 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
+import QueryStatsIcon from "@mui/icons-material/QueryStats";
+import UsageInfoDialog from "@/components/UsageInfoDialog";
+import { refreshUsageInfo } from "@/features/usage-info/model";
 import { useTheme, useMediaQuery, Snackbar } from "@mui/material";
 import MobileUnifiedDrawer from "@/components/MobileUnifiedDrawer";
 import {
@@ -148,6 +151,7 @@ export default function HomePage() {
   });
 
   const [historySearchTerm, setHistorySearchTerm] = React.useState("");
+  const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
   );
@@ -366,13 +370,25 @@ export default function HomePage() {
           </Box>
           {/* Conditionally render Settings Button */}
           {!isSettingsPersistentOpen && !isMobile && (
-            <IconButton
-              color="inherit"
-              aria-label="settings"
-              onClick={clickSettings}
-            >
-              <SettingsIcon />
-            </IconButton>
+            <>
+              <IconButton
+                color="inherit"
+                aria-label="usage info"
+                onClick={() => {
+                  refreshUsageInfo();
+                  setUsageDialogOpen(true);
+                }}
+              >
+                <QueryStatsIcon />
+              </IconButton>
+              <IconButton
+                color="inherit"
+                aria-label="settings"
+                onClick={clickSettings}
+              >
+                <SettingsIcon />
+              </IconButton>
+            </>
           )}
           {/* Render Settings Button always on mobile */}
           {isMobile && (
@@ -387,6 +403,10 @@ export default function HomePage() {
             </IconButton>
           )}
         </Toolbar>
+        <UsageInfoDialog
+          open={usageDialogOpen}
+          onClose={() => setUsageDialogOpen(false)}
+        />
       </AppBar>
       {/* Desktop Drawers */}
       {!isMobile && (

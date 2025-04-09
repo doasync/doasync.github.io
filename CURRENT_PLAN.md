@@ -2,6 +2,27 @@
 
 ---
 
+## Requirements / Goals
+
+- Display a Usage Info Dialog accessible via an AppBar icon button.
+- Show the following metrics dynamically and in real-time:
+  - **Current chat ID**
+  - **Tokens sent and received counts**
+  - **Context window usage** (current tokens used vs. model max), with a **progress bar visualization**
+  - **API cost estimate** based on token usage
+  - **Size of the current chat session** stored in IndexedDB
+  - **Total size of the entire IndexedDB database**
+  - **Browser quota limit** for IndexedDB
+- Present all information **clearly and visually**, inspired by the Model Info Dialog UI.
+- Ensure the dialog updates **automatically** as data changes, using Effector stores.
+- Keep the implementation **modular**, with:
+  - Utility functions for calculations and formatting
+  - Effector stores and effects for data management
+  - A dedicated React component for the dialog UI
+- Enable **easy extension and maintenance**.
+
+---
+
 ## Overview
 
 A modular, dynamic Usage Info Dialog to display real-time chat and storage metrics, including:
