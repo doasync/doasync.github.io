@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useUnit } from "effector-react";
-import { duplicateChatClicked } from "@/features/chat-history";
+import { useTheme, useMediaQuery } from "@mui/material";
+
+import { duplicateChatClicked, newChatCreated } from "@/features/chat-history";
 import { closeHistoryDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
@@ -18,9 +20,11 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  Toolbar,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"; // Import icon for desktop close
+import SubjectIcon from "@mui/icons-material/Subject"; // Import icon for desktop close
+import AddCircleIcon from "@mui/icons-material/AddCircle"; // Import icon for desktop close
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -30,6 +34,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { regenerateTitleForChat } from "@/features/chat-history";
+import { $isMobileDrawerOpen } from "@/features/ui-state";
 
 interface ChatHistoryPanelProps {
   searchTerm: string;
@@ -69,6 +74,9 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
   const [menuChatTitle, setMenuChatTitle] = useState<string>("");
 
   const openMenu = Boolean(menuAnchorEl);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
 
   const handleMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
@@ -132,34 +140,39 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
         }}
         role="presentation"
       >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            p: 1,
-            borderBottom: 1,
-            borderColor: "divider",
-          }}
-        >
-          <Typography variant="h6" sx={{ ml: 1 }}>
-            Chat History
-          </Typography>
-          {/* Add dedicated close button for persistent drawer */}
-          <IconButton
-            onClick={() => closeHistoryDrawer()}
-            size="small"
-            aria-label="close history drawer"
+        {!isMobileDrawerOpen && (
+          <Toolbar
+            disableGutters={true}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "start",
+              px: 2,
+              borderBottom: 1,
+              borderColor: "divider",
+            }}
           >
-            <ChevronLeftIcon />
-          </IconButton>
-          {/* Keep original close button for mobile if needed, otherwise remove */}
-          {/* {onClose && (
-            <IconButton onClick={onClose} size="small">
-              <CloseIcon />
-            </IconButton>
-          )} */}
-        </Box>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Chat History
+            </Typography>
+            {!isMobile && (
+              <IconButton
+                aria-label="New chat"
+                onClick={() => newChatCreated()}
+              >
+                <AddCircleIcon />
+              </IconButton>
+            )}
+            {!isMobile && (
+              <IconButton
+                onClick={() => closeHistoryDrawer()}
+                aria-label="close history drawer"
+              >
+                <SubjectIcon />
+              </IconButton>
+            )}
+          </Toolbar>
+        )}
 
         <Box sx={{ p: 2 }}>
           <TextField
@@ -181,7 +194,12 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({
 
         <Divider />
 
-        <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+          }}
+        >
           {isLoading ? (
             <Box
               sx={{

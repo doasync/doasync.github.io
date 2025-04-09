@@ -10,9 +10,11 @@ import {
   Slider,
   FormControlLabel,
   Switch,
+  Toolbar,
+  Divider,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
-import ChevronRightIcon from "@mui/icons-material/ChevronRight"; // Import icon for desktop close
+import SettingsIcon from "@mui/icons-material/Settings";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useUnit } from "effector-react";
@@ -55,49 +57,47 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       sx={{
         width: { xs: "100%", sm: 360, md: 400 },
         maxWidth: "100%",
-        p: 2,
         flexGrow: 1,
         display: "flex",
         flexDirection: "column",
         height: "100%",
       }}
     >
-      <Box
+      <Toolbar
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 3,
         }}
       >
         <Typography variant="h6">Chat Settings</Typography>
         {/* Add dedicated close button for persistent drawer */}
         <IconButton
           onClick={() => closeSettingsDrawer()}
-          size="small"
           aria-label="close settings drawer"
-          sx={{ mr: 1 }} // Add margin to separate from tooltip
+          edge="end"
         >
-          <ChevronRightIcon />
+          <SettingsIcon />
         </IconButton>
-        {/* Keep original close button for mobile if needed, otherwise remove */}
-        {/* {onClose && (
-          <IconButton
-            onClick={onClose}
-            aria-label="close settings"
-            size="small"
-          >
-            <CloseIcon />
-          </IconButton>
-        )} */}
+      </Toolbar>
+
+      <Divider />
+
+      <Box sx={{ p: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
+        <Typography variant="body2" color="text.secondary">
+          Total Tokens (Current Chat): {currentChatTokens}
+        </Typography>
       </Box>
 
-      <Box sx={{ mb: 3 }}>
+      <Divider />
+
+      <Box sx={{ p: 2 }}>
         <Tooltip
           title="Your OpenRouter API Key. Stored locally in your browser."
-          placement="bottom" // Change tooltip placement to avoid overlap
+          placement="left" // Change tooltip placement to avoid overlap
         >
           <TextField
+            size="small"
             fullWidth
             label="OpenRouter API Key"
             variant="outlined"
@@ -123,13 +123,13 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Tooltip>
       </Box>
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ px: 2 }}>
         <Typography gutterBottom>
           Temperature: {temperature.toFixed(1)}
         </Typography>
         <Tooltip
           title="Controls randomness. Lower values are more deterministic."
-          placement="top"
+          placement="left"
         >
           <Slider
             value={temperature}
@@ -137,7 +137,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
               typeof val === "number" && handleTemperatureChange(val)
             }
             aria-labelledby="temperature-slider"
-            valueLabelDisplay="auto"
             step={0.1}
             marks
             min={0.0}
@@ -146,7 +145,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Tooltip>
       </Box>
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ px: 2, py: 1 }}>
         <FormControlLabel
           control={
             <Switch
@@ -159,32 +158,30 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         />
       </Box>
 
-      <Box
-        sx={{ mb: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}
-      >
-        <Typography gutterBottom>System Prompt</Typography>
-        <Tooltip
-          title="Instructions for the AI model's behavior."
-          placement="top"
-        >
-          <TextField
-            fullWidth
-            label="System Prompt"
-            variant="outlined"
-            multiline
-            rows={6}
-            value={systemPrompt}
-            onChange={(e) => handleSystemPromptChange(e.target.value)}
-            sx={{ flexGrow: 1 }}
-            InputProps={{ sx: { height: "100%" } }}
-          />
-        </Tooltip>
-      </Box>
+      <Divider />
 
-      <Box sx={{ mt: "auto", pt: 2, borderTop: 1, borderColor: "divider" }}>
-        <Typography variant="body2" color="text.secondary">
-          Total Tokens (Current Chat): {currentChatTokens}
+      <Box
+        sx={{
+          px: 2,
+          py: 1,
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Typography variant="overline" gutterBottom>
+          System Prompt
         </Typography>
+
+        <TextField
+          fullWidth
+          variant="outlined"
+          multiline
+          value={systemPrompt}
+          onChange={(e) => handleSystemPromptChange(e.target.value)}
+          sx={{ flexGrow: 1 }}
+          InputProps={{ sx: { height: "100%" } }}
+        />
       </Box>
     </Box>
   );

@@ -21,6 +21,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ModelInfoDrawer from "./ModelInfoDrawer";
+import { openModelInfoAlert } from "@/features/ui-state";
 import {
   $availableModels,
   $selectedModelId,
@@ -136,7 +137,7 @@ export const ModelSelector: React.FC = () => {
           if (isMobile) {
             openMobileDrawer({ tab: "modelInfo" });
           } else {
-            setInfoOpen(true);
+            openModelInfoAlert();
           }
         }}
         disabled={!selectedModel}

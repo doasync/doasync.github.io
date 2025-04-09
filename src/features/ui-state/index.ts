@@ -10,6 +10,7 @@ export {
   // $activeMessageId, // Remove active message state export
   $isMobileDrawerOpen, // Add mobile drawer state
   $mobileDrawerTab, // Add mobile drawer tab state
+  $isModelInfoAlertOpen,
   // $preventScroll, // Removed - belongs to chat model now
   $editingMessageId, // Add editing state
   // Events - Triggered by UI components
@@ -28,4 +29,6 @@ export {
   // setPreventScroll, // Removed - belongs to chat model now
   startEditingMessage, // Add editing state events
   stopEditingMessage,
+  openModelInfoAlert,
+  closeModelInfoAlert,
 } from "./model";

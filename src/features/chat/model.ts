@@ -57,11 +57,13 @@ const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate");
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
+
 // Internal event to capture original retry trigger context
 const retryTriggered = chatDomain.event<{
   messageId: string;
   role: "user" | "assistant";
 }>("retryTriggered");
+
 const prepareRetryParams =
   chatDomain.event<SendApiRequestParams>("prepareRetryParams");
 const calculatedRetryUpdate = chatDomain.event<CalculatedRetryUpdatePayload>(

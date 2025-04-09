@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 // Removed Geist font imports
 import "./globals.css";
+
 import ThemeRegistry from "@/components/ThemeRegistry"; // Import the ThemeRegistry
 
 // Removed Geist font setup

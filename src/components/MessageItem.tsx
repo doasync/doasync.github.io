@@ -162,6 +162,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
         padding: 1.5, // Reduced padding slightly
         borderWidth: isGloballyEditingThis ? 2 : 1, // Make border thicker when editing
         transition: theme.transitions.create("border-color"), // Smooth transition for border color
+        alignSelf: "flex-start", // Align to start for better layout
       }}
     >
       <Card

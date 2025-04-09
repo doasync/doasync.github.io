@@ -44,7 +44,8 @@ export const startEditingMessage = uiDomain.event<string>(
   "startEditingMessage"
 );
 export const stopEditingMessage = uiDomain.event<void>("stopEditingMessage");
-
+export const openModelInfoAlert = uiDomain.event<void>("openModelInfoAlert");
+export const closeModelInfoAlert = uiDomain.event<void>("closeModelInfoAlert");
 // Scroll Prevention (Moved from here to chat model where it's used)
 // export const setPreventScroll = uiDomain.event<boolean>("setPreventScroll");
 
@@ -131,6 +132,12 @@ export const $isModelInfoDrawerOpen = uiDomain
   .store<boolean>(false, { name: "$isModelInfoDrawerOpen" })
   .on(openModelInfoDrawer, () => true)
   .on(closeModelInfoDrawer, () => false);
+// Model Info Drawer State (Not persistent yet)
+
+export const $isModelInfoAlertOpen = uiDomain
+  .store<boolean>(false, { name: "$isModelInfoDrawerOpen" })
+  .on(openModelInfoAlert, () => true)
+  .on(closeModelInfoAlert, () => false);
 
 // --- Mobile Unified Drawer ---
 

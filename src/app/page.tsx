@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useTheme, useMediaQuery } from "@mui/material";
 import MobileUnifiedDrawer from "@/components/MobileUnifiedDrawer";
-import { openMobileDrawer } from "@/features/ui-state";
+import { $isMobileDrawerOpen, openMobileDrawer } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import Box from "@mui/material/Box";
 import AppBar from "@mui/material/AppBar";
@@ -12,9 +12,9 @@ import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import IconButton from "@mui/material/IconButton";
-import HistoryIcon from "@mui/icons-material/History";
+import SubjectIcon from "@mui/icons-material/Subject";
 import SettingsIcon from "@mui/icons-material/Settings";
-import AddCommentIcon from "@mui/icons-material/AddComment";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import Stack from "@mui/material/Stack";
@@ -86,10 +86,11 @@ import {
 } from "@/features/chat-settings";
 import { $currentChatTokens } from "@/features/chat";
 import { generateTitle } from "@/features/chat-history";
+import ModelInfoAlert from "@/components/ModelInfoAlert";
 
 // Define drawer widths (adjust as needed)
-const HISTORY_DRAWER_WIDTH = 280;
-const SETTINGS_DRAWER_WIDTH = 320;
+const HISTORY_DRAWER_WIDTH = 300;
+const SETTINGS_DRAWER_WIDTH = 300;
 
 export default function HomePage() {
   // Ref for scrolling to bottom
@@ -109,6 +110,7 @@ export default function HomePage() {
 
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
   const preventScroll = useUnit($preventScroll); // Get scroll prevention state
+  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen); // Get scroll prevention state
 
   const [
     historyIndex,
@@ -284,7 +286,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ display: "flex", height: "100vh" }}>
+    <Box sx={{ height: "100vh" }}>
       {" "}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
@@ -347,39 +349,33 @@ export default function HomePage() {
           {/* Conditionally render History Button */}
           {!isHistoryPersistentOpen && !isMobile && (
             <IconButton
-              size="large"
               edge="start"
               color="inherit"
               aria-label="History"
               onClick={clickHistory}
-              sx={{ mr: 2 }}
             >
-              <HistoryIcon />
+              <SubjectIcon />
             </IconButton>
           )}
           {/* Render History Button always on mobile */}
           {isMobile && (
             <IconButton
-              size="large"
-              edge="start"
               color="inherit"
               aria-label="History"
               onClick={clickHistory}
-              sx={{ mr: 2 }}
             >
-              <HistoryIcon />
+              <SubjectIcon />
             </IconButton>
           )}
-          {/* Moved New Chat Button Here */}
-          <IconButton
-            size="large"
-            color="inherit"
-            aria-label="new chat"
-            onClick={clickNewChat}
-            sx={{ ml: 1 }}
-          >
-            <AddCommentIcon />
-          </IconButton>
+          {!isHistoryPersistentOpen && (
+            <IconButton
+              color="inherit"
+              aria-label="New chat"
+              onClick={clickNewChat}
+            >
+              <AddCircleIcon />
+            </IconButton>
+          )}
           {/* End Moved New Chat Button */}
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
             <ModelSelector />
@@ -410,52 +406,43 @@ export default function HomePage() {
           )}
         </Toolbar>
       </AppBar>
-      {/* Desktop Drawers (Persistent) */}
+      {/* Desktop Drawers */}
       {!isMobile && (
-        <>
-          <Drawer
-            variant="persistent"
-            open={isHistoryPersistentOpen}
-            anchor="left"
-            sx={{
+        <Drawer
+          variant="persistent"
+          open={isHistoryPersistentOpen}
+          anchor="left"
+          sx={{
+            width: HISTORY_DRAWER_WIDTH,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
               width: HISTORY_DRAWER_WIDTH,
-              flexShrink: 0,
-              "& .MuiDrawer-paper": {
-                width: HISTORY_DRAWER_WIDTH,
-                boxSizing: "border-box",
-              },
-            }}
-          >
-            {/* Add Toolbar spacer to push content below AppBar */}
-            <Toolbar />
-            <Box sx={{ overflow: "auto" }}>
-              {" "}
-              {/* Make drawer content scrollable if needed */}
-              <ChatHistoryContent {...historyPanelProps} />
-            </Box>
-          </Drawer>
-          <Drawer
-            variant="persistent"
-            open={isSettingsPersistentOpen}
-            anchor="right"
-            sx={{
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <Box sx={{ overflow: "auto" }}>
+            {/* Make drawer content scrollable if needed */}
+            <ChatHistoryContent {...historyPanelProps} />
+          </Box>
+        </Drawer>
+      )}
+      {!isMobile && (
+        <Drawer
+          variant="persistent"
+          open={isSettingsPersistentOpen}
+          anchor="right"
+          sx={{
+            width: SETTINGS_DRAWER_WIDTH,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
               width: SETTINGS_DRAWER_WIDTH,
-              flexShrink: 0,
-              "& .MuiDrawer-paper": {
-                width: SETTINGS_DRAWER_WIDTH,
-                boxSizing: "border-box",
-              },
-            }}
-          >
-            {/* Add Toolbar spacer */}
-            <Toolbar />
-            <Box sx={{ overflow: "auto" }}>
-              {" "}
-              {/* Make drawer content scrollable if needed */}
-              <ChatSettingsContent {...settingsPanelProps} />
-            </Box>
-          </Drawer>
-        </>
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <ChatSettingsContent {...settingsPanelProps} />
+        </Drawer>
       )}
       {/* Main Content Area Wrapper */}
       <Box
@@ -529,9 +516,14 @@ export default function HomePage() {
                 display: "flex",
                 flexDirection: "column",
                 width: "100%", // Take full width of the Container
+                alignItems: "center", // Center items horizontally
               }}
             >
-              <Stack spacing={1} sx={{ flexGrow: 1, width: "100%" }}>
+              <Stack
+                alignItems="center"
+                spacing={1}
+                sx={{ flexGrow: 1, width: "100%" }}
+              >
                 {messages.map((msg) => (
                   <MessageItem message={msg} key={msg.id} />
                 ))}
@@ -575,6 +567,11 @@ export default function HomePage() {
                 width: "100%", // Ensure paper takes full width of container
               }}
             >
+              <IconButton color="primary" aria-label="attach file" disabled>
+                {" "}
+                {/* Disabled Attach for now */}
+                <AttachFileIcon />
+              </IconButton>
               <TextField
                 fullWidth
                 multiline
@@ -586,11 +583,6 @@ export default function HomePage() {
                 onChange={changeMessage}
                 onKeyDown={keyDownMessage}
               />
-              <IconButton color="primary" aria-label="attach file" disabled>
-                {" "}
-                {/* Disabled Attach for now */}
-                <AttachFileIcon />
-              </IconButton>
               <Box sx={{ position: "relative" }}>
                 <IconButton
                   color="primary"
@@ -631,6 +623,7 @@ export default function HomePage() {
           modelInfo={selectedModel}
         />
       )}
+      {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
     </Box> // End Outermost Box
   );
 }
