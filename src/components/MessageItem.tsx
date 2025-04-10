@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { showSnackbar } from "@/features/ui-state/snackbar";
+import { useLongPress, LongPressCallback } from "use-long-press";
 import { useUnit } from "effector-react";
 import {
   editMessage,
@@ -36,6 +38,24 @@ import MarkdownRenderer from "./MarkdownRenderer";
 interface MessageItemProps {
   message: Message;
 }
+interface SetupLongPress {
+  (): () => void;
+}
+
+const createFrameHandler =
+  ({ visibleDelay }: { visibleDelay: number }, setup: SetupLongPress) =>
+  () => {
+    // Before the frame
+    const finalCallback = setup();
+    // Wait for the next full animation frame
+    requestAnimationFrame(() =>
+      setTimeout(
+        // After the frame
+        () => requestAnimationFrame(() => finalCallback()),
+        visibleDelay
+      )
+    );
+  };
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   // Hooks
@@ -44,6 +64,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const retryingMessageId = useUnit($retryingMessageId);
   const globalEditingMessageId = useUnit($editingMessageId); // Get global state
   const [isHovered, setIsHovered] = useState(false);
+  const [isGoingToDelete, setIsGoingToDelete] = useState(false);
+  const [isGoingToRetry, setIsGoingToRetry] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(message.content);
   const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
@@ -69,7 +91,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     setEditedText(originalContentOnEdit); // Restore original text
     stopEditingMessage(); // Clear global editing state
     // Allow scrolling again immediately on cancel
-    setTimeout(() => setPreventScroll(false), 0);
+    requestAnimationFrame(() => setPreventScroll(false));
   };
 
   const handleEditConfirm = () => {
@@ -80,7 +102,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     setIsEditing(false); // Clear local editing state
     stopEditingMessage(); // Clear global editing state
     // Allow scrolling again after confirm (using timeout for safety)
-    setTimeout(() => setPreventScroll(false), 0);
+    requestAnimationFrame(() => setPreventScroll(false));
   };
 
   const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,11 +110,45 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   };
 
   const handleDeleteClick = () => {
-    deleteMessage(message.id);
+    showSnackbar({
+      message: "Long press to delete a message.",
+      severity: "info",
+    });
   };
 
+  // Long Press Handler
+  const deleteLongPressProps = useLongPress(
+    createFrameHandler({ visibleDelay: 20 }, () => {
+      setIsGoingToDelete(true);
+      return () => {
+        setIsGoingToDelete(false);
+        deleteMessage(message.id);
+      };
+    }),
+    {
+      threshold: 400,
+    }
+  )("delete");
+
+  // Long Press Handler
+  const retryLongPressProps = useLongPress(
+    createFrameHandler({ visibleDelay: 20 }, () => {
+      setIsGoingToRetry(true);
+      return () => {
+        setIsGoingToRetry(false);
+        messageRetry(message);
+      };
+    }),
+    {
+      threshold: 400,
+    }
+  )("retry");
+
   const handleRetryClick = () => {
-    messageRetry(message);
+    showSnackbar({
+      message: "Long press to regenerate a message.",
+      severity: "info",
+    });
   };
 
   const handleCopyTextClick = () => {
@@ -172,7 +228,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       <Card
         raised
         elevation={1}
-        onDoubleClick={handleEditClick} // Allow double-click to edit
         sx={{
           p: 2,
           borderRadius: 2,
@@ -216,6 +271,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           />
         ) : (
           <Typography
+            onDoubleClick={handleEditClick} // Allow double-click to edit
             component="div"
             variant="body1"
             sx={{
@@ -286,16 +342,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           ) : (
             // Show standard actions when not editing
             <>
-              {/* Delete Button */}
-              <IconButton
-                aria-label="delete"
-                size="small"
-                color="inherit"
-                onClick={handleDeleteClick}
-                title="Delete Message"
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
               {/* Copy Text Button */}
               <IconButton
                 aria-label="copy text"
@@ -326,14 +372,26 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               >
                 <EditIcon fontSize="small" />
               </IconButton>
+              {/* Delete Button */}
+              <IconButton
+                aria-label="delete"
+                size="small"
+                onClick={handleDeleteClick}
+                title="Long press to delete"
+                color={isGoingToDelete ? "error" : "inherit"}
+                {...deleteLongPressProps}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
               {/* Retry Button */}
               <IconButton
                 aria-label="retry"
                 size="small"
-                color="inherit"
                 onClick={handleRetryClick}
                 title="Retry Generation"
-                disabled={isGenerating} // Disable if already generating
+                disabled={isGenerating}
+                color={isGoingToRetry ? "success" : "inherit"}
+                {...retryLongPressProps}
               >
                 <AutoModeIcon fontSize="small" />
               </IconButton>

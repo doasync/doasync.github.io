@@ -1,6 +1,8 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
+import { showSnackbar } from "@/features/ui-state/snackbar";
+import { $snackbar, hideSnackbar } from "@/features/ui-state/snackbar";
 import { useMiniChatTextSelection } from "@/features/mini-chat/useTextSelection";
 import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
 import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
@@ -162,15 +164,7 @@ export default function HomePage() {
   const [editedTitle, setEditedTitle] = React.useState("");
 
   const [showApiKey, setShowApiKey] = React.useState(false);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState("");
-  const handleSnackbarClose = (
-    event?: React.SyntheticEvent | Event,
-    reason?: SnackbarCloseReason
-  ) => {
-    if (reason === "clickaway") return;
-    setSnackbarOpen(false);
-  };
+  const snackbar = useUnit($snackbar);
 
   const filteredHistory = React.useMemo(() => {
     if (!historySearchTerm) return historyIndex;
@@ -244,9 +238,11 @@ export default function HomePage() {
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-
-      setSnackbarMessage("Finish editing before sending a new message.");
-      setSnackbarOpen(true);
+      console.log("Editing message, not sending new one");
+      showSnackbar({
+        message: "Finish editing before sending a new message.",
+        severity: "warning",
+      });
       return; // Stop further processing
     }
 
@@ -541,20 +537,19 @@ export default function HomePage() {
             {/* End Message List Paper */}
           </Container>{" "}
           <Snackbar
-            open={snackbarOpen}
-            autoHideDuration={2000}
-            onClose={handleSnackbarClose}
+            open={snackbar.open}
             anchorOrigin={{ vertical: "top", horizontal: "center" }}
             sx={(theme) => {
-              // Adjust based on AppBar height
               const top = Number(theme.mixins.toolbar.minHeight) + 8;
-              return {
-                top: `${top}px !important`, // Use important
-              };
+              return { top: `${top}px !important` };
             }}
           >
-            <Alert onClose={handleSnackbarClose} severity="warning">
-              {snackbarMessage}
+            <Alert
+              variant="filled"
+              onClose={() => hideSnackbar()}
+              severity={snackbar.severity}
+            >
+              {snackbar.message}
             </Alert>
           </Snackbar>
           {/* End Centering Container */}
