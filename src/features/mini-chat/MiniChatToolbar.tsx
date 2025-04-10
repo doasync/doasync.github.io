@@ -5,10 +5,9 @@ import {
   $miniChatToolbar,
   hideMiniChatToolbar,
   $miniChat,
-  miniChatOpened, // Keep for Explain flow when chat not open
+  miniChatOpened,
   updateMiniChatInput,
   sendMiniChatMessage,
-  showInlineAskInput, // Import the new event
 } from "./model";
 
 const TOOLBAR_WIDTH = 160;
@@ -30,11 +29,10 @@ export const MiniChatToolbar: React.FC = () => {
     if (miniChat.isOpen) {
       updateMiniChatInput(toolbar.selectionText);
     } else {
-      // FRD A2: Show inline input first
-      showInlineAskInput({
-        x: toolbar.x,
-        y: toolbar.y,
-        initialValue: toolbar.selectionText,
+      // Open the dialog directly, starting in compact mode
+      miniChatOpened({
+        initialInput: toolbar.selectionText,
+        startCompact: true, // Signal to start compact
       });
     }
     hideMiniChatToolbar();

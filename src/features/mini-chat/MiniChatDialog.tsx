@@ -21,10 +21,10 @@ import {
 } from "./model";
 
 export const MiniChatDialog: React.FC = () => {
-  const chat = useUnit($miniChat);
+  const { isOpen, isCompact, messages, loading, input } = useUnit($miniChat);
   const nodeRef = React.useRef<HTMLDivElement>(null);
 
-  if (!chat.isOpen) return null;
+  if (!isOpen) return null;
 
   return (
     <Draggable
@@ -55,42 +55,48 @@ export const MiniChatDialog: React.FC = () => {
         >
           <Typography variant="subtitle1">Mini Chat</Typography>
           <Stack direction="row" spacing={1}>
-            <IconButton size="small" onClick={() => expandMiniChat()}>
-              <OpenInFullIcon fontSize="small" />
-            </IconButton>
+            {/* Conditionally render Expand button */}
+            {!isCompact && (
+              <IconButton size="small" onClick={() => expandMiniChat()}>
+                <OpenInFullIcon fontSize="small" />
+              </IconButton>
+            )}
             <IconButton size="small" onClick={() => miniChatClosed()}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Stack>
         </Stack>
 
-        <Stack spacing={1} sx={{ p: 1, flexGrow: 1, overflowY: "auto" }}>
-          {chat.messages.map((msg, idx) => (
-            <Paper
-              key={idx}
-              sx={{
-                p: 1,
-                bgcolor: msg.role === "user" ? "#e0f7fa" : "#f1f8e9",
-              }}
-            >
-              <Typography variant="body2">{msg.content}</Typography>
-            </Paper>
-          ))}
-          {chat.loading && <CircularProgress size={20} />}
-        </Stack>
+        {/* Conditionally render message area */}
+        {!isCompact && (
+          <Stack spacing={1} sx={{ p: 1, flexGrow: 1, overflowY: "auto" }}>
+            {messages.map((msg, idx) => (
+              <Paper
+                key={idx}
+                sx={{
+                  p: 1,
+                  bgcolor: msg.role === "user" ? "#e0f7fa" : "#f1f8e9",
+                }}
+              >
+                <Typography variant="body2">{msg.content}</Typography>
+              </Paper>
+            ))}
+            {loading && <CircularProgress size={20} />}
+          </Stack>
+        )}
 
         <Stack direction="row" spacing={1} sx={{ p: 1 }}>
           <TextField
             size="small"
             placeholder="Type a message..."
             fullWidth
-            value={chat.input}
+            value={input}
             onChange={(e) => updateMiniChatInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (chat.input.trim()) {
-                  sendMiniChatMessage(chat.input.trim());
+                if (input.trim()) {
+                  sendMiniChatMessage(input.trim());
                 }
               }
             }}
@@ -98,10 +104,10 @@ export const MiniChatDialog: React.FC = () => {
           <Button
             variant="contained"
             size="small"
-            disabled={!chat.input.trim() || chat.loading}
+            disabled={!input.trim() || loading}
             onClick={() => {
-              if (chat.input.trim()) {
-                sendMiniChatMessage(chat.input.trim());
+              if (input.trim()) {
+                sendMiniChatMessage(input.trim());
               }
             }}
           >
