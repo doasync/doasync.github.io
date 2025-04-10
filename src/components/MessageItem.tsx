@@ -146,6 +146,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   return (
     <Paper
+      className="chat-message"
       ref={messageItemRef}
       variant="outlined"
       key={message.id}

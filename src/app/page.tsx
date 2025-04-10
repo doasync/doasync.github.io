@@ -1,6 +1,9 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
+import { useMiniChatTextSelection } from "@/features/mini-chat/useTextSelection";
+import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
+import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
@@ -101,6 +104,7 @@ const HISTORY_DRAWER_WIDTH = 300;
 const SETTINGS_DRAWER_WIDTH = 300;
 
 export default function HomePage() {
+  useMiniChatTextSelection();
   // Ref for scrolling to bottom
   const chatEndRef = React.useRef<null | HTMLDivElement>(null);
 
@@ -660,6 +664,8 @@ export default function HomePage() {
         />
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
+      <MiniChatToolbar />
+      <MiniChatDialog />
     </Box> // End Outermost Box
   );
 }
