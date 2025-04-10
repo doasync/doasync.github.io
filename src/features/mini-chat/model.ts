@@ -11,6 +11,7 @@ import {
   chatSelected,
   newChatCreated,
 } from "@/features/chat-history/model";
+import { $assistantModel } from "@/features/chat-settings/model";
 
 export interface MiniChatMessage {
   role: "user" | "assistant";
@@ -22,26 +23,40 @@ export interface MiniChatState {
   messages: MiniChatMessage[];
   isOpen: boolean;
   isInputVisible: boolean;
+  showOnlyInput: boolean;
   initialPrompt: string | null;
+  position: { x: number; y: number };
 }
 
-export const miniChatOpened = createEvent<{ initialPrompt?: string }>();
+export const miniChatOpened = createEvent<{
+  initialPrompt?: string;
+  isInputVisible?: boolean;
+  showOnlyInput?: boolean;
+  position?: { x: number; y: number };
+}>();
+
 export const miniChatClosed = createEvent();
 export const miniChatMessageSent = createEvent<string>();
 export const miniChatResponseReceived = createEvent<MiniChatMessage>();
 export const miniChatExpanded = createEvent();
 
-export const $miniChat = createStore<MiniChatState>({
+const initialState: MiniChatState = {
   messages: [],
   isOpen: false,
   isInputVisible: false,
+  showOnlyInput: false,
   initialPrompt: null,
-})
+  position: { x: 100, y: 100 },
+};
+
+export const $miniChat = createStore<MiniChatState>(initialState)
   .on(miniChatOpened, (state, payload) => ({
     ...state,
     isOpen: true,
-    isInputVisible: !!payload.initialPrompt ? false : true,
+    isInputVisible: payload.showOnlyInput ? true : !!payload.initialPrompt,
+    showOnlyInput: payload.showOnlyInput ?? false,
     initialPrompt: payload.initialPrompt ?? null,
+    position: payload.position ?? state.position,
     messages: payload.initialPrompt
       ? [
           {
@@ -52,12 +67,7 @@ export const $miniChat = createStore<MiniChatState>({
         ]
       : [],
   }))
-  .on(miniChatClosed, () => ({
-    messages: [],
-    isOpen: false,
-    isInputVisible: false,
-    initialPrompt: null,
-  }))
+  .on(miniChatClosed, () => initialState)
   .on(miniChatMessageSent, (state, text) => ({
     ...state,
     messages: [
@@ -82,8 +92,8 @@ export const sendMiniChatMessageFx = createEffect<
 sendMiniChatMessageFx.use(async ({ text, messages, model }) => {
   return fetchMiniChatResponse(messages, model);
 });
-/* Mini Chat Toolbar UI State */
 
+/* Mini Chat Toolbar UI State */
 export interface MiniChatToolbarState {
   visible: boolean;
   selectedText: string;
@@ -101,7 +111,7 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
   selectedText: "",
   position: { top: 0, left: 0 },
 })
-  .on(showMiniChatToolbar, (state, payload) => ({
+  .on(showMiniChatToolbar, (_, payload) => ({
     visible: true,
     selectedText: payload.selectedText,
     position: payload.position,
@@ -112,38 +122,29 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
     position: { top: 0, left: 0 },
   }));
 
-/**
- * When user sends a message:
- * 1. Add user message to store
- * 2. Trigger API call with updated message list
- */
 sample({
   clock: miniChatMessageSent,
-  source: $miniChat,
-  fn: (state, text) => {
-    const newUserMessage: MiniChatMessage = {
+  source: { chat: $miniChat, model: $assistantModel },
+  fn: ({ chat, model }, text) => {
+    const newMessage: MiniChatMessage = {
       role: "user",
       content: text,
       id: crypto.randomUUID(),
     };
     return {
       text,
-      messages: [...state.messages, newUserMessage],
-      model: "mini-assistant-model", // TODO: replace with dynamic model selection
+      messages: [...chat.messages, newMessage],
+      model,
     };
   },
   target: sendMiniChatMessageFx,
 });
 
-// On successful API response, add assistant message to chat
 sample({
   clock: sendMiniChatMessageFx.doneData,
   target: miniChatResponseReceived,
 });
 
-// TODO: handle API errors if needed
-
-// Effect to promote mini chat to full chat
 export const promoteMiniChatFx = createEffect<MiniChatState, void>(
   async (miniChatState) => {
     const chatId = crypto.randomUUID();
@@ -156,10 +157,10 @@ export const promoteMiniChatFx = createEffect<MiniChatState, void>(
         role: m.role,
         content: m.content,
         id: m.id,
-        timestamp: now, // Add timestamp to conform to Message type
+        timestamp: now,
       })),
       settings: {
-        model: "mini-assistant-model", // TODO: replace with actual assistant model
+        model: $assistantModel.getState(),
         temperature: 1,
         systemPrompt: "",
       },
@@ -170,23 +171,14 @@ export const promoteMiniChatFx = createEffect<MiniChatState, void>(
     };
 
     await saveChatFx(newChat);
-    newChatCreated(); // no payload
-    chatSelected(chatId); // expects string
+    newChatCreated();
+    chatSelected(chatId);
     miniChatClosed();
   }
 );
 
-// Trigger promotion effect on expand event
 sample({
   clock: miniChatExpanded,
   source: $miniChat,
   target: promoteMiniChatFx,
 });
-
-// Reset mini chat on close (also after expand)
-$miniChat.on(miniChatClosed, () => ({
-  messages: [],
-  isOpen: false,
-  isInputVisible: false,
-  initialPrompt: null,
-}));

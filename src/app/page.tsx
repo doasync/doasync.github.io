@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
-import { MiniChatInput } from "@/features/mini-chat/MiniChatInput";
 import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
 import {
   $miniChatToolbar,
@@ -95,9 +94,11 @@ import {
   $apiKey,
   $temperature,
   $systemPrompt,
+  $assistantModel,
   apiKeyChanged,
   temperatureChanged,
   systemPromptChanged,
+  assistantModelChanged,
 } from "@/features/chat-settings";
 import { $currentChatTokens } from "@/features/chat";
 import { generateTitle } from "@/features/chat-history";
@@ -287,15 +288,19 @@ export default function HomePage() {
     handleSelectChat,
   };
 
+  const [assistantModel] = useUnit([$assistantModel]);
+
   const settingsPanelProps = {
     apiKey: settingsApiKey,
     showApiKey,
     temperature,
     systemPrompt,
     currentChatTokens,
+    assistantModel,
     handleApiKeyChange: apiKeyChanged,
     handleTemperatureChange: temperatureChanged,
     handleSystemPromptChange: systemPromptChanged,
+    handleAssistantModelChange: assistantModelChanged,
     handleClickShowApiKey,
     handleMouseDownApiKey,
   };
@@ -667,12 +672,7 @@ export default function HomePage() {
         />
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
-      {/* Mini Chat Components */}
-      {/* TODO: Show toolbar dynamically on text selection */}
-      {/* <MiniChatToolbar selectedText="example" position={{ top: 200, left: 200 }} onClose={() => {}} /> */}
-      <MiniChatInput position={{ top: 250, left: 250 }} />
-      <MiniChatDialog />
-      {/* Mini Chat Components */}
+      {/* Mini Chat Components will be rendered dynamically */}
       {(() => {
         const toolbar = useUnit($miniChatToolbar);
         const hideToolbar = useUnit(hideMiniChatToolbar);
@@ -687,7 +687,6 @@ export default function HomePage() {
           />
         );
       })()}
-      <MiniChatInput position={{ top: 250, left: 250 }} />
       <MiniChatDialog />
     </Box> // End Outermost Box
   );

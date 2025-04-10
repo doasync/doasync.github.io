@@ -12,10 +12,12 @@ import { debug } from "patronum/debug";
 const API_KEY_LS_KEY = "openrouter_api_key";
 const TEMPERATURE_LS_KEY = "default_temperature";
 const SYSTEM_PROMPT_LS_KEY = "default_system_prompt";
+const ASSISTANT_MODEL_LS_KEY = "assistant_model";
 
 // Default values
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_SYSTEM_PROMPT = "";
+const DEFAULT_ASSISTANT_MODEL = "anthropic/claude-instant-v1";
 
 const settingsDomain = createDomain("settings");
 
@@ -35,6 +37,9 @@ export const temperatureChanged =
 export const systemPromptChanged = settingsDomain.event<string>(
   "systemPromptChanged"
 );
+export const assistantModelChanged = settingsDomain.event<string>(
+  "assistantModelChanged"
+);
 
 // --- Stores ---
 export const $apiKey = settingsDomain.store<string>("", { name: "apiKey" });
@@ -44,6 +49,10 @@ export const $temperature = settingsDomain.store<number>(DEFAULT_TEMPERATURE, {
 export const $systemPrompt = settingsDomain.store<string>(
   DEFAULT_SYSTEM_PROMPT,
   { name: "systemPrompt" }
+);
+export const $assistantModel = settingsDomain.store<string>(
+  DEFAULT_ASSISTANT_MODEL,
+  { name: "assistantModel" }
 );
 // Store to track if initial settings load is complete
 export const $settingsLoaded = settingsDomain
@@ -55,6 +64,7 @@ const $settings = combine({
   apiKey: $apiKey,
   temperature: $temperature,
   systemPrompt: $systemPrompt,
+  assistantModel: $assistantModel,
 });
 
 // --- Effects ---
@@ -70,6 +80,8 @@ const loadSettingsFx = settingsDomain.effect<
     const tempRaw = localStorage.getItem(TEMPERATURE_LS_KEY);
     const systemPrompt =
       localStorage.getItem(SYSTEM_PROMPT_LS_KEY) ?? DEFAULT_SYSTEM_PROMPT;
+    const assistantModel =
+      localStorage.getItem(ASSISTANT_MODEL_LS_KEY) ?? DEFAULT_ASSISTANT_MODEL;
 
     let temperature = DEFAULT_TEMPERATURE;
     if (tempRaw) {
@@ -78,7 +90,12 @@ const loadSettingsFx = settingsDomain.effect<
         temperature = parsedTemp;
       }
     }
-    return { apiKey, temperature, systemPrompt };
+    return {
+      apiKey,
+      temperature,
+      systemPrompt,
+      assistantModel,
+    };
   },
 });
 
@@ -93,6 +110,7 @@ const saveSettingsFx = settingsDomain.effect<
     localStorage.setItem(API_KEY_LS_KEY, apiKey);
     localStorage.setItem(TEMPERATURE_LS_KEY, String(temperature));
     localStorage.setItem(SYSTEM_PROMPT_LS_KEY, systemPrompt);
+    localStorage.setItem(ASSISTANT_MODEL_LS_KEY, $assistantModel.getState());
   },
 });
 
@@ -114,11 +132,16 @@ sample({
 $apiKey.on(settingsLoaded, (_, payload) => payload.apiKey);
 $temperature.on(settingsLoaded, (_, payload) => payload.temperature);
 $systemPrompt.on(settingsLoaded, (_, payload) => payload.systemPrompt);
+$assistantModel.on(
+  settingsLoaded,
+  (_, payload) => (payload as any).assistantModel
+);
 
 // Update stores based on UI change events
 $apiKey.on(apiKeyChanged, (_, newApiKey) => newApiKey);
 $temperature.on(temperatureChanged, (_, newTemperature) => newTemperature);
 $systemPrompt.on(systemPromptChanged, (_, newSystemPrompt) => newSystemPrompt);
+$assistantModel.on(assistantModelChanged, (_, newModel) => newModel);
 
 // When any setting store changes (after initial load), trigger saveSettingsFx
 sample({
@@ -141,6 +164,7 @@ debug(
   $apiKey,
   $temperature,
   $systemPrompt,
+  $assistantModel,
   $settingsLoaded,
 
   // Events
@@ -148,6 +172,7 @@ debug(
   apiKeyChanged,
   temperatureChanged,
   systemPromptChanged,
+  assistantModelChanged,
 
   // Effects
   loadSettingsFx,

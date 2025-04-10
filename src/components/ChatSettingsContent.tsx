@@ -19,6 +19,10 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useUnit } from "effector-react";
 import { $showFreeOnly, setShowFreeOnly } from "@/features/models-select";
+import {
+  $assistantModel,
+  assistantModelChanged,
+} from "@/features/chat-settings/model";
 
 interface ChatSettingsPanelProps {
   apiKey: string;
@@ -26,9 +30,11 @@ interface ChatSettingsPanelProps {
   temperature: number;
   systemPrompt: string;
   currentChatTokens: number;
+  assistantModel: string;
   handleApiKeyChange: (v: string) => void;
   handleSystemPromptChange: (v: string) => void;
   handleTemperatureChange: (v: number) => void;
+  handleAssistantModelChange: (v: string) => void;
   handleClickShowApiKey: () => void;
   handleMouseDownApiKey: (e: React.MouseEvent<HTMLButtonElement>) => void;
   // onClose?: () => void; // Remove optional onClose prop
@@ -49,6 +55,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
 }) => {
   const showFreeOnlyValue = useUnit($showFreeOnly);
   const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
+  const assistantModelValue = useUnit($assistantModel);
 
   return (
     <Box
@@ -158,6 +165,17 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
             />
           }
           label="Show only free models"
+        />
+      </Box>
+
+      <Box sx={{ px: 2, py: 1 }}>
+        <Typography variant="overline">Assistant Model</Typography>
+        <TextField
+          fullWidth
+          size="small"
+          value={assistantModelValue}
+          onChange={(e) => assistantModelChanged(e.target.value)}
+          placeholder="Enter model ID (e.g. anthropic/claude-instant-v1)"
         />
       </Box>
 

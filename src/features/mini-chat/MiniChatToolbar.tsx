@@ -14,13 +14,16 @@ export const MiniChatToolbar: React.FC<MiniChatToolbarProps> = ({
   onClose,
 }) => {
   const handleAsk = () => {
-    miniChatOpened({});
+    miniChatOpened({
+      isInputVisible: true,
+    });
     onClose();
   };
 
   const handleExplain = () => {
     miniChatOpened({
       initialPrompt: `Please explain this to me: ${selectedText}`,
+      isInputVisible: true,
     });
     onClose();
   };
