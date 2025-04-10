@@ -5,7 +5,10 @@ import {
   $temperature,
   $systemPrompt,
 } from "@/features/chat-settings/model";
-import { $selectedModelId } from "@/features/models-select/model";
+import {
+  $selectedModelId,
+  $availableModels,
+} from "@/features/models-select/model";
 import { saveChatFx } from "@/features/chat-history/model";
 import { appStarted } from "@/app"; // Import appStarted for triggering load
 
@@ -219,11 +222,25 @@ expandMiniChatFx.use(async () => {
       role: m.role,
       content: m.content,
     })),
-    settings: {
-      model: $selectedModelId.getState(),
-      temperature: $temperature.getState(),
-      systemPrompt: $systemPrompt.getState(),
-    },
+    settings: (() => {
+      // Get the full model info for the mini-chat's current model
+      const miniChatModelId = $miniChatModelId.getState();
+      const availableModels = $availableModels.getState();
+      const modelInfo = availableModels.find((m) => m.id === miniChatModelId);
+
+      return {
+        // Assign the minimal model info object
+        model: {
+          pricing: {
+            prompt: Number(modelInfo?.pricing?.prompt) || 0,
+            completion: Number(modelInfo?.pricing?.completion) || 0,
+          },
+          context_length: modelInfo?.context_length ?? 1000000, // Default if not found
+        },
+        temperature: $temperature.getState(),
+        systemPrompt: $systemPrompt.getState(),
+      };
+    })(),
     totalTokens: 0, // optional, can be updated later
     draft: "",
   };
