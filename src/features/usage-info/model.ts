@@ -60,11 +60,12 @@ export const calculateUsageStatsFx = createEffect(
     const tokensSent = totalTokens;
     const tokensReceived = 0;
     const contextTokensUsed = totalTokens;
-    const contextTokensMax = chatSession?.contextWindow ?? 1000000; // fallback 1M
+    const contextTokensMax =
+      chatSession?.settings?.model?.context_length ?? 1000000;
     const apiCost = calculateApiCost(
       tokensSent,
       tokensReceived,
-      chatSession?.pricing
+      chatSession?.settings?.model?.pricing
     );
 
     return {

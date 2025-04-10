@@ -1,5 +1,5 @@
 import React from "react";
-import { Typography, LinearProgress, Box, Stack } from "@mui/material";
+import { Typography, LinearProgress, Box, Stack, Divider } from "@mui/material";
 import { useUnit } from "effector-react";
 import {
   $usageStats,
@@ -12,21 +12,31 @@ const UsageInfoContent: React.FC = () => {
 
   return (
     <Stack spacing={2}>
+      <Divider>Chat</Divider>
       <Typography variant="body2">
         <strong>Chat ID:</strong> {usage.chatId ?? "N/A"}
       </Typography>
 
+      <Divider>Tokens</Divider>
       <Typography variant="body2">
-        <strong>Tokens:</strong> Sent {usage.tokensSent.toLocaleString()} /
-        Received {usage.tokensReceived.toLocaleString()}
+        <strong>Sent:</strong> {usage.tokensSent.toLocaleString()}
+      </Typography>
+      <Typography variant="body2">
+        <strong>Received:</strong> {usage.tokensReceived.toLocaleString()}
+      </Typography>
+      <Typography variant="body2">
+        <strong>Total:</strong>{" "}
+        {(usage.tokensSent + usage.tokensReceived).toLocaleString()}
       </Typography>
 
+      <Divider>Context Window</Divider>
+      <Typography variant="body2">
+        <strong>Used:</strong> {usage.contextTokensUsed.toLocaleString()}
+      </Typography>
+      <Typography variant="body2">
+        <strong>Max:</strong> {usage.contextTokensMax.toLocaleString()}
+      </Typography>
       <Box>
-        <Typography variant="body2">
-          <strong>Context Window:</strong>{" "}
-          {usage.contextTokensUsed.toLocaleString()} /{" "}
-          {usage.contextTokensMax.toLocaleString()}
-        </Typography>
         <LinearProgress
           variant="determinate"
           color="success"
@@ -35,14 +45,20 @@ const UsageInfoContent: React.FC = () => {
         />
       </Box>
 
+      <Divider>API Cost</Divider>
       <Typography variant="body2">
-        <strong>API Cost:</strong> ${usage.apiCost.toFixed(6)}
+        <strong>Estimated Cost:</strong> ${usage.apiCost.toFixed(6)}
       </Typography>
 
+      <Divider>Storage</Divider>
       <Typography variant="body2">
-        <strong>Storage:</strong> {usage.chatSizeMB.toFixed(2)} MB (chat) /{" "}
-        {usage.dbSizeMB.toFixed(2)} MB (DB) / Quota {usage.quotaMB.toFixed(2)}{" "}
-        MB
+        <strong>Chat Size:</strong> {usage.chatSizeMB.toFixed(2)} MB
+      </Typography>
+      <Typography variant="body2">
+        <strong>Total DB:</strong> {usage.dbSizeMB.toFixed(2)} MB
+      </Typography>
+      <Typography variant="body2">
+        <strong>Quota:</strong> {usage.quotaMB.toFixed(2)} MB
       </Typography>
     </Stack>
   );

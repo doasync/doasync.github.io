@@ -3,8 +3,16 @@ import { Message } from "@/features/chat"; // Import Message type
 import { ModelInfo } from "@/features/models-select";
 
 // Settings specific to a chat session
+export interface MinimalModelInfo {
+  pricing: {
+    prompt: number;
+    completion: number;
+  };
+  context_length: number;
+}
+
 export interface ChatSettings {
-  model: string;
+  model: MinimalModelInfo;
   temperature: number;
   systemPrompt: string;
 }

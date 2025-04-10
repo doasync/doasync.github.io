@@ -1,154 +1,132 @@
-# Usage Info Dialog - Detailed Implementation Plan
+# Updated Architecture Plan: Minimal Model Metadata for Usage Tracking
 
 ---
 
-## Requirements / Goals
+## Context
 
-- Display a Usage Info Dialog accessible via an AppBar icon button.
-- Show the following metrics dynamically and in real-time:
-  - **Current chat ID**
-  - **Tokens sent and received counts**
-  - **Context window usage** (current tokens used vs. model max), with a **progress bar visualization**
-  - **API cost estimate** based on token usage
-  - **Size of the current chat session** stored in IndexedDB
-  - **Total size of the entire IndexedDB database**
-  - **Browser quota limit** for IndexedDB
-- Present all information **clearly and visually**, inspired by the Model Info Dialog UI.
-- Ensure the dialog updates **automatically** as data changes, using Effector stores.
-- Keep the implementation **modular**, with:
-  - Utility functions for calculations and formatting
-  - Effector stores and effects for data management
-  - A dedicated React component for the dialog UI
-- Enable **easy extension and maintenance**.
+Revise usage info so that **only essential model parameters needed for accurate tracking** are saved in chat session data and used in calculations:
+
+- **`pricing.prompt`** (cost per 1K prompt tokens)
+- **`pricing.completion`** (cost per 1K completion tokens)
+- **`context_length`** (max tokens for the model context window)
+
+This eliminates storing redundant or non-critical model metadata, reduces storage footprint, and improves historical accuracy of usage metrics.
 
 ---
 
-## Overview
+## 1. **Chat Session Schema**
 
-A modular, dynamic Usage Info Dialog to display real-time chat and storage metrics, including:
+**Update `ChatSettings` interface (or nested within chat data):**
 
-- Chat ID
-- Tokens sent/received
-- Context window usage (progress bar)
-- API cost
-- Storage usage vs quota
+```typescript
+interface ChatSettings {
+  model: {
+    pricing: {
+      prompt: number;
+      completion: number;
+    };
+    context_length: number;
+  };
+  temperature: number;
+  systemPrompt: string;
+  // other fields unchanged
+}
+```
 
----
-
-## 1. Effector Stores and Effects
-
-### Core Stores
-
-- `$currentChatSession`: current chat metadata (ID, model info)
-- `$currentChatTokens`: tokens used in current chat
-- `$modelContextLimits`: model's max context window
-- `$usageStats`: combines all usage info:
-  - `tokensSent`
-  - `tokensReceived`
-  - `contextTokensUsed`
-  - `contextTokensMax`
-  - `apiCost`
-  - `chatSizeMB`
-  - `dbSizeMB`
-  - `quotaMB`
-  - `totalUsageMB`
-
-### Effects
-
-- `fetchStorageInfoFx`
-
-  - Calls `navigator.storage.estimate()`
-  - Loads all chat sessions from IDB
-  - Calculates:
-    - Total DB size
-    - Current chat size
-  - Updates `$usageStats`
-
-- `calculateUsageStatsFx`
-  - Extracts tokens info
-  - Fetches model context window
-  - Computes API cost
-  - Updates `$usageStats`
-
-### Derived Store
-
-- `$contextWindowPercent`
-  - `(contextTokensUsed / contextTokensMax) * 100`
+Persist this **minimal model info object** inside `chats[].settings.model`.
 
 ---
 
-## 2. Data Flow
+## 2. **Save Minimal Model Metadata**
 
-- App load or chat change triggers effects
-- Dialog open triggers effects
-- Effector stores update reactively, UI auto-refreshes
+### On New Chat Session Creation:
 
----
+- Extract **`pricing`** and **`context_length`** from the **selected model** (`ModelInfo`) at the moment the session is created.
+- Save this minimal object into `chat.settings.model`.
 
-## 3. Utility Functions
+### When User Changes the Model:
 
-- `calculateObjectSizeMB(obj)`
-- `calculateTotalChatSizeMB(chats)`
-- `calculateApiCost(tokensSent, tokensReceived, modelPricing)`
-- `formatTokens(num)`
-- `formatMB(num)`
+- Extract only the required fields.
+- Update `chat.settings.model`.
+- Save updated chat session to IndexedDB.
 
 ---
 
-## 4. UI Integration
+## 3. **Restore on Session Switch**
 
-- Add icon button to AppBar
-- Create `UsageInfoDialog` component
-
-| Section        | Content                             |
-| -------------- | ----------------------------------- |
-| Chat ID        | `Chat: {id}`                        |
-| Tokens         | `Tokens: Sent 12.8k / Received 507` |
-| Context Window | Progress bar + `13.3k / 1.0m`       |
-| API Cost       | `$0.0000`                           |
-| Storage        | `509 kB / {Quota} MB`               |
-
-- Progress bar shows context window usage %
+- When loading/switching to a saved chat:
+  - Restore this minimal object **exactly** as saved.
+  - Update UI and calculation stores accordingly.
 
 ---
 
-## 5. Lifecycle
+## 4. **Usage Metrics Calculation**
 
-- On dialog open: trigger effects
-- On chat change or message: update tokens, API cost
-- On IDB changes: update storage info
+- Calculate **tokens sent** and **tokens received** by analyzing messages array (sum respective tokens).
+- Compute **API cost**:
 
----
+\[
+\text{apiCost} = \frac{\text{tokensSent}}{1000} \times \text{pricing.prompt} + \frac{\text{tokensReceived}}{1000} \times \text{pricing.completion}
+\]
 
-## 6. Modularity
-
-- Utilities in `utils/storage.ts`
-- Effector logic in `features/usage-info/model.ts`
-- Dialog UI in `components/UsageInfoDialog.tsx`
-- AppBar button in `app/page.tsx`
+- Use `context_length` from saved model object for context window usage percent.
+- Calculate storage size by measuring serialized chat size and total IDB usage.
 
 ---
 
-## 7. Architecture Diagram
+## 5. **Effector Stores Adjustments**
+
+- Persist minimal model info in chat session data.
+- Add/update stores for:
+  - Current minimal model metadata (restored from chat session).
+  - Usage info leveraging these fields.
+- When user changes models, update these stores accordingly.
+
+---
+
+## 6. **Usage Info UI**
+
+- Present metrics in clean sections:
+
+  - **Chat & Model Info:** Chat ID, model name string (from separate source if desired).
+  - **Token Usage:** Sent / Received / Total
+  - **Context Window:** Used / Max (from saved `context_length`)
+  - **API Cost:** Calculated from saved `pricing`
+  - **Storage:** Chat size, DB size, quota
+
+- Fix formatting, rounding, and placeholders for missing data.
+
+---
+
+## 7. **Benefits**
+
+- **Historical accuracy** of cost/context values per session.
+- **Reduced saved data size**, improving performance.
+- No redundant or inconsistent model metadata duplication.
+- Simpler implementation focused on what's essential for usage calculations.
+
+---
+
+## Mermaid Diagram: Minimal Metadata Flow
 
 ```mermaid
 flowchart TD
-    IconButton -->|onClick| UsageInfoDialog
-    UsageInfoDialog -->|mounts| fetchStorageInfoFx
-    UsageInfoDialog --> calculateUsageStatsFx
-    fetchStorageInfoFx -->|updates| $usageStats
-    calculateUsageStatsFx -->|updates| $usageStats
-    $usageStats -->|reactive| UsageInfoDialog
-    $currentChatSession --> calculateUsageStatsFx
-    $currentChatTokens --> calculateUsageStatsFx
-    $modelContextLimits --> calculateUsageStatsFx
+  A[User selects Model in UI]
+  B[Extract pricing + context_length]
+  C[Save to chat.settings.model]
+  D[Chat saved to IndexedDB]
+
+  E[Load or Switch Chat]
+  F[Restore saved minimal model data]
+  G[Use in usage calculations & UI]
+
+  A --> B --> C --> D
+  D --> E --> F --> G
 ```
 
 ---
 
-## Summary
+## Notes
 
-- Real-time, modular, dynamic
-- Clear UI with progress bar
-- Effector-powered updates
-- Easy to extend and maintain
+- **Other model info (name, description, provider, tags) remains accessible elsewhere** and **does not need to be persisted** in chat session data.
+- This plan supersedes previous full-object persistence approach, focusing only on data critical for usage/cost.

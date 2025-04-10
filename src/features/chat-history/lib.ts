@@ -282,7 +282,17 @@ export const prepareChatSessionFn = ({
     createdAt: createdAt,
     lastModified: now, // Always update lastModified
     messages: messages,
-    settings: { model, temperature, systemPrompt },
+    settings: {
+      model: {
+        pricing: {
+          prompt: Number(selectedModelInfo?.pricing?.prompt) || 0,
+          completion: Number(selectedModelInfo?.pricing?.completion) || 0,
+        },
+        context_length: selectedModelInfo?.context_length ?? 1000000,
+      },
+      temperature,
+      systemPrompt,
+    },
     totalTokens: finalTokens,
     draft: draft ?? "", // <-- Save draft input
     modelInfo: selectedModelInfo ?? null, // Save full model metadata

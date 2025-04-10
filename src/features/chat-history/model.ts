@@ -15,6 +15,7 @@ import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $autoTitleModelId } from "@/features/models-select/model";
 import { $availableModels, ModelInfo } from "@/features/models-select";
 import { $selectedModelId } from "@/features/models-select";
+import { modelSelected } from "@/features/models-select";
 import {
   ChatSession,
   ChatHistoryIndex,
@@ -160,7 +161,7 @@ regenerateTitleForChatFx.use(async (chatId) => {
     chatId,
     messages: chat.messages,
     apiKey,
-    modelId: chat.settings.model,
+    modelId: $selectedModelId.getState(),
   });
 
   if (!result.generatedTitle) return;
@@ -334,7 +335,7 @@ sample({
 sample({
   clock: loadSpecificChatFx.doneData,
   filter: isChatSession,
-  fn: (chat) => chat.settings.model,
+  fn: (chat) => $selectedModelId.getState(),
   target: $selectedModelId,
 });
 
@@ -529,6 +530,37 @@ debug(
   deleteChatFx,
   editChatTitleFx,
   generateTitleFx,
-  duplicateChatFx, // Added duplicate effect
-  regenerateTitleForChatFx // Added regenerate effect
+  duplicateChatFx // Added duplicate effect
 );
+
+sample({
+  clock: modelSelected,
+  source: { chat: $currentChatSession, models: $availableModels },
+  filter: ({ chat }) => chat !== null,
+  fn: ({ chat, models }, selectedId) => {
+    const fullModel = models.find((m) => m.id === selectedId);
+    if (!fullModel) return chat;
+    return {
+      ...chat!,
+      lastModified: Date.now(),
+      settings: {
+        ...chat!.settings,
+        model: {
+          pricing: {
+            prompt: Number(fullModel.pricing?.prompt) || 0,
+            completion: Number(fullModel.pricing?.completion) || 0,
+          },
+          context_length: fullModel.context_length ?? 1000000,
+        },
+      },
+    };
+  },
+  target: $currentChatSession,
+});
+
+sample({
+  clock: $currentChatSession.updates,
+  filter: (session): session is ChatSession => session !== null,
+  target: saveChatFx,
+});
+regenerateTitleForChatFx; // Added regenerate effect
