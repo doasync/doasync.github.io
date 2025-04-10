@@ -1,6 +1,13 @@
 "use client"; // Mark as client component for future interactivity
 
 import * as React from "react";
+import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
+import { MiniChatInput } from "@/features/mini-chat/MiniChatInput";
+import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
+import {
+  $miniChatToolbar,
+  hideMiniChatToolbar,
+} from "@/features/mini-chat/model";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
@@ -660,6 +667,28 @@ export default function HomePage() {
         />
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
+      {/* Mini Chat Components */}
+      {/* TODO: Show toolbar dynamically on text selection */}
+      {/* <MiniChatToolbar selectedText="example" position={{ top: 200, left: 200 }} onClose={() => {}} /> */}
+      <MiniChatInput position={{ top: 250, left: 250 }} />
+      <MiniChatDialog />
+      {/* Mini Chat Components */}
+      {(() => {
+        const toolbar = useUnit($miniChatToolbar);
+        const hideToolbar = useUnit(hideMiniChatToolbar);
+
+        if (!toolbar.visible) return null;
+
+        return (
+          <MiniChatToolbar
+            selectedText={toolbar.selectedText}
+            position={toolbar.position}
+            onClose={hideToolbar}
+          />
+        );
+      })()}
+      <MiniChatInput position={{ top: 250, left: 250 }} />
+      <MiniChatDialog />
     </Box> // End Outermost Box
   );
 }

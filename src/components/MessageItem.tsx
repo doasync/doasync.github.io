@@ -150,6 +150,41 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       variant="outlined"
       key={message.id}
       id={message.id} // Add ID for scrolling
+      onMouseUp={(e) => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          // No text selected
+          import("@/features/mini-chat/model").then((mod) =>
+            mod.hideMiniChatToolbar()
+          );
+          return;
+        }
+        const selectedText = selection.toString().trim();
+        if (!selectedText) {
+          import("@/features/mini-chat/model").then((mod) =>
+            mod.hideMiniChatToolbar()
+          );
+          return;
+        }
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        // Confirm selection is inside this message element
+        if (!messageItemRef.current?.contains(range.commonAncestorContainer)) {
+          import("@/features/mini-chat/model").then((mod) =>
+            mod.hideMiniChatToolbar()
+          );
+          return;
+        }
+        import("@/features/mini-chat/model").then((mod) => {
+          mod.showMiniChatToolbar({
+            selectedText,
+            position: {
+              top: rect.bottom + window.scrollY + 5,
+              left: rect.left + window.scrollX,
+            },
+          });
+        });
+      }}
       // Only allow hover state change if nothing else is being edited
       onMouseEnter={() => canHover && setIsHovered(true)}
       onMouseLeave={() => canHover && setIsHovered(false)}
