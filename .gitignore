@@ -47,7 +47,7 @@ Thumbs.db
 
 # next.js folder
 .next/
-out/
+# out/
 
 # node_modules
 node_modules/
