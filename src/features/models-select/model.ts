@@ -143,6 +143,7 @@ $modelsError
 $modelsError.reset(fetchModelsFx.done);
 
 // --- Debugging ---
+/*
 debug(
   // Stores
   $availableModels,
@@ -157,3 +158,4 @@ debug(
   // Effects
   fetchModelsFx
 );
+*/

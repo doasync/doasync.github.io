@@ -43,6 +43,7 @@ export function useMiniChatTextSelection() {
 
     document.addEventListener("mouseup", handleSelection);
     document.addEventListener("keyup", handleSelection);
+    document.addEventListener("touchend", handleSelection); // Add listener for touch devices
 
     const hideToolbarListener = () => hideMiniChatToolbar();
     document.addEventListener("scroll", hideToolbarListener, true);
@@ -50,6 +51,7 @@ export function useMiniChatTextSelection() {
     return () => {
       document.removeEventListener("mouseup", handleSelection);
       document.removeEventListener("keyup", handleSelection);
+      document.removeEventListener("touchend", handleSelection); // Remove listener on cleanup
       document.removeEventListener("scroll", hideToolbarListener, true);
     };
   }, []);

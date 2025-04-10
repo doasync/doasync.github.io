@@ -505,34 +505,6 @@ saveChatFx.fail.watch((error) => {
   console.error("Effect: saveChatFx failed (Debug)", error);
 });
 
-debug(
-  // Stores
-  $chatHistoryIndex,
-  $currentChatSession,
-  $currentChatId,
-  $isLoadingHistory,
-  $isSavingChat,
-  $isLoadingChat,
-  // Events
-  appStarted,
-  loadChatHistory,
-  chatSelected,
-  deleteChat,
-  newChatCreated,
-  chatTitleEdited,
-  generateTitle, // Added manual trigger
-  duplicateChatClicked, // Added duplicate trigger
-  regenerateTitleForChat, // Added regenerate trigger
-  // Effects
-  loadChatHistoryIndexFx,
-  loadSpecificChatFx,
-  saveChatFx,
-  deleteChatFx,
-  editChatTitleFx,
-  generateTitleFx,
-  duplicateChatFx // Added duplicate effect
-);
-
 sample({
   clock: modelSelected,
   source: { chat: $currentChatSession, models: $availableModels },
@@ -562,5 +534,35 @@ sample({
   clock: $currentChatSession.updates,
   filter: (session): session is ChatSession => session !== null,
   target: saveChatFx,
-});
-regenerateTitleForChatFx; // Added regenerate effect
+}); // Added regenerate effect
+
+/*
+debug(
+  // Stores
+  $chatHistoryIndex,
+  $currentChatSession,
+  $currentChatId,
+  $isLoadingHistory,
+  $isSavingChat,
+  $isLoadingChat,
+  // Events
+  appStarted,
+  loadChatHistory,
+  chatSelected,
+  deleteChat,
+  newChatCreated,
+  chatTitleEdited,
+  generateTitle, // Added manual trigger
+  duplicateChatClicked, // Added duplicate trigger
+  regenerateTitleForChat, // Added regenerate trigger
+  // Effects
+  loadChatHistoryIndexFx,
+  loadSpecificChatFx,
+  saveChatFx,
+  deleteChatFx,
+  editChatTitleFx,
+  generateTitleFx,
+  duplicateChatFx // Added duplicate effect
+  regenerateTitleForChatFx
+);
+*/

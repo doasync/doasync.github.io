@@ -402,7 +402,8 @@ sample({
   target: scrollToLastMessageNeeded,
 });
 
-// --- Debug ---
+// --- Debugging ---
+/*
 debug(
   // Stores
   $messageText,
@@ -444,3 +445,4 @@ debug(
   // Effects
   sendApiRequestFx
 );
+*/

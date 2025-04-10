@@ -59,6 +59,8 @@ sample({
   target: $snackbar,
 });
 
+// --- Debugging ---
+/*
 debug({
   showSnackbar,
   hideSnackbar,
@@ -66,3 +68,4 @@ debug({
   startAutoHide,
   autoHide,
 });
+*/

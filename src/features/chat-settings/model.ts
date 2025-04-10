@@ -136,6 +136,8 @@ saveSettingsFx.fail.watch(({ error }) => {
   console.error("Failed to save settings:", error);
 });
 
+// --- Debugging ---
+/*
 debug(
   // Stores
   $apiKey,
@@ -153,3 +155,4 @@ debug(
   loadSettingsFx,
   saveSettingsFx
 );
+*/
