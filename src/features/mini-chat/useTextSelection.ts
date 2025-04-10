@@ -34,13 +34,12 @@ export function useMiniChatTextSelection() {
         hideMiniChatToolbar();
         return;
       }
-
       showMiniChatToolbar({
         x: rect.left + rect.width / 2 + window.scrollX,
         y: rect.bottom + window.scrollY,
         selectionText: selectedText,
       });
-    }
+    } // End of handleSelection function
 
     document.addEventListener("mouseup", handleSelection);
     document.addEventListener("keyup", handleSelection);

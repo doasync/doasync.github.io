@@ -1,7 +1,12 @@
-import { createStore, createEvent, createEffect, sample } from "effector";
+xesimport { createStore, createEvent, createEffect, sample } from "effector";
 import { sendAssistantMessage } from "./api";
-import { $apiKey } from "@/features/chat-settings/model";
+import {
+  $apiKey,
+  $temperature,
+  $systemPrompt,
+} from "@/features/chat-settings/model";
 import { $selectedModelId } from "@/features/models-select/model";
+import { saveChatFx } from "@/features/chat-history/model";
 
 //
 // Types
@@ -142,8 +147,37 @@ sample({
 export const expandMiniChatFx = createEffect<void, void>();
 
 expandMiniChatFx.use(async () => {
-  // This should migrate ephemeral chat to persistent chat history
-  // Placeholder: implement save logic here
+  const miniChat = $miniChat.getState();
+  if (!miniChat.messages.length) return; // nothing to save
+
+  const id = crypto.randomUUID();
+  const now = Date.now();
+
+  const newChatSession = {
+    id,
+    createdAt: now,
+    lastModified: now,
+    title: "", // empty, triggers auto-title generation later
+    messages: miniChat.messages.map((m) => ({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      role: m.role,
+      content: m.content,
+    })),
+    settings: {
+      model: $selectedModelId.getState(),
+      temperature: $temperature.getState(),
+      systemPrompt: $systemPrompt.getState(),
+    },
+    totalTokens: 0, // optional, can be updated later
+    draft: "",
+  };
+
+  await saveChatFx(newChatSession);
+
+  // Close ephemeral mini chat after expand
+  resetMiniChat();
+  hideMiniChatToolbar();
 });
 
 sample({
