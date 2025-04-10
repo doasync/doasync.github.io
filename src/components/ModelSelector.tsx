@@ -3,24 +3,17 @@ import { useMediaQuery, useTheme } from "@mui/material";
 import { openMobileDrawer } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import {
-  Button,
-  Menu,
-  MenuItem,
+  Autocomplete, // Added Autocomplete
   TextField,
   Box,
   Typography,
   CircularProgress,
   Tooltip,
-  ListSubheader,
-  InputAdornment,
   IconButton,
-  Drawer,
 } from "@mui/material";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import ModelInfoDrawer from "./ModelInfoDrawer";
+
 import { openModelInfoAlert } from "@/features/ui-state";
 import {
   $availableModels,
@@ -54,23 +47,15 @@ export const ModelSelector: React.FC = () => {
     showFreeOnly: $showFreeOnly,
   });
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [infoOpen, setInfoOpen] = useState(false);
-  const open = Boolean(anchorEl);
+  const [autocompleteOpen, setAutocompleteOpen] = useState(false); // State for Autocomplete dropdown
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-    setSearchTerm("");
-  };
-
-  const handleMenuItemClick = (modelId: string) => {
-    handleModelSelect(modelId);
-    handleClose();
+  const handleAutocompleteChange = (
+    event: React.SyntheticEvent,
+    newValue: ModelInfo | null
+  ) => {
+    if (newValue) {
+      handleModelSelect(newValue.id);
+    }
   };
 
   const filteredModels = useMemo(() => {
@@ -80,14 +65,8 @@ export const ModelSelector: React.FC = () => {
         (m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0"
       );
     }
-    if (!searchTerm) return list;
-    const lower = searchTerm.toLowerCase();
-    return list.filter(
-      (m) =>
-        m.name.toLowerCase().includes(lower) ||
-        m.id.toLowerCase().includes(lower)
-    );
-  }, [models, searchTerm, showFreeOnly]);
+    return list;
+  }, [models, showFreeOnly]); // Removed searchTerm dependency
 
   const selectedModelName = useMemo(() => {
     const model = models.find((m) => m.id === selectedModelId);
@@ -102,6 +81,7 @@ export const ModelSelector: React.FC = () => {
     <Box
       sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
     >
+      {/* Keep Loading/Error Indicators */}
       {isLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
       {error && !isLoading && (
         <Tooltip title={`Error loading models: ${error}. Click to retry.`}>
@@ -112,26 +92,66 @@ export const ModelSelector: React.FC = () => {
           />
         </Tooltip>
       )}
-      <Button
-        id="model-selector-button"
-        aria-controls={open ? "model-selector-menu" : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? "true" : undefined}
-        onClick={handleClick}
-        endIcon={<KeyboardArrowDownIcon />}
+
+      {/* Replace Button/Menu with Autocomplete */}
+      <Autocomplete
+        id="appbar-model-selector"
+        open={autocompleteOpen}
+        onOpen={() => setAutocompleteOpen(true)}
+        onClose={() => setAutocompleteOpen(false)}
+        value={selectedModel} // Use the derived model object
+        onChange={handleAutocompleteChange} // Use new handler
+        options={filteredModels} // Use the existing filtered list (includes free filter)
+        getOptionLabel={(option) =>
+          option.name.replace(/^[^:]+:\s*/, "") || option.id
+        } // Clean name for display
+        isOptionEqualToValue={(option, value) => option.id === value.id}
+        loading={isLoading}
         disabled={isLoading || error !== null}
-        sx={{ textTransform: "none", color: "inherit" }}
-      >
-        <Typography
-          variant="h6"
-          component="span"
-          noWrap
-          sx={{ maxWidth: "250px" }}
-        >
-          {" "}
-          {selectedModelName}
-        </Typography>
-      </Button>
+        disableClearable
+        sx={{ width: 250, mr: 0.5 }} // Adjust width as needed
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="outlined" // Use standard variant for AppBar look
+            placeholder="Select Model..."
+            // Remove label for cleaner AppBar look
+            InputProps={{
+              ...params.InputProps,
+              style: {
+                color: "inherit", // Inherit color from AppBar
+                height: "36px", // Adjust height to vertically align better
+              },
+              endAdornment: (
+                <React.Fragment>
+                  {isLoading ? (
+                    <CircularProgress color="inherit" size={20} />
+                  ) : null}
+                  {params.InputProps.endAdornment}
+                </React.Fragment>
+              ),
+            }}
+            // Ensure text doesn't wrap and stays on one line
+            inputProps={{
+              ...params.inputProps,
+              style: {
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+              },
+            }}
+          />
+        )}
+        renderOption={(props, option) => (
+          // Use Box with key for proper rendering
+          <Box component="li" {...props} key={option.id}>
+            {option.name} {/* Show full name in dropdown */}
+          </Box>
+        )}
+        // Removed invalid PaperProps
+      />
+
+      {/* Keep Info Button */}
       <IconButton
         onClick={() => {
           if (isMobile) {
@@ -141,64 +161,11 @@ export const ModelSelector: React.FC = () => {
           }
         }}
         disabled={!selectedModel}
+        sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
       >
         <InfoOutlinedIcon />
       </IconButton>
-      <Menu
-        id="model-selector-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        disableAutoFocusItem
-        MenuListProps={{
-          "aria-labelledby": "model-selector-button",
-        }}
-        PaperProps={{
-          style: {
-            maxHeight: 400,
-            width: "35ch",
-          },
-        }}
-      >
-        <ListSubheader sx={{ padding: 0 }}>
-          <TextField
-            fullWidth
-            placeholder="Search models..."
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            sx={{ px: 2, py: 1 }}
-            autoFocus
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </ListSubheader>
-        {filteredModels.length > 0 ? (
-          filteredModels.map((model) => (
-            <MenuItem
-              key={model.id}
-              selected={model.id === selectedModelId}
-              onClick={() => handleMenuItemClick(model.id)}
-              title={model.description}
-            >
-              {model.name}
-            </MenuItem>
-          ))
-        ) : (
-          <MenuItem disabled>No models found</MenuItem>
-        )}
-      </Menu>
-      <Drawer anchor="right" open={infoOpen} onClose={() => setInfoOpen(false)}>
-        {selectedModel && <ModelInfoDrawer model={selectedModel} />}
-      </Drawer>
+      {/* Remove Menu and Drawer */}
     </Box>
   );
 };

@@ -10,6 +10,7 @@ import {
   $isLoadingModels, // Corrected import name
   fetchModels,
   ModelInfo, // Assuming ModelInfo type is exported from models-select
+  $showFreeOnly,
 } from "@/features/models-select/model";
 import {
   $miniChatModelId,
@@ -21,11 +22,23 @@ export const MiniChatModelSelector: React.FC = () => {
   const availableModels = useUnit($availableModels);
   const loading = useUnit($isLoadingModels); // Corrected usage
   const selectedModelId = useUnit($miniChatModelId);
+  const showFreeOnly = useUnit($showFreeOnly);
 
   // Find the selected model object based on the ID
   const selectedModel = React.useMemo(() => {
     return availableModels.find((m) => m.id === selectedModelId) ?? null;
   }, [availableModels, selectedModelId]);
+
+  // Filter models based on "show only free"
+  const filteredModels = React.useMemo(() => {
+    let list = availableModels;
+    if (showFreeOnly) {
+      list = list.filter(
+        (m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0"
+      );
+    }
+    return list;
+  }, [availableModels, showFreeOnly]);
 
   const handleOpen = () => {
     setOpen(true);
@@ -63,7 +76,7 @@ export const MiniChatModelSelector: React.FC = () => {
         onChange={handleChange}
         isOptionEqualToValue={(option, value) => option.id === value.id}
         getOptionLabel={(option) => option.name || option.id} // Display name, fallback to id
-        options={availableModels} // Use models from the store
+        options={filteredModels} // Use filtered list
         loading={loading} // Use loading state from the store
         renderInput={(params) => (
           <TextField
