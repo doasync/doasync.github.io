@@ -1,4 +1,4 @@
-import { createDomain, createStore, sample } from "effector";
+import { createDomain, createStore, sample, guard } from "effector";
 import { debug } from "patronum/debug";
 import { debounce } from "patronum/debounce";
 import { $messageText } from "@/features/chat";
@@ -12,6 +12,7 @@ import {
   normalResponseProcessed, // For saving after normal API responses <-- Added Import
 } from "@/features/chat";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
+import { $autoTitleModelId } from "@/features/models-select/model";
 import { $availableModels, ModelInfo } from "@/features/models-select";
 import { $selectedModelId } from "@/features/models-select";
 import {
@@ -159,6 +160,7 @@ regenerateTitleForChatFx.use(async (chatId) => {
     chatId,
     messages: chat.messages,
     apiKey,
+    modelId: chat.settings.model,
   });
 
   if (!result.generatedTitle) return;
@@ -235,6 +237,16 @@ sample({
   fn: (currentIndex, { params: savedChat }) =>
     updateIndexOnSaveFn(currentIndex, savedChat),
   target: $chatHistoryIndex,
+});
+
+sample({
+  source: $currentChatSession.updates,
+  filter: (session): session is ChatSession =>
+    session !== null &&
+    session.messages.length === 2 &&
+    (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(session.title) ||
+      session.title.trim() === ""),
+  target: regenerateTitleForChat.prepend((session: ChatSession) => session.id),
 });
 
 // Update $chatHistoryIndex when a chat title is edited
@@ -446,6 +458,7 @@ sample({
     chatId: savedChat.id,
     messages: savedChat.messages,
     apiKey: apiKey,
+    modelId: $autoTitleModelId.getState(),
   }),
   target: generateTitleFx,
 });
@@ -471,6 +484,7 @@ sample({
     chatId: currentChat!.id,
     messages: currentChat!.messages,
     apiKey: apiKey,
+    modelId: $autoTitleModelId.getState(),
   }),
   target: generateTitleFx,
 });

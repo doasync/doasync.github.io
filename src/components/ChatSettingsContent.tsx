@@ -19,7 +19,14 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useUnit } from "effector-react";
-import { $showFreeOnly, setShowFreeOnly } from "@/features/models-select";
+import {
+  $showFreeOnly,
+  setShowFreeOnly,
+  $availableModels,
+  $autoTitleModelId,
+  autoTitleModelSelected,
+} from "@/features/models-select/model";
+import Autocomplete from "@mui/material/Autocomplete";
 
 interface ChatSettingsPanelProps {
   apiKey: string;
@@ -50,6 +57,16 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
 }) => {
   const showFreeOnlyValue = useUnit($showFreeOnly);
   const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
+
+  const [autoTitleModelId, availableModels] = useUnit([
+    $autoTitleModelId,
+    $availableModels,
+  ]);
+
+  const selectedAutoTitleModel = React.useMemo(
+    () => availableModels.find((m) => m.id === autoTitleModelId) ?? null,
+    [availableModels, autoTitleModelId]
+  );
 
   return (
     <Box
@@ -159,6 +176,42 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         <MiniChatModelSelector />
       </Box>
 
+      <Box sx={{ px: 2, pb: 2, pt: 1 }}>
+        <Autocomplete
+          size="small"
+          options={availableModels}
+          groupBy={(
+            option: import("@/features/models-select/model").ModelInfo
+          ) => {
+            if (option.created) {
+              const date = new Date(option.created * 1000);
+              return date.toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              });
+            }
+            return "Unknown";
+          }}
+          getOptionLabel={(option) =>
+            option.name.replace(/^[^:]+:\s*/, "") || option.id
+          }
+          value={selectedAutoTitleModel}
+          onChange={(_, newValue) => {
+            if (newValue) {
+              autoTitleModelSelected(newValue.id);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="AutoTitle Model"
+              variant="outlined"
+              fullWidth
+            />
+          )}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+        />
+      </Box>
       <Divider />
 
       <Box

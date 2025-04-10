@@ -61,6 +61,19 @@ persist({ store: $showFreeOnly, key: "showFreeOnly" });
 
 persist({ store: $selectedModelId, key: "selectedModelId" });
 
+export const $autoTitleModelId = modelsDomain.store<string>(
+  "google/gemini-2.0-flash-lite-001",
+  { name: "autoTitleModelId" }
+);
+
+export const autoTitleModelSelected = modelsDomain.event<string>(
+  "autoTitleModelSelected"
+);
+
+$autoTitleModelId.on(autoTitleModelSelected, (_, id) => id);
+
+persist({ store: $autoTitleModelId, key: "autoTitleModelId" });
+
 // Error state for the models fetch
 export const $modelsError = modelsDomain.store<string | null>(null, {
   name: "modelsError",

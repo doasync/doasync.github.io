@@ -44,6 +44,7 @@ export interface GenerateTitleParams {
   chatId: string;
   messages: Message[];
   apiKey: string;
+  modelId: string;
 }
 
 // Result from the title generation effect

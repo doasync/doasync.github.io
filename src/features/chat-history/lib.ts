@@ -124,7 +124,7 @@ export const editChatTitleHandler = async ({
 /**
  * Generates a chat title using the OpenRouter API.
  */
-const TITLE_GENERATION_MODEL = "mistralai/mistral-small-3.1-24b-instruct:free";
+import { $autoTitleModelId } from "@/features/models-select/model";
 const TITLE_PROMPT = `Summarize this chat conversation
   in 1-5 words (maximum conciseness). Use title case. Focus on user's intent.
   It will be used as a title. Do not mention yourself (assistant) or the user.
@@ -153,7 +153,7 @@ export const generateTitleHandler = async ({
   ];
 
   const body = {
-    model: TITLE_GENERATION_MODEL,
+    model: $autoTitleModelId.getState(),
     messages: apiMessages,
     temperature: 0.5, // Lower temperature for more deterministic title
     max_tokens: 10, // Limit response length
