@@ -5,7 +5,7 @@ import {
   sample,
   combine,
 } from "effector";
-import { $currentChatSession } from "@/features/chat-history/model";
+import { $currentChatSession } from "@/features/chat-history";
 import { $currentChatTokens } from "@/features/chat";
 import { navigatorStorageEstimate } from "./utils";
 import { calculateApiCost } from "./utils";

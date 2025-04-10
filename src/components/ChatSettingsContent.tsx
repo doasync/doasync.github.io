@@ -87,14 +87,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
 
       <Divider />
 
-      <Box sx={{ p: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
-        <Typography variant="body2" color="text.secondary">
-          Total Tokens (Current Chat): {currentChatTokens}
-        </Typography>
-      </Box>
-
-      <Divider />
-
       <Box sx={{ p: 2 }}>
         <Tooltip
           title="Your OpenRouter API Key. Stored locally in your browser."

@@ -8,9 +8,14 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  OutlinedInput,
+  InputAdornment,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import LinearProgress from "@mui/material/LinearProgress";
+import SendIcon from "@mui/icons-material/Send";
+
 import { useUnit } from "effector-react";
 import {
   $miniChat,
@@ -51,9 +56,15 @@ export const MiniChatDialog: React.FC = () => {
           justifyContent="space-between"
           alignItems="center"
           className="drag-handle"
-          sx={{ cursor: "move", p: 1, borderBottom: "1px solid #ccc" }}
+          sx={{
+            cursor: "move",
+            p: 0.5,
+            pl: 1.3,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
         >
-          <Typography variant="subtitle1">Mini Chat</Typography>
+          <Typography variant="subtitle1">Mini chat</Typography>
           <Stack direction="row" spacing={1}>
             {/* Conditionally render Expand button */}
             {!isCompact && (
@@ -69,19 +80,24 @@ export const MiniChatDialog: React.FC = () => {
 
         {/* Conditionally render message area */}
         {!isCompact && (
-          <Stack spacing={1} sx={{ p: 1, flexGrow: 1, overflowY: "auto" }}>
+          <Stack
+            spacing={1}
+            sx={{ p: 1, pb: 0.2, flexGrow: 1, overflowY: "auto" }}
+          >
             {messages.map((msg, idx) => (
               <Paper
                 key={idx}
                 sx={{
                   p: 1,
-                  bgcolor: msg.role === "user" ? "#e0f7fa" : "#f1f8e9",
+                  minWidth: "30%",
+                  bgcolor:
+                    msg.role === "user" ? "primary.dark" : "secondary.dark",
                 }}
               >
                 <Typography variant="body2">{msg.content}</Typography>
               </Paper>
             ))}
-            {loading && <CircularProgress size={20} />}
+            {loading && <LinearProgress sx={{ borderRadius: 8 }} />}
           </Stack>
         )}
 
@@ -90,8 +106,11 @@ export const MiniChatDialog: React.FC = () => {
             size="small"
             placeholder="Type a message..."
             fullWidth
+            multiline
             value={input}
             onChange={(e) => updateMiniChatInput(e.target.value)}
+            /*
+            // Uncomment this if you want to handle Enter
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -100,19 +119,38 @@ export const MiniChatDialog: React.FC = () => {
                 }
               }
             }}
-          />
-          <Button
-            variant="contained"
-            size="small"
-            disabled={!input.trim() || loading}
-            onClick={() => {
-              if (input.trim()) {
-                sendMiniChatMessage(input.trim());
-              }
+            */
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                p: 0.6,
+                pr: 1,
+              },
+              // Clickable area for the input
+              "& textarea": {
+                pl: 1,
+              },
             }}
-          >
-            Send
-          </Button>
+            slotProps={{
+              input: {
+                style: { marginLeft: 1.5 },
+                endAdornment: (
+                  <IconButton
+                    aria-label="send"
+                    size="small"
+                    edge="end"
+                    disabled={!input.trim() || loading}
+                    onClick={() => {
+                      if (input.trim()) {
+                        sendMiniChatMessage(input.trim());
+                      }
+                    }}
+                  >
+                    <SendIcon fontSize="small" />
+                  </IconButton>
+                ),
+              },
+            }}
+          />
         </Stack>
       </Paper>
     </Draggable>

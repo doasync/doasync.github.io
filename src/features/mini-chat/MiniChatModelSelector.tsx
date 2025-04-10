@@ -62,10 +62,7 @@ export const MiniChatModelSelector: React.FC = () => {
   };
 
   return (
-    <Box sx={{ mt: 2, mb: 1 }}>
-      <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
-        Mini Chat Model
-      </Typography>
+    <Box sx={{ my: 1 }}>
       <Autocomplete
         id="mini-chat-model-selector"
         sx={{ width: "100%" }}
@@ -81,7 +78,7 @@ export const MiniChatModelSelector: React.FC = () => {
         renderInput={(params) => (
           <TextField
             {...params}
-            label="Select Model"
+            label="Mini-Chat Model"
             variant="outlined"
             size="small"
             InputProps={{

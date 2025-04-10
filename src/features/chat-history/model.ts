@@ -12,6 +12,7 @@ import {
   normalResponseProcessed, // For saving after normal API responses <-- Added Import
 } from "@/features/chat";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
+import { $availableModels, ModelInfo } from "@/features/models-select";
 import { $selectedModelId } from "@/features/models-select";
 import {
   ChatSession,
@@ -410,6 +411,10 @@ sample({
     systemPrompt: $systemPrompt,
     tokens: $currentChatTokens,
     draft: $messageText, // <-- Add draft input
+    selectedModelInfo: $availableModels.map(
+      (models) =>
+        models.find((m) => m.id === $selectedModelId.getState()) ?? null
+    ),
   },
   filter: ({ messages }) => messages.length > 0, // Only save if there are messages
   fn: (source) => {

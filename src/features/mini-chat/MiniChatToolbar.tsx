@@ -10,28 +10,19 @@ import {
   sendMiniChatMessage,
 } from "./model";
 
-const TOOLBAR_WIDTH = 160;
-
 export const MiniChatToolbar: React.FC = () => {
   const toolbar = useUnit($miniChatToolbar);
   const miniChat = useUnit($miniChat);
 
   if (!toolbar.visible) return null;
 
-  const style: React.CSSProperties = {
-    position: "absolute",
-    top: toolbar.y + 8,
-    left: toolbar.x - TOOLBAR_WIDTH / 2,
-    zIndex: 9999,
-  };
-
   const handleAsk = () => {
     if (miniChat.isOpen) {
-      updateMiniChatInput(toolbar.selectionText);
+      updateMiniChatInput(`> ${toolbar.selectionText}\n\n` + miniChat.input);
     } else {
       // Open the dialog directly, starting in compact mode
       miniChatOpened({
-        initialInput: toolbar.selectionText,
+        initialInput: `> ${toolbar.selectionText}\n\n`,
         startCompact: true, // Signal to start compact
       });
     }
@@ -41,7 +32,7 @@ export const MiniChatToolbar: React.FC = () => {
   const handleExplain = () => {
     const explainPrompt = `Please explain this to me: ${toolbar.selectionText}`;
     if (miniChat.isOpen) {
-      // FRD A4.2: Clicking Explain pastes explanation prompt + selection and immediately sends it.
+      // Clicking Explain pastes explanation prompt + selection and immediately sends it.
       // No need to clear input first.
       sendMiniChatMessage(explainPrompt);
     } else {
@@ -52,12 +43,25 @@ export const MiniChatToolbar: React.FC = () => {
   };
 
   return (
-    <Paper elevation={4} style={style}>
-      <Stack direction="row" spacing={1} padding={1}>
+    <Paper
+      elevation={4}
+      sx={{
+        position: "absolute",
+        top: toolbar.y + 8,
+        left: toolbar.x - 40,
+        zIndex: 9999,
+      }}
+    >
+      <Stack direction="column" spacing={1} padding={1}>
         <Button size="small" variant="contained" onClick={handleAsk}>
           Ask
         </Button>
-        <Button size="small" variant="outlined" onClick={handleExplain}>
+        <Button
+          size="small"
+          variant="contained"
+          color="secondary"
+          onClick={handleExplain}
+        >
           Explain
         </Button>
       </Stack>

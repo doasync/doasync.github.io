@@ -14,6 +14,7 @@ import {
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
+import { styled, lighten, darken, padding } from "@mui/system";
 import { openModelInfoAlert } from "@/features/ui-state";
 import {
   $availableModels,
@@ -25,6 +26,23 @@ import {
   fetchModels,
   $showFreeOnly,
 } from "@/features/models-select";
+
+const GroupHeader = styled("div")(({ theme }) => ({
+  position: "sticky",
+  top: -8,
+  paddingLeft: 16,
+  paddingBottom: 1,
+  paddingTop: 1,
+  color: lighten(theme.palette.secondary.light, 0.4),
+  backgroundColor: lighten(theme.palette.secondary.light, 0.9),
+  ...theme.applyStyles("dark", {
+    backgroundColor: darken(theme.palette.secondary.light, 0.5),
+  }),
+}));
+
+const GroupItems = styled("ul")({
+  padding: 0,
+});
 
 export const ModelSelector: React.FC = () => {
   const theme = useTheme();
@@ -82,7 +100,6 @@ export const ModelSelector: React.FC = () => {
       sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {/* Keep Loading/Error Indicators */}
-      {isLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
       {error && !isLoading && (
         <Tooltip title={`Error loading models: ${error}. Click to retry.`}>
           <ErrorOutlineIcon
@@ -94,12 +111,28 @@ export const ModelSelector: React.FC = () => {
       )}
 
       {/* Replace Button/Menu with Autocomplete */}
-      <Autocomplete
+      <Autocomplete<ModelInfo, false, false, false>
+        groupBy={(option) => {
+          if (option.created) {
+            const date = new Date(option.created * 1000); // Assuming seconds
+            return date.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            });
+          }
+          return "Unknown";
+        }}
+        renderGroup={(params) => (
+          <li key={params.key}>
+            <GroupHeader>{params.group}</GroupHeader>
+            <GroupItems>{params.children}</GroupItems>
+          </li>
+        )}
         id="appbar-model-selector"
+        value={selectedModel ?? null}
         open={autocompleteOpen}
         onOpen={() => setAutocompleteOpen(true)}
         onClose={() => setAutocompleteOpen(false)}
-        value={selectedModel} // Use the derived model object
         onChange={handleAutocompleteChange} // Use new handler
         options={filteredModels} // Use the existing filtered list (includes free filter)
         getOptionLabel={(option) =>
@@ -108,8 +141,11 @@ export const ModelSelector: React.FC = () => {
         isOptionEqualToValue={(option, value) => option.id === value.id}
         loading={isLoading}
         disabled={isLoading || error !== null}
-        disableClearable
-        sx={{ width: 250, mr: 0.5 }} // Adjust width as needed
+        // disableClearable removed to allow clearing (null value)
+        sx={{
+          minWidth: 250,
+          mr: 0.5,
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -124,9 +160,6 @@ export const ModelSelector: React.FC = () => {
               },
               endAdornment: (
                 <React.Fragment>
-                  {isLoading ? (
-                    <CircularProgress color="inherit" size={20} />
-                  ) : null}
                   {params.InputProps.endAdornment}
                 </React.Fragment>
               ),

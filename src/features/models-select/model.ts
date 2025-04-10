@@ -37,7 +37,7 @@ export const $availableModels = modelsDomain.store<ModelInfo[]>([], {
 // Holds the ID of the currently selected model
 // Initialize with a sensible default or the first model after fetch
 export const $selectedModelId = modelsDomain.store<string>(
-  "google/gemini-2.0-flash-001",
+  "openrouter/quasar-alpha",
   { name: "selectedModelId" }
 ); // Default to free model initially
 // Loading state for the models fetch
@@ -59,6 +59,8 @@ $showFreeOnly.on(setShowFreeOnly, (_, payload) => payload);
 
 persist({ store: $showFreeOnly, key: "showFreeOnly" });
 
+persist({ store: $selectedModelId, key: "selectedModelId" });
+
 // Error state for the models fetch
 export const $modelsError = modelsDomain.store<string | null>(null, {
   name: "modelsError",
@@ -79,8 +81,8 @@ const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data: ModelsApiResponse = await response.json();
-    // Sort models alphabetically by name for display
-    return data.data.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort models descending by created timestamp (newest first)
+    return data.data.sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
   },
 });
 

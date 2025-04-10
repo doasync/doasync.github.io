@@ -124,7 +124,7 @@ export const editChatTitleHandler = async ({
 /**
  * Generates a chat title using the OpenRouter API.
  */
-const TITLE_GENERATION_MODEL = "google/gemini-2.0-flash-lite-001";
+const TITLE_GENERATION_MODEL = "mistralai/mistral-small-3.1-24b-instruct:free";
 const TITLE_PROMPT = `Summarize this chat conversation
   in 1-5 words (maximum conciseness). Use title case. Focus on user's intent.
   It will be used as a title. Do not mention yourself (assistant) or the user.
@@ -254,6 +254,7 @@ export const prepareChatSessionFn = ({
   systemPrompt,
   tokens,
   draft,
+  selectedModelInfo,
 }: {
   currentSession: ChatSession | null;
   messages: Message[];
@@ -262,6 +263,7 @@ export const prepareChatSessionFn = ({
   systemPrompt: string;
   tokens: number;
   draft?: string; // <-- Add draft param
+  selectedModelInfo: import("@/features/models-select/model").ModelInfo | null;
 }): ChatSession => {
   const now = Date.now();
   const existingId = currentSession?.id;
@@ -283,5 +285,6 @@ export const prepareChatSessionFn = ({
     settings: { model, temperature, systemPrompt },
     totalTokens: finalTokens,
     draft: draft ?? "", // <-- Save draft input
+    modelInfo: selectedModelInfo ?? null, // Save full model metadata
   };
 };

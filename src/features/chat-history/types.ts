@@ -1,5 +1,6 @@
 import { DBSchema } from "idb";
 import { Message } from "@/features/chat"; // Import Message type
+import { ModelInfo } from "@/features/models-select";
 
 // Settings specific to a chat session
 export interface ChatSettings {
@@ -18,6 +19,7 @@ export interface ChatSession {
   settings: ChatSettings;
   totalTokens: number; // Store the token count with the chat
   draft?: string; // <-- Optional draft input
+  modelInfo?: ModelInfo | null;
 }
 
 // Represents the summarized data shown in the history list
