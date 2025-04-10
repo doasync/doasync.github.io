@@ -69,10 +69,26 @@ Here's a summary of what was done according to the `PLAN.md`:
    - Placeholder is replaced with the new response once available.
    - Fixes previous bug where no placeholder was inserted, causing confusing UI delays.
 
-9. **Additional Improvements:**
-
-   - Added detailed retry fix plan in `RETRY_FIX_PLAN.md`.
-   - Minor bug fixes (e.g., event handlers, UI tweaks).
-   - Cleaned up imports, comments, and redundant code.
-
 ---
+
+**Phase 13 (Usage Info & Mini Chat Implementation)**
+
+1.  **Usage Info Feature:**
+
+    - **Implementation:** Introduced a comprehensive Usage Info feature accessible via a new `QueryStatsIcon` in the AppBar, displaying metrics in a dedicated dialog (`UsageInfoDialog`).
+    - **Metrics Displayed:** Shows real-time Chat ID, tokens sent/received, context window usage (current vs. max with a progress bar), estimated API cost, current chat size, total DB size, and browser quota.
+    - **Technology:** Leverages Effector (`features/usage-info/model.ts`) for reactive state management, effects (`fetchStorageInfoFx`, `calculateUsageStatsFx`) for data fetching/calculation, and utility functions (`features/usage-info/utils.ts`) for specific computations (storage estimation, cost calculation).
+    - **Mobile Integration:** Added a reusable `UsageInfoContent` component and integrated it into the `MobileUnifiedDrawer` under a new "Usage" tab, ensuring feature availability on mobile devices.
+
+2.  **Mini Chat Feature (Foundation & Refinements):**
+
+    - **Initial Implementation:** Built the foundational components (`MiniChatToolbar`, `MiniChatDialog`, `useTextSelection` hook), Effector state model (`features/mini-chat/model.ts`), API connection (`features/mini-chat/api.ts`), and integrated them into the main UI (`page.tsx`, `MessageItem.tsx`).
+    - **Expand to Full Chat:** Implemented the `expandMiniChatFx` effect, allowing users to promote an ephemeral mini-chat conversation into a persistent, saved chat session in IndexedDB via `saveChatFx`.
+    - **Explain Flow Fix:** Corrected the "Explain" behavior when the mini-chat is already open, ensuring the explain prompt is sent immediately without clearing existing input unnecessarily.
+    - **Dedicated Model Selector:** Created the `MiniChatModelSelector` component and corresponding state (`$miniChatModelId` with localStorage persistence), allowing users to select a model specifically for the mini-chat, distinct from the main chat model. This selector was added to the main `ChatSettingsContent`.
+    - **Analysis:** Added `REEVALUATION.md` documenting an analysis of the mini-chat implementation against its requirements.
+
+3.  **Overall Impact:**
+    - Significantly enhanced user insight into resource consumption (tokens, cost, storage) via the Usage Info feature.
+    - Introduced a powerful, contextual Mini Chat feature for quick, in-place interactions, improving workflow efficiency.
+    - Refined Mini Chat behavior based on detailed requirements and added key functionalities like expansion and dedicated model selection.
