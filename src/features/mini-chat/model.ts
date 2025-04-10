@@ -1,3 +1,4 @@
+import { debug } from "patronum";
 import {
   createEvent,
   createStore,
@@ -53,7 +54,9 @@ export const $miniChat = createStore<MiniChatState>(initialState)
   .on(miniChatOpened, (state, payload) => ({
     ...state,
     isOpen: true,
-    isInputVisible: payload.showOnlyInput ? true : !!payload.initialPrompt,
+    isInputVisible:
+      payload.isInputVisible ??
+      (payload.showOnlyInput ? true : !!payload.initialPrompt),
     showOnlyInput: payload.showOnlyInput ?? false,
     initialPrompt: payload.initialPrompt ?? null,
     position: payload.position ?? state.position,
@@ -84,13 +87,15 @@ export const $miniChat = createStore<MiniChatState>(initialState)
     messages: [...state.messages, message],
   }));
 
+import { $apiKey } from "@/features/chat-settings/model";
+
 export const sendMiniChatMessageFx = createEffect<
-  { text: string; messages: MiniChatMessage[]; model: string },
+  { text: string; messages: MiniChatMessage[]; model: string; apiKey: string },
   MiniChatMessage
 >();
 
-sendMiniChatMessageFx.use(async ({ text, messages, model }) => {
-  return fetchMiniChatResponse(messages, model);
+sendMiniChatMessageFx.use(async ({ text, messages, model, apiKey }) => {
+  return fetchMiniChatResponse(messages, model, apiKey);
 });
 
 /* Mini Chat Toolbar UI State */
@@ -124,8 +129,8 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
 
 sample({
   clock: miniChatMessageSent,
-  source: { chat: $miniChat, model: $assistantModel },
-  fn: ({ chat, model }, text) => {
+  source: { chat: $miniChat, model: $assistantModel, apiKey: $apiKey },
+  fn: ({ chat, model, apiKey }, text) => {
     const newMessage: MiniChatMessage = {
       role: "user",
       content: text,
@@ -135,6 +140,7 @@ sample({
       text,
       messages: [...chat.messages, newMessage],
       model,
+      apiKey,
     };
   },
   target: sendMiniChatMessageFx,
@@ -181,4 +187,18 @@ sample({
   clock: miniChatExpanded,
   source: $miniChat,
   target: promoteMiniChatFx,
+});
+
+debug({
+  miniChatOpened,
+  miniChatClosed,
+  miniChatMessageSent,
+  miniChatResponseReceived,
+  miniChatExpanded,
+  showMiniChatToolbar,
+  hideMiniChatToolbar,
+  $miniChat,
+  $miniChatToolbar,
+  sendMiniChatMessageFx,
+  promoteMiniChatFx,
 });

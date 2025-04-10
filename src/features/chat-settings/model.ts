@@ -13,11 +13,12 @@ const API_KEY_LS_KEY = "openrouter_api_key";
 const TEMPERATURE_LS_KEY = "default_temperature";
 const SYSTEM_PROMPT_LS_KEY = "default_system_prompt";
 const ASSISTANT_MODEL_LS_KEY = "assistant_model";
+const MINI_CHAT_MODEL_LS_KEY = "mini_chat_model";
 
 // Default values
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_SYSTEM_PROMPT = "";
-const DEFAULT_ASSISTANT_MODEL = "anthropic/claude-instant-v1";
+const DEFAULT_ASSISTANT_MODEL = "";
 
 const settingsDomain = createDomain("settings");
 
@@ -29,6 +30,8 @@ const settingsLoaded = settingsDomain.event<{
   apiKey: string;
   temperature: number;
   systemPrompt: string;
+  assistantModel: string;
+  miniChatModel: string;
 }>("settingsLoaded");
 // Triggered by UI input changes
 export const apiKeyChanged = settingsDomain.event<string>("apiKeyChanged");
@@ -39,6 +42,9 @@ export const systemPromptChanged = settingsDomain.event<string>(
 );
 export const assistantModelChanged = settingsDomain.event<string>(
   "assistantModelChanged"
+);
+export const miniChatModelChanged = settingsDomain.event<string>(
+  "miniChatModelChanged"
 );
 
 // --- Stores ---
@@ -54,6 +60,10 @@ export const $assistantModel = settingsDomain.store<string>(
   DEFAULT_ASSISTANT_MODEL,
   { name: "assistantModel" }
 );
+
+export const $miniChatModel = settingsDomain.store<string>("", {
+  name: "miniChatModel",
+});
 // Store to track if initial settings load is complete
 export const $settingsLoaded = settingsDomain
   .store<boolean>(false, { name: "settingsLoaded" })
@@ -71,7 +81,13 @@ const $settings = combine({
 // Effect to load settings from LocalStorage
 const loadSettingsFx = settingsDomain.effect<
   void,
-  { apiKey: string; temperature: number; systemPrompt: string },
+  {
+    apiKey: string;
+    temperature: number;
+    systemPrompt: string;
+    assistantModel: string;
+    miniChatModel: string;
+  },
   Error
 >({
   name: "loadSettingsFx",
@@ -82,6 +98,7 @@ const loadSettingsFx = settingsDomain.effect<
       localStorage.getItem(SYSTEM_PROMPT_LS_KEY) ?? DEFAULT_SYSTEM_PROMPT;
     const assistantModel =
       localStorage.getItem(ASSISTANT_MODEL_LS_KEY) ?? DEFAULT_ASSISTANT_MODEL;
+    const miniChatModel = localStorage.getItem(MINI_CHAT_MODEL_LS_KEY) ?? "";
 
     let temperature = DEFAULT_TEMPERATURE;
     if (tempRaw) {
@@ -95,6 +112,7 @@ const loadSettingsFx = settingsDomain.effect<
       temperature,
       systemPrompt,
       assistantModel,
+      miniChatModel,
     };
   },
 });
@@ -111,6 +129,7 @@ const saveSettingsFx = settingsDomain.effect<
     localStorage.setItem(TEMPERATURE_LS_KEY, String(temperature));
     localStorage.setItem(SYSTEM_PROMPT_LS_KEY, systemPrompt);
     localStorage.setItem(ASSISTANT_MODEL_LS_KEY, $assistantModel.getState());
+    localStorage.setItem(MINI_CHAT_MODEL_LS_KEY, $miniChatModel.getState());
   },
 });
 
@@ -123,29 +142,30 @@ sample({
 });
 
 // When loadSettingsFx succeeds, update the stores via the settingsLoaded event
-sample({
-  clock: loadSettingsFx.doneData,
-  target: settingsLoaded,
+import { forward } from "effector";
+
+forward({
+  from: loadSettingsFx.doneData,
+  to: settingsLoaded,
 });
 
 // Update individual stores when settingsLoaded event fires
 $apiKey.on(settingsLoaded, (_, payload) => payload.apiKey);
 $temperature.on(settingsLoaded, (_, payload) => payload.temperature);
 $systemPrompt.on(settingsLoaded, (_, payload) => payload.systemPrompt);
-$assistantModel.on(
-  settingsLoaded,
-  (_, payload) => (payload as any).assistantModel
-);
+$assistantModel.on(settingsLoaded, (_, payload) => payload.assistantModel);
+$miniChatModel.on(settingsLoaded, (_, payload) => payload.miniChatModel);
 
 // Update stores based on UI change events
 $apiKey.on(apiKeyChanged, (_, newApiKey) => newApiKey);
 $temperature.on(temperatureChanged, (_, newTemperature) => newTemperature);
 $systemPrompt.on(systemPromptChanged, (_, newSystemPrompt) => newSystemPrompt);
 $assistantModel.on(assistantModelChanged, (_, newModel) => newModel);
+$miniChatModel.on(miniChatModelChanged, (_, newModel) => newModel);
 
 // When any setting store changes (after initial load), trigger saveSettingsFx
 sample({
-  clock: $settings, // Trigger whenever the combined settings change
+  source: $settings, // Trigger whenever the combined settings change
   filter: $settingsLoaded, // Only save *after* initial load is complete
   target: saveSettingsFx,
 });

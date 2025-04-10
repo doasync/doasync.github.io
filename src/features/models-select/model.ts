@@ -142,3 +142,12 @@ debug(
   // Effects
   fetchModelsFx
 );
+
+import { miniChatModelChanged } from "@/features/chat-settings/model";
+import { forward } from "effector";
+
+// Update persistent Mini Chat preferred model upon selection to keep synced with saved settings:
+forward({
+  from: modelSelected,
+  to: miniChatModelChanged,
+});

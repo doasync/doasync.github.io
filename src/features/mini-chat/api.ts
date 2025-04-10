@@ -3,9 +3,9 @@ import type { MiniChatMessage } from "./model";
 // Placeholder API call to assistant model
 export async function fetchMiniChatResponse(
   messages: MiniChatMessage[],
-  model: string
+  model: string,
+  apiKey: string
 ): Promise<MiniChatMessage> {
-  const apiKey = localStorage.getItem("openrouter-api-key");
   if (!apiKey) {
     throw new Error("Missing OpenRouter API key");
   }

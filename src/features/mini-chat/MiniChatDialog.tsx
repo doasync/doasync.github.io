@@ -1,5 +1,15 @@
 import React, { useState } from "react";
 import { useUnit } from "effector-react";
+import Autocomplete from "@mui/material/Autocomplete";
+import CircularProgress from "@mui/material/CircularProgress";
+
+import {
+  $availableModels,
+  $selectedModelId,
+  $isLoadingModels,
+  fetchModels,
+  modelSelected,
+} from "../models-select/model";
 import {
   Button,
   Paper,
@@ -57,7 +67,19 @@ export const MiniChatDialog: React.FC = () => {
   const [input, setInput] = useState("");
   const { position, dragHandlers } = useDraggable();
 
+  const [open, setOpen] = useState(false);
+
+  const [models, selectedModelId, isLoading] = useUnit([
+    $availableModels,
+    $selectedModelId,
+    $isLoadingModels,
+  ]);
+
+  const fetch = useUnit(fetchModels);
+  const selectModel = useUnit(modelSelected);
+
   const handleSend = () => {
+    console.debug("MiniChatDialog: Send clicked", input);
     if (input.trim()) {
       sendMessage(input.trim());
       setInput("");
@@ -65,11 +87,25 @@ export const MiniChatDialog: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    console.debug("MiniChatDialog: KeyDown", e.key);
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (models.length === 0) {
+      fetch();
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const currentModel = models.find((m) => m.id === selectedModelId) ?? null;
 
   if (!miniChat.isOpen) return null;
 
@@ -82,11 +118,11 @@ export const MiniChatDialog: React.FC = () => {
           position: "fixed",
           width: 320,
           padding: 1,
-          zIndex: 2200,
-          transform: `translate(${position.x}px, ${position.y}px)`,
+          zIndex: 9999,
+          top: "100px",
+          left: "100px",
           cursor: "move",
         }}
-        {...dragHandlers}
       >
         <Stack
           direction="row"
@@ -96,7 +132,13 @@ export const MiniChatDialog: React.FC = () => {
           sx={{ padding: 1 }}
         >
           <Typography variant="subtitle2">Ask Assistant</Typography>
-          <IconButton size="small" onClick={closeMiniChat}>
+          <IconButton
+            size="small"
+            onClick={() => {
+              console.debug("MiniChatDialog: Close clicked");
+              closeMiniChat();
+            }}
+          >
             <CloseIcon fontSize="small" />
           </IconButton>
         </Stack>
@@ -107,7 +149,9 @@ export const MiniChatDialog: React.FC = () => {
           minRows={1}
           maxRows={4}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setInput(e.target.value)
+          }
           onKeyDown={handleKeyDown}
           placeholder="Type your question..."
           sx={{ mt: 1 }}
@@ -144,11 +188,11 @@ export const MiniChatDialog: React.FC = () => {
         maxHeight: "70vh",
         display: "flex",
         flexDirection: "column",
-        zIndex: 2200,
-        transform: `translate(${position.x}px, ${position.y}px)`,
+        zIndex: 9999,
+        top: "100px",
+        left: "100px",
         cursor: "move",
       }}
-      {...dragHandlers}
     >
       <Stack
         spacing={1}
@@ -160,13 +204,60 @@ export const MiniChatDialog: React.FC = () => {
       >
         <Typography variant="subtitle2">Mini Chat</Typography>
         <Stack direction="row" spacing={0.5}>
-          <IconButton size="small" onClick={expandMiniChat}>
+          <IconButton
+            size="small"
+            onClick={() => {
+              console.debug("MiniChatDialog: Expand clicked");
+              expandMiniChat();
+            }}
+          >
             <OpenInFullIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small" onClick={closeMiniChat}>
+          <IconButton
+            size="small"
+            onClick={() => {
+              console.debug("MiniChatDialog: Close clicked");
+              closeMiniChat();
+            }}
+          >
             <CloseIcon fontSize="small" />
           </IconButton>
         </Stack>
+      </Stack>
+      <Stack sx={{ px: 1, py: 0.5 }}>
+        <Autocomplete
+          sx={{ width: "100%" }}
+          open={open}
+          onOpen={handleOpen}
+          onClose={handleClose}
+          value={currentModel}
+          onChange={(_, newValue) => {
+            if (newValue) {
+              selectModel(newValue.id);
+            }
+          }}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          getOptionLabel={(option) => option.name}
+          options={models}
+          loading={isLoading}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Model"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {isLoading ? (
+                      <CircularProgress color="inherit" size={20} />
+                    ) : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
       </Stack>
       <Divider />
       <Stack spacing={1} sx={{ padding: 1, overflowY: "auto", flexGrow: 1 }}>
@@ -207,7 +298,9 @@ export const MiniChatDialog: React.FC = () => {
           minRows={1}
           maxRows={4}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setInput(e.target.value)
+          }
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           fullWidth
