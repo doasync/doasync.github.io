@@ -7,6 +7,10 @@ import {
 } from "@/features/chat-settings/model";
 import { $selectedModelId } from "@/features/models-select/model";
 import { saveChatFx } from "@/features/chat-history/model";
+import { appStarted } from "@/app"; // Import appStarted for triggering load
+
+const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
+const DEFAULT_MINI_CHAT_MODEL = "openai/gpt-3.5-turbo"; // Or choose another default
 
 //
 // Types
@@ -37,6 +41,47 @@ export interface MiniChatState {
   messages: MiniChatMessage[];
   loading: boolean;
 }
+
+//
+// Mini Chat Settings State
+//
+export const miniChatModelSelected = createEvent<string>();
+export const miniChatSettingsLoaded = createEvent(); // Triggered on app start
+
+export const $miniChatModelId = createStore<string>(DEFAULT_MINI_CHAT_MODEL);
+
+// Persistence Effects
+const loadMiniChatModelIdFx = createEffect<void, string | null>(() => {
+  return localStorage.getItem(MINI_CHAT_MODEL_ID_STORAGE_KEY);
+});
+
+const saveMiniChatModelIdFx = createEffect<string, void>((modelId) => {
+  localStorage.setItem(MINI_CHAT_MODEL_ID_STORAGE_KEY, modelId);
+});
+
+// --- Wiring Persistence ---
+// Load on app start
+sample({
+  clock: appStarted, // Use appStarted from "@/app"
+  target: loadMiniChatModelIdFx,
+});
+
+// Update store on successful load
+sample({
+  clock: loadMiniChatModelIdFx.doneData,
+  filter: (loadedId): loadedId is string => loadedId !== null, // Only update if not null
+  target: $miniChatModelId,
+});
+
+// Update store on manual selection
+$miniChatModelId.on(miniChatModelSelected, (_, newModelId) => newModelId);
+
+// Save to localStorage whenever the store changes
+sample({
+  clock: $miniChatModelId.updates,
+  target: saveMiniChatModelIdFx,
+});
+// --- End Wiring Persistence ---
 
 //
 // Toolbar State
@@ -190,7 +235,7 @@ sample({
   clock: sendMiniChatMessage,
   source: {
     apiKey: $apiKey,
-    model: $selectedModelId,
+    model: $miniChatModelId, // Use the dedicated mini-chat model ID
   },
   fn: ({ apiKey, model }, message) => ({ message, model, apiKey }),
   target: sendMiniChatMessageFx,

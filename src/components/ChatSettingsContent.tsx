@@ -1,4 +1,5 @@
 import React from "react";
+import { MiniChatModelSelector } from "@/features/mini-chat/MiniChatModelSelector"; // Import the new component
 import { $isMobileDrawerOpen, closeSettingsDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
@@ -159,6 +160,11 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           }
           label="Show only free models"
         />
+      </Box>
+
+      {/* Add Mini Chat Model Selector Here */}
+      <Box sx={{ px: 2, py: 1 }}>
+        <MiniChatModelSelector />
       </Box>
 
       <Divider />
