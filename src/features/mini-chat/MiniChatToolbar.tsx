@@ -5,9 +5,10 @@ import {
   $miniChatToolbar,
   hideMiniChatToolbar,
   $miniChat,
-  miniChatOpened,
+  miniChatOpened, // Keep for Explain flow when chat not open
   updateMiniChatInput,
   sendMiniChatMessage,
+  showInlineAskInput, // Import the new event
 } from "./model";
 
 const TOOLBAR_WIDTH = 160;
@@ -29,7 +30,12 @@ export const MiniChatToolbar: React.FC = () => {
     if (miniChat.isOpen) {
       updateMiniChatInput(toolbar.selectionText);
     } else {
-      miniChatOpened({ initialInput: toolbar.selectionText });
+      // FRD A2: Show inline input first
+      showInlineAskInput({
+        x: toolbar.x,
+        y: toolbar.y,
+        initialValue: toolbar.selectionText,
+      });
     }
     hideMiniChatToolbar();
   };
@@ -37,7 +43,8 @@ export const MiniChatToolbar: React.FC = () => {
   const handleExplain = () => {
     const explainPrompt = `Please explain this to me: ${toolbar.selectionText}`;
     if (miniChat.isOpen) {
-      updateMiniChatInput("");
+      // FRD A4.2: Clicking Explain pastes explanation prompt + selection and immediately sends it.
+      // No need to clear input first.
       sendMiniChatMessage(explainPrompt);
     } else {
       miniChatOpened({ initialInput: "" });

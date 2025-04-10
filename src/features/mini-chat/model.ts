@@ -1,4 +1,4 @@
-xesimport { createStore, createEvent, createEffect, sample } from "effector";
+import { createStore, createEvent, createEffect, sample } from "effector";
 import { sendAssistantMessage } from "./api";
 import {
   $apiKey,
@@ -17,6 +17,13 @@ export interface MiniChatToolbarState {
   x: number;
   y: number;
   selectionText: string;
+}
+
+export interface InlineAskInputState {
+  visible: boolean;
+  x: number;
+  y: number;
+  value: string;
 }
 
 export interface MiniChatMessage {
@@ -59,7 +66,44 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
   }));
 
 //
-// Mini Chat State
+// Inline Ask Input State (for FRD A2)
+//
+export const showInlineAskInput = createEvent<{
+  x: number;
+  y: number;
+  initialValue: string;
+}>();
+export const hideInlineAskInput = createEvent();
+export const updateInlineAskInputValue = createEvent<string>();
+export const submitInlineAskInput = createEvent<string>(); // Submits the value
+
+export const $inlineAskInput = createStore<InlineAskInputState>({
+  visible: false,
+  x: 0,
+  y: 0,
+  value: "",
+})
+  .on(showInlineAskInput, (_, { x, y, initialValue }) => ({
+    visible: true,
+    x,
+    y,
+    value: initialValue,
+  }))
+  .on(hideInlineAskInput, (state) => ({
+    ...state,
+    visible: false,
+    value: "", // Clear value on hide
+  }))
+  .on(updateInlineAskInputValue, (state, value) => ({
+    ...state,
+    value,
+  }));
+
+// Moved the sample block that hides inline input further down
+// to ensure dependencies (miniChatClosed, resetMiniChat) are defined first.
+
+//
+// Mini Chat State (Main Dialog)
 //
 
 export const miniChatOpened = createEvent<{ initialInput?: string }>();
@@ -78,11 +122,14 @@ export const $miniChat = createStore<MiniChatState>({
   messages: [],
   loading: false,
 })
+  // Note: miniChatOpened is now primarily triggered by submitInlineAskInput or Explain flow
   .on(miniChatOpened, (state, { initialInput }) => ({
     isOpen: true,
-    input: initialInput ?? "",
+    // Input for the main dialog should be cleared when opened this way
+    input: "", // Main dialog input starts empty
+    // Preserve messages if already open (e.g., Explain clicked while Ask dialog open), otherwise start fresh
     messages: state.isOpen ? state.messages : [],
-    loading: false,
+    loading: false, // Reset loading state
   }))
   .on(miniChatClosed, () => ({
     isOpen: false,
@@ -106,6 +153,20 @@ export const $miniChat = createStore<MiniChatState>({
     loading: false,
   }))
   .reset(resetMiniChat);
+
+// When inline input is submitted, open the main chat and send the message
+sample({
+  clock: submitInlineAskInput,
+  filter: (inputValue) => !!inputValue.trim(), // Only proceed if input is not empty
+  fn: (inputValue) => ({ initialInput: inputValue }), // Pass submitted value (though dialog input starts empty)
+  target: miniChatOpened,
+});
+
+sample({
+  clock: submitInlineAskInput,
+  filter: (inputValue) => !!inputValue.trim(), // Only proceed if input is not empty
+  target: [sendMiniChatMessage, hideInlineAskInput], // Send message and hide inline input
+});
 
 //
 // API Effect
@@ -186,10 +247,14 @@ sample({
 });
 
 //
-// Close resets everything
+// Close/Reset Logic
 //
 
-miniChatClosed.watch(() => {
-  resetMiniChat();
-  hideMiniChatToolbar();
+// Hide inline input when main toolbar hides or chat closes/resets
+sample({
+  clock: [hideMiniChatToolbar, miniChatClosed, resetMiniChat],
+  target: hideInlineAskInput,
 });
+
+// miniChatClosed already triggers resetMiniChat (which triggers hideInlineAskInput via sample above)
+// It also implicitly hides the toolbar via the resetMiniChat sample trigger

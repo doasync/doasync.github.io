@@ -4,6 +4,7 @@ import * as React from "react";
 import { useMiniChatTextSelection } from "@/features/mini-chat/useTextSelection";
 import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
 import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
+import { InlineAskInput } from "@/features/mini-chat/InlineAskInput"; // Import the new component
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
@@ -666,6 +667,7 @@ export default function HomePage() {
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
       <MiniChatToolbar />
       <MiniChatDialog />
+      <InlineAskInput /> {/* Render the new inline input component */}
     </Box> // End Outermost Box
   );
 }
