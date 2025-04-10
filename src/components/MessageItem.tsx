@@ -239,7 +239,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           // Adjust width for alignment
           width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
           maxWidth: "85%", // Limit max width
-          minWidth: "20%", // Limit max width
+
           wordWrap: "break-word",
         }}
       >

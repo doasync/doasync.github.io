@@ -12,29 +12,11 @@ const UsageInfoContent: React.FC = () => {
 
   return (
     <Stack spacing={2}>
-      <Divider>Chat</Divider>
-      <Typography variant="body2">
-        <strong>Chat ID:</strong> {usage.chatId ?? "N/A"}
-      </Typography>
-
-      <Divider>Tokens</Divider>
-      <Typography variant="body2">
-        <strong>Sent:</strong> {usage.tokensSent.toLocaleString()}
-      </Typography>
-      <Typography variant="body2">
-        <strong>Received:</strong> {usage.tokensReceived.toLocaleString()}
-      </Typography>
-      <Typography variant="body2">
-        <strong>Total:</strong>{" "}
-        {(usage.tokensSent + usage.tokensReceived).toLocaleString()}
-      </Typography>
-
-      <Divider>Context Window</Divider>
+      <Divider>Context</Divider>
       <Typography variant="body2">
         <strong>Used:</strong> {usage.contextTokensUsed.toLocaleString()}
-      </Typography>
-      <Typography variant="body2">
-        <strong>Max:</strong> {usage.contextTokensMax.toLocaleString()}
+        {" / "}
+        {usage.contextTokensMax.toLocaleString()}
       </Typography>
       <Box>
         <LinearProgress
@@ -44,14 +26,16 @@ const UsageInfoContent: React.FC = () => {
           sx={{ height: 8, borderRadius: 4, mt: 1 }}
         />
       </Box>
-
       <Divider>API Cost</Divider>
-      <Typography variant="body2">
+      <Typography color="textDisabled" variant="body2">
         <strong>Estimated Cost:</strong> ${usage.apiCost.toFixed(6)}
       </Typography>
-
-      <Divider>Storage</Divider>
+      <Divider>Chat Session</Divider>
       <Typography variant="body2">
+        <strong>Chat ID:</strong> {usage.chatId ?? "N/A"}
+      </Typography>
+      <Divider>Storage</Divider>
+      <Typography color="textDisabled" variant="body2">
         <strong>Chat Size:</strong> {usage.chatSizeMB.toFixed(2)} MB
       </Typography>
       <Typography variant="body2">
@@ -59,6 +43,17 @@ const UsageInfoContent: React.FC = () => {
       </Typography>
       <Typography variant="body2">
         <strong>Quota:</strong> {usage.quotaMB.toFixed(2)} MB
+      </Typography>
+      <Divider>Tokens</Divider>
+      <Typography color="textDisabled" variant="body2">
+        <strong>Sent:</strong> {usage.tokensSent.toLocaleString()}
+      </Typography>
+      <Typography color="textDisabled" variant="body2">
+        <strong>Received:</strong> {usage.tokensReceived.toLocaleString()}
+      </Typography>
+      <Typography color="textDisabled" variant="body2">
+        <strong>Total:</strong>{" "}
+        {(usage.tokensSent + usage.tokensReceived).toLocaleString()}
       </Typography>
     </Stack>
   );

@@ -143,8 +143,8 @@ export const ModelSelector: React.FC = () => {
         disabled={isLoading || error !== null}
         // disableClearable removed to allow clearing (null value)
         sx={{
-          minWidth: 250,
-          mr: 0.5,
+          minWidth: 200,
+          mx: 0.6,
         }}
         renderInput={(params) => (
           <TextField
@@ -183,22 +183,6 @@ export const ModelSelector: React.FC = () => {
         )}
         // Removed invalid PaperProps
       />
-
-      {/* Keep Info Button */}
-      <IconButton
-        onClick={() => {
-          if (isMobile) {
-            openMobileDrawer({ tab: "modelInfo" });
-          } else {
-            openModelInfoAlert();
-          }
-        }}
-        disabled={!selectedModel}
-        sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
-      >
-        <InfoOutlinedIcon />
-      </IconButton>
-      {/* Remove Menu and Drawer */}
     </Box>
   );
 };

@@ -102,8 +102,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Toolbar>
       )}
 
-      <Divider />
-
       <Box sx={{ p: 2 }}>
         <Tooltip
           title="Your OpenRouter API Key. Stored locally in your browser."
@@ -157,7 +155,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           />
         </Tooltip>
       </Box>
-
+      <Divider />
       <Box sx={{ px: 2, py: 1 }}>
         <FormControlLabel
           control={

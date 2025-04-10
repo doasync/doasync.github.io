@@ -9,12 +9,18 @@ import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
-import { useTheme, useMediaQuery, Snackbar } from "@mui/material";
+import {
+  useTheme,
+  useMediaQuery,
+  Snackbar,
+  LinearProgress,
+} from "@mui/material";
 import MobileUnifiedDrawer from "@/components/MobileUnifiedDrawer";
 import {
   $isMobileDrawerOpen,
   openMobileDrawer,
   $editingMessageId,
+  openModelInfoAlert,
 } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import Box from "@mui/material/Box";
@@ -29,6 +35,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SendIcon from "@mui/icons-material/Send"; // Keep for reference if needed, but we'll use AutoAwesome
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"; // Import the new icon
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"; // Import InfoOutlinedIcon
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -329,7 +336,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ height: "100vh" }}>
+    <Box sx={{ height: "100vh", overflow: "hidden" }}>
       {" "}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
@@ -348,6 +355,8 @@ export default function HomePage() {
           {/* Render History Button always on mobile */}
           {isMobile && (
             <IconButton
+              size="small"
+              edge="start"
               color="inherit"
               aria-label="History"
               onClick={clickHistory}
@@ -357,6 +366,7 @@ export default function HomePage() {
           )}
           {!isHistoryPersistentOpen && (
             <IconButton
+              size="small"
               color="inherit"
               aria-label="New chat"
               onClick={clickNewChat}
@@ -365,7 +375,13 @@ export default function HomePage() {
             </IconButton>
           )}
           {/* End Moved New Chat Button */}
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
             <ModelSelector />
           </Box>
           {/* Conditionally render Settings Button */}
@@ -390,10 +406,27 @@ export default function HomePage() {
               </IconButton>
             </>
           )}
+          {/* Keep Info Button */}
+          {isMobile && (
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (isMobile) {
+                  openMobileDrawer({ tab: "modelInfo" });
+                } else {
+                  openModelInfoAlert();
+                }
+              }}
+              disabled={!selectedModel}
+              sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
+            >
+              <InfoOutlinedIcon />
+            </IconButton>
+          )}
           {/* Render Settings Button always on mobile */}
           {isMobile && (
             <IconButton
-              size="large"
+              size="small"
               edge="end"
               color="inherit"
               aria-label="settings"
@@ -563,6 +596,16 @@ export default function HomePage() {
             </Alert>
           </Container>
         )}
+        <LinearProgress
+          color="secondary"
+          sx={{
+            top: 1,
+            poosition: "absolute",
+            width: "100%",
+            height: "1px",
+            visibility: isGenerating ? "visible" : "hidden",
+          }}
+        />
         {/* Input Area Wrapper - Sticks to the bottom */}
         <Paper
           square
@@ -576,7 +619,6 @@ export default function HomePage() {
             p: 1,
           }}
         >
-          {" "}
           {/* Added flexShrink */}
           {/* Centering Container for Input */}
           <Box
@@ -588,7 +630,12 @@ export default function HomePage() {
               width: "100%", // Ensure paper takes full width of container
             }}
           >
-            <IconButton color="primary" aria-label="attach file" disabled>
+            <IconButton
+              sx={{ mx: -0.5 }}
+              color="primary"
+              aria-label="attach file"
+              disabled
+            >
               {" "}
               {/* Disabled Attach for now */}
               <AttachFileIcon />
@@ -603,7 +650,7 @@ export default function HomePage() {
               value={messageText}
               onChange={changeMessage}
             />
-            <Box sx={{ position: "relative" }}>
+            <Box>
               {/* Calculate disabled state based on new logic */}
               {(() => {
                 const isInputEmpty = messageText.trim().length === 0;
@@ -616,31 +663,18 @@ export default function HomePage() {
 
                 return (
                   <IconButton
-                    size="small"
                     aria-label="Generate" // Updated tooltip
                     onClick={handleSendButtonClick} // Use updated handler
                     disabled={isDisabled} // Use new disabled logic
                     sx={{
+                      mx: -0.5,
                       color: "primary.light",
                     }}
                   >
-                    <AutoAwesomeIcon fontSize="large" /> {/* Use new icon */}
+                    <AutoAwesomeIcon /> {/* Use new icon */}
                   </IconButton>
                 );
               })()}
-              {isGenerating && (
-                <CircularProgress
-                  size={24}
-                  sx={{
-                    color: "primary.main",
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    marginTop: "-12px",
-                    marginLeft: "-12px",
-                  }}
-                />
-              )}
             </Box>
           </Box>{" "}
           {/* End Input Paper */}
