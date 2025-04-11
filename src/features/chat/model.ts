@@ -61,6 +61,7 @@ export const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate"); 
 export const normalResponseProcessed = chatDomain.event<void>(
   "normalResponseProcessed"
 ); // Explicit trigger for saving normal responses
+export const mainInputFocused = chatDomain.event<boolean>("mainInputFocused"); // New: Tracks focus on main chat input (Ensure exported)
 
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
@@ -112,6 +113,10 @@ export const $preventScroll = chatDomain.store<boolean>(false, {
 export const $scrollTrigger = chatDomain
   .store<number>(0, { name: "$scrollTrigger" })
   .on(scrollToLastMessageNeeded, () => Date.now());
+// Store for main input focus state
+export const $isMainInputFocused = chatDomain
+  .store<boolean>(false, { name: "$isMainInputFocused" })
+  .on(mainInputFocused, (_, isFocused) => isFocused);
 
 // --- Helper Functions / Type Guards ---
 const isRetryableMessage = (

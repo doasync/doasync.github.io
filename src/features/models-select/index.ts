@@ -15,4 +15,5 @@ export {
   fetchModels, // Triggered on app start
   modelSelected, // Triggered by ModelSelector component
   setShowFreeOnly,
+  modelSelectorFocused,
 } from "./model";

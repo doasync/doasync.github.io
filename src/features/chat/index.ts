@@ -34,6 +34,7 @@ export {
   apiKeyMissing,
   apiRequestTokensUpdated, // May be needed to trigger save in history
   userMessageCreated, // May be needed to trigger save in history
+  mainInputFocused,
   // scrollToBottomNeeded, // REMOVED
   retryUpdate, // <-- Add retryUpdate here for history feature to use
   scrollToLastMessageNeeded, // <-- Export assistant scroll event

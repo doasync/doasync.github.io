@@ -47,6 +47,10 @@ export const $isLoadingModels = modelsDomain.store<boolean>(false, {
 export const $showFreeOnly = modelsDomain.store<boolean>(false, {
   name: "showFreeOnly",
 });
+// Store indicating if the main model selector dropdown/input is active/focused
+export const $isModelSelectorActive = modelsDomain.store<boolean>(false, {
+  name: "isModelSelectorActive",
+});
 
 // --- Events ---
 /**
@@ -84,6 +88,10 @@ export const $modelsError = modelsDomain.store<string | null>(null, {
 export const fetchModels = modelsDomain.event("fetchModels");
 // Triggered by the UI when a user selects a different model
 export const modelSelected = modelsDomain.event<string>("modelSelected"); // Payload is the model ID
+// Triggered by the ModelSelector component on focus/blur or dropdown open/close
+export const modelSelectorFocused = modelsDomain.event<boolean>( // Ensure this is exported
+  "modelSelectorFocused"
+); // true for focus/open, false for blur/close
 
 // --- Effects ---
 const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
@@ -141,6 +149,9 @@ $modelsError
 
 // Clear error on success
 $modelsError.reset(fetchModelsFx.done);
+
+// Update focus state store when event is triggered
+$isModelSelectorActive.on(modelSelectorFocused, (_, isFocused) => isFocused);
 
 // --- Debugging ---
 /*

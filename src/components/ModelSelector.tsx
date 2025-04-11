@@ -25,6 +25,7 @@ import {
   ModelInfo,
   fetchModels,
   $showFreeOnly,
+  modelSelectorFocused, // Import the new event
 } from "@/features/models-select";
 
 const GroupHeader = styled("div")(({ theme }) => ({
@@ -136,8 +137,14 @@ export const ModelSelector: React.FC = () => {
         id="appbar-model-selector"
         value={selectedModel ?? null}
         open={autocompleteOpen}
-        onOpen={() => setAutocompleteOpen(true)}
-        onClose={() => setAutocompleteOpen(false)}
+        onOpen={() => {
+          setAutocompleteOpen(true);
+          modelSelectorFocused(true); // Trigger event on open
+        }}
+        onClose={() => {
+          setAutocompleteOpen(false);
+          modelSelectorFocused(false); // Trigger event on close
+        }}
         onChange={handleAutocompleteChange} // Use new handler
         options={filteredModels} // Use the existing filtered list (includes free filter)
         getOptionLabel={(option) =>

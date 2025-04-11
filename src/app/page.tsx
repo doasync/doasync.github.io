@@ -6,6 +6,7 @@ import { $snackbar, hideSnackbar } from "@/features/ui-state/snackbar";
 import { useMiniChatTextSelection } from "@/features/mini-chat/useTextSelection";
 import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
 import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
+import { MiniChatFAB } from "@/features/mini-chat/MiniChatFAB"; // Import the FAB
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
@@ -69,6 +70,7 @@ import {
   $preventScroll, // Import scroll prevention state
   setPreventScroll, // Import scroll prevention setter
   $scrollTrigger, // Import explicit scroll trigger
+  mainInputFocused, // Import the new event
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -580,6 +582,8 @@ export default function HomePage() {
             </Alert>
           </Snackbar>
           {/* End Centering Container */}
+          {/* Render the FAB inside the scrollable area */}
+          <MiniChatFAB />
         </Box>{" "}
         {/* End Scrollable Area Box */}
         {/* apiError Alert - Placed outside scrollable area but inside main content */}
@@ -644,6 +648,8 @@ export default function HomePage() {
               slotProps={{ input: { sx: { fontSize: 22, py: 1 } } }}
               value={messageText}
               onChange={changeMessage}
+              onFocus={() => mainInputFocused(true)} // Trigger event on focus
+              onBlur={() => mainInputFocused(false)} // Trigger event on blur
             />
             <Box>
               {/* Calculate disabled state based on new logic */}
@@ -732,6 +738,7 @@ export default function HomePage() {
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
       <MiniChatToolbar />
       <MiniChatDialog />
+      {/* <MiniChatFAB /> FAB is now rendered inside the scrollable area */}
     </Box> // End Outermost Box
   );
 }

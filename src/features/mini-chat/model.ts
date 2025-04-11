@@ -1,4 +1,10 @@
-import { createStore, createEvent, createEffect, sample } from "effector";
+import {
+  createStore,
+  createEvent,
+  createEffect,
+  sample,
+  guard,
+} from "effector"; // Import guard
 import { sendAssistantMessage } from "./api";
 import {
   $apiKey,
@@ -8,9 +14,12 @@ import {
 import {
   $selectedModelId,
   $availableModels,
+  $isModelSelectorActive, // Import model selector focus state
 } from "@/features/models-select/model";
 import { saveChatFx } from "@/features/chat-history/model";
 import { appStarted } from "@/app"; // Import appStarted for triggering load
+import { $isMobileDrawerOpen } from "@/features/ui-state/model"; // Import mobile drawer state
+import { $isMainInputFocused } from "@/features/chat/model"; // Import main input focus state
 
 const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
 const DEFAULT_MINI_CHAT_MODEL = "openai/gpt-3.5-turbo"; // Or choose another default
@@ -37,6 +46,7 @@ export interface MiniChatState {
   input: string;
   messages: MiniChatMessage[];
   loading: boolean;
+  isMinimized: boolean; // Flag for minimized state
 }
 
 //
@@ -121,6 +131,8 @@ export const updateMiniChatInput = createEvent<string>();
 export const sendMiniChatMessage = createEvent<string>(); // message to send
 export const receiveMiniChatMessage = createEvent<string>(); // assistant reply
 export const expandMiniChat = createEvent();
+export const minimizeMiniChat = createEvent(); // Event to minimize
+export const restoreMiniChat = createEvent(); // Event to restore from FAB
 
 export const resetMiniChat = createEvent();
 
@@ -130,13 +142,15 @@ export const $miniChat = createStore<MiniChatState>({
   input: "",
   messages: [],
   loading: false,
+  isMinimized: false, // Initialize minimized state
 })
   .on(miniChatOpened, (state, { initialInput, startCompact }) => ({
     isOpen: true,
     isCompact: !!startCompact, // Set compact based on flag, default false
     input: initialInput ?? "",
-    messages: state.isOpen ? state.messages : [],
+    messages: state.isOpen ? state.messages : [], // Preserve messages if already open
     loading: false,
+    isMinimized: false, // Ensure minimized state is reset/set when opened
   }))
   .on(miniChatClosed, () => ({
     // Reset all state on close
@@ -145,6 +159,7 @@ export const $miniChat = createStore<MiniChatState>({
     input: "",
     messages: [],
     loading: false,
+    isMinimized: false, // Also reset minimized state on close
   }))
   .on(updateMiniChatInput, (state, input) => ({
     ...state,
@@ -162,6 +177,14 @@ export const $miniChat = createStore<MiniChatState>({
     isCompact: false, // Receiving a message expands the view
     messages: [...state.messages, { role: "assistant", content: reply }],
     loading: false,
+  }))
+  .on(minimizeMiniChat, (state) => ({
+    ...state,
+    isMinimized: true,
+  }))
+  .on(restoreMiniChat, (state) => ({
+    ...state,
+    isMinimized: false,
   }))
   .reset(resetMiniChat);
 
@@ -265,3 +288,37 @@ sample({
 
 // miniChatClosed already triggers resetMiniChat (which triggers hideInlineAskInput via sample above)
 // It also implicitly hides the toolbar via the resetMiniChat sample trigger
+
+//
+// Auto-Minimize Logic
+//
+
+const $shouldMinimize = sample({
+  source: $miniChat,
+  fn: (miniChatState) => miniChatState.isOpen && !miniChatState.isMinimized,
+});
+
+// Trigger 1: Mobile Drawer Opens
+guard({
+  clock: $isMobileDrawerOpen,
+  source: $shouldMinimize,
+  filter: (shouldMinimize, isDrawerOpen) => shouldMinimize && isDrawerOpen,
+  target: minimizeMiniChat,
+});
+
+// Trigger 2: Main Model Selector Becomes Active
+guard({
+  clock: $isModelSelectorActive,
+  source: $shouldMinimize,
+  filter: (shouldMinimize, isSelectorActive) =>
+    shouldMinimize && isSelectorActive,
+  target: minimizeMiniChat,
+});
+
+// Trigger 3: Main Chat Input Gets Focus
+guard({
+  clock: $isMainInputFocused,
+  source: $shouldMinimize,
+  filter: (shouldMinimize, isInputFocused) => shouldMinimize && isInputFocused,
+  target: minimizeMiniChat,
+});
