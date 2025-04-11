@@ -102,7 +102,31 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Toolbar>
       )}
 
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ px: 2, pt: 2 }}>
+        <Typography gutterBottom>
+          Temperature: {temperature.toFixed(1)}
+        </Typography>
+        <Tooltip
+          title="Controls randomness. Lower values are more deterministic."
+          placement="left"
+        >
+          <Slider
+            value={temperature}
+            onChange={(_, val) =>
+              typeof val === "number" && handleTemperatureChange(val)
+            }
+            aria-labelledby="temperature-slider"
+            step={0.1}
+            marks
+            min={0.0}
+            max={2.0}
+          />
+        </Tooltip>
+      </Box>
+
+      <Divider />
+
+      <Box sx={{ p: 2, pb: 1 }}>
         <Tooltip
           title="Your OpenRouter API Key. Stored locally in your browser."
           placement="left" // Change tooltip placement to avoid overlap
@@ -135,28 +159,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       </Box>
 
       <Box sx={{ px: 2 }}>
-        <Typography gutterBottom>
-          Temperature: {temperature.toFixed(1)}
-        </Typography>
-        <Tooltip
-          title="Controls randomness. Lower values are more deterministic."
-          placement="left"
-        >
-          <Slider
-            value={temperature}
-            onChange={(_, val) =>
-              typeof val === "number" && handleTemperatureChange(val)
-            }
-            aria-labelledby="temperature-slider"
-            step={0.1}
-            marks
-            min={0.0}
-            max={2.0}
-          />
-        </Tooltip>
-      </Box>
-      <Divider />
-      <Box sx={{ px: 2, py: 1 }}>
         <FormControlLabel
           control={
             <Switch

@@ -40,8 +40,8 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
         sx={{
           display: "flex",
           flexDirection: "column",
-          height: "80vh",
-          maxHeight: "90vh",
+          height: "calc(100vh - 64px)",
+          maxHeight: "99vh",
         }}
       >
         <Tabs
@@ -51,9 +51,16 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
           indicatorColor="secondary"
           textColor="inherit"
           sx={{
+            borderTop: 1,
+            borderColor: "divider",
             backgroundColor: "background.paper",
           }}
         >
+          <Tab
+            sx={{ fontWeight: activeTab === "settings" ? "bold" : "normal" }}
+            value="settings"
+            label="Settings"
+          />
           <Tab
             sx={{ fontWeight: activeTab === "history" ? "bold" : "normal" }}
             value="history"
@@ -63,11 +70,6 @@ const MobileUnifiedDrawer: React.FC<MobileUnifiedDrawerProps> = ({
             sx={{ fontWeight: activeTab === "modelInfo" ? "bold" : "normal" }}
             value="modelInfo"
             label="Model"
-          />
-          <Tab
-            sx={{ fontWeight: activeTab === "settings" ? "bold" : "normal" }}
-            value="settings"
-            label="Settings"
           />
           <Tab
             sx={{ fontWeight: activeTab === "usage" ? "bold" : "normal" }}

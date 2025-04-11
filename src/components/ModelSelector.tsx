@@ -97,7 +97,12 @@ export const ModelSelector: React.FC = () => {
 
   return (
     <Box
-      sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexGrow: 1,
+      }}
     >
       {/* Keep Loading/Error Indicators */}
       {error && !isLoading && (
@@ -143,7 +148,8 @@ export const ModelSelector: React.FC = () => {
         disabled={isLoading || error !== null}
         // disableClearable removed to allow clearing (null value)
         sx={{
-          minWidth: 200,
+          //minWidth: 180,
+          flexGrow: 1,
           mx: 0.6,
         }}
         renderInput={(params) => (

@@ -341,7 +341,11 @@ export default function HomePage() {
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
       <AppBar position="fixed">
-        <Toolbar variant="dense" disableGutters sx={{ px: 1 }}>
+        <Toolbar
+          variant="dense"
+          disableGutters
+          sx={{ px: 1, borderBottom: 1, borderColor: "divider" }}
+        >
           {/* Conditionally render History Button */}
           {!isHistoryPersistentOpen && !isMobile && (
             <IconButton
@@ -352,19 +356,7 @@ export default function HomePage() {
               <SubjectIcon />
             </IconButton>
           )}
-          {/* Render History Button always on mobile */}
-          {isMobile && (
-            <IconButton
-              size="small"
-              edge="start"
-              color="inherit"
-              aria-label="History"
-              onClick={clickHistory}
-            >
-              <SubjectIcon />
-            </IconButton>
-          )}
-          {!isHistoryPersistentOpen && (
+          {(!isHistoryPersistentOpen || isMobile) && (
             <IconButton
               size="small"
               color="inherit"
@@ -407,7 +399,7 @@ export default function HomePage() {
             </>
           )}
           {/* Keep Info Button */}
-          {isMobile && (
+          {!isMobile && (
             <IconButton
               size="small"
               onClick={() => {
