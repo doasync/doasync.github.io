@@ -238,7 +238,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               : theme.palette.background.paper, // Use paper background for assistant
           // Adjust width for alignment
           width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
-          maxWidth: "85%", // Limit max width
+          maxWidth: "100%",
           wordWrap: "break-word",
         }}
       >
@@ -270,7 +270,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           />
         ) : (
           <Typography
-            onDoubleClick={handleEditClick} // Allow double-click to edit
+            // onDoubleClick={handleEditClick} // Allow double-click to edit
             component="div"
             variant="body1"
             sx={{

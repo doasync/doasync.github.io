@@ -47,6 +47,8 @@ export interface MiniChatState {
   messages: MiniChatMessage[];
   loading: boolean;
   isMinimized: boolean; // Flag for minimized state
+  initialX?: number | null; // Optional initial position X
+  initialY?: number | null; // Optional initial position Y
 }
 
 //
@@ -124,7 +126,9 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
 export const miniChatOpened = createEvent<{
   initialInput?: string;
   startCompact?: boolean;
-}>(); // Add startCompact flag
+  x?: number; // Add optional position
+  y?: number; // Add optional position
+}>();
 export const miniChatClosed = createEvent();
 export const updateMiniChatInput = createEvent<string>();
 
@@ -135,6 +139,7 @@ export const minimizeMiniChat = createEvent(); // Event to minimize
 export const restoreMiniChat = createEvent(); // Event to restore from FAB
 
 export const resetMiniChat = createEvent();
+export const triggerMiniChatScroll = createEvent<void>("triggerMiniChatScroll"); // Event to trigger scroll
 
 export const $miniChat = createStore<MiniChatState>({
   isOpen: false,
@@ -143,14 +148,19 @@ export const $miniChat = createStore<MiniChatState>({
   messages: [],
   loading: false,
   isMinimized: false, // Initialize minimized state
+  initialX: null, // Initialize position
+  initialY: null, // Initialize position
 })
-  .on(miniChatOpened, (state, { initialInput, startCompact }) => ({
+  .on(miniChatOpened, (state, { initialInput, startCompact, x, y }) => ({
+    ...state, // Keep existing messages etc. if already open
     isOpen: true,
     isCompact: !!startCompact, // Set compact based on flag, default false
-    input: initialInput ?? "",
-    messages: state.isOpen ? state.messages : [], // Preserve messages if already open
+    input: initialInput ?? state.input, // Use initial input or keep current
+    messages: state.isOpen ? state.messages : [], // Reset messages only if it was previously closed
     loading: false,
-    isMinimized: false, // Ensure minimized state is reset/set when opened
+    isMinimized: false, // Ensure it's not minimized when opened/re-opened
+    initialX: x ?? null, // Store initial position if provided
+    initialY: y ?? null, // Store initial position if provided
   }))
   .on(miniChatClosed, () => ({
     // Reset all state on close
@@ -160,6 +170,8 @@ export const $miniChat = createStore<MiniChatState>({
     messages: [],
     loading: false,
     isMinimized: false, // Also reset minimized state on close
+    initialX: null, // Reset initial position
+    initialY: null, // Reset initial position
   }))
   .on(updateMiniChatInput, (state, input) => ({
     ...state,
@@ -187,6 +199,13 @@ export const $miniChat = createStore<MiniChatState>({
     isMinimized: false,
   }))
   .reset(resetMiniChat);
+
+// Scroll trigger store
+export const $miniChatScrollTrigger = createStore<number>(0, {
+  name: "$miniChatScrollTrigger",
+})
+  .on(triggerMiniChatScroll, () => Date.now())
+  .reset(resetMiniChat, miniChatClosed); // Reset on close/reset
 
 //
 // API Effect
@@ -273,6 +292,27 @@ expandMiniChatFx.use(async () => {
   // Close ephemeral mini chat after expand
   resetMiniChat();
   hideMiniChatToolbar();
+});
+
+// --- Scroll Trigger Logic ---
+
+// Trigger scroll
+sample({
+  clock: [
+    sendMiniChatMessage,
+    receiveMiniChatMessage,
+    miniChatOpened,
+    restoreMiniChat,
+  ],
+  target: triggerMiniChatScroll,
+});
+
+// Trigger scroll after quoting text into an already open chat
+sample({
+  clock: updateMiniChatInput,
+  source: $miniChat,
+  filter: (miniChatState) => miniChatState.isOpen, // Only trigger if already open
+  target: triggerMiniChatScroll,
 });
 
 sample({

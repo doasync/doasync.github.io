@@ -514,17 +514,20 @@ export default function HomePage() {
         })}
       >
         {/* Scrollable Area for Chat Messages */}
+        {/* Scrollable Area for Chat Messages */}
+        {/* Ensure overflowY is 'auto' or 'scroll', NOT 'hidden' */}
         <Box
           sx={{
             flexGrow: 1, // Takes remaining vertical space
-            overflowY: "auto", // Make THIS BOX scrollable
+            overflowY: "auto", // Allows vertical scrolling, crucial for FAB visibility if content is long
+            // overflowX: 'hidden', // Optional: hide horizontal scrollbar if needed
             display: "flex", // Use flexbox to easily center the container
             flexDirection: "column", // Stack items vertically
             alignItems: "center", // Center items horizontally
             width: "100%",
             p: isMobile ? 1 : 2, // Add horizontal padding
             pt: isMobile ? 2 : 3,
-            position: "relative",
+            position: "relative", // Necessary for absolute positioning of children (FAB)
           }}
         >
           {/* Inner container for centering message content */}
