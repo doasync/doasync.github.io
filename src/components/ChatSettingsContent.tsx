@@ -55,7 +55,10 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   handleMouseDownApiKey,
   // onClose, // Remove from destructuring
 }) => {
-  const showFreeOnlyValue = useUnit($showFreeOnly);
+  // We need setShowFreeOnly, but will manage checked state locally to avoid hydration issues
+  const setShowFreeOnlyEvent = useUnit(setShowFreeOnly);
+  // Local state for the switch, default to false for consistent server/initial client render
+  const [isSwitchChecked, setIsSwitchChecked] = React.useState(false);
   const isMobileDrawerOpen = useUnit($isMobileDrawerOpen);
 
   const [autoTitleModelId, availableModels] = useUnit([
@@ -67,6 +70,13 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
     () => availableModels.find((m) => m.id === autoTitleModelId) ?? null,
     [availableModels, autoTitleModelId]
   );
+
+  // Effect to sync local switch state with persisted Effector state *after* hydration
+  React.useEffect(() => {
+    // Read the actual value from the store *after* the component has mounted
+    const persistedValue = $showFreeOnly.getState();
+    setIsSwitchChecked(persistedValue);
+  }, []); // Empty dependency array ensures this runs only once on the client after mount
 
   return (
     <Box
@@ -162,8 +172,12 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         <FormControlLabel
           control={
             <Switch
-              checked={showFreeOnlyValue}
-              onChange={(e) => setShowFreeOnly(e.target.checked)}
+              checked={isSwitchChecked} // Use local state for checked status
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                setIsSwitchChecked(newValue); // Update local state immediately
+                setShowFreeOnlyEvent(newValue); // Update the persisted Effector store
+              }}
               color="primary"
             />
           }
