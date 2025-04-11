@@ -239,7 +239,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           // Adjust width for alignment
           width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
           maxWidth: "85%", // Limit max width
-
           wordWrap: "break-word",
         }}
       >
@@ -275,6 +274,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             component="div"
             variant="body1"
             sx={{
+              fontSize: "inherit",
               overflowWrap: "break-word",
               width: "100%",
             }}
@@ -342,7 +342,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           ) : (
             // Show standard actions when not editing
             <>
-              {/* Copy Text Button */}
+              {/* Copy Text Button
               <IconButton
                 aria-label="copy text"
                 size="small"
@@ -351,16 +351,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 title="Copy Text"
               >
                 <ContentCopyIcon fontSize="small" />
+                <CodeIcon fontSize="small" />
               </IconButton>
+               */}
               {/* Copy Code/Markdown Button */}
               <IconButton
-                aria-label="copy code"
+                aria-label="copy"
                 size="small"
                 color="inherit"
                 onClick={handleCopyCodeClick}
-                title="Copy Code/Markdown"
+                title="Copy Markdown"
               >
-                <CodeIcon fontSize="small" />
+                <ContentCopyIcon fontSize="small" />
               </IconButton>
               {/* Edit Button */}
               <IconButton

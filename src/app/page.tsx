@@ -21,6 +21,7 @@ import {
   openMobileDrawer,
   $editingMessageId,
   openModelInfoAlert,
+  closeMobileDrawer,
 } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import Box from "@mui/material/Box";
@@ -109,8 +110,7 @@ import { generateTitle } from "@/features/chat-history";
 import ModelInfoAlert from "@/components/ModelInfoAlert";
 
 // Define drawer widths (adjust as needed)
-const HISTORY_DRAWER_WIDTH = 300;
-const SETTINGS_DRAWER_WIDTH = 300;
+const DRAWER_WIDTH = 300;
 
 export default function HomePage() {
   useMiniChatTextSelection();
@@ -222,6 +222,9 @@ export default function HomePage() {
 
   const handleSelectChat = (id: string) => {
     selectChat(id);
+    if (isMobile) {
+      closeMobileDrawer();
+    }
   };
 
   const handleClickShowApiKey = () => setShowApiKey((prev) => !prev);
@@ -336,7 +339,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ height: "100vh", overflow: "hidden", fontSize: 22 }}>
       {" "}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
@@ -344,10 +347,14 @@ export default function HomePage() {
         <Toolbar
           variant="dense"
           disableGutters
-          sx={{ px: 1, borderBottom: 1, borderColor: "divider" }}
+          sx={{
+            px: 1,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
         >
           {/* Conditionally render History Button */}
-          {!isHistoryPersistentOpen && !isMobile && (
+          {(!isHistoryPersistentOpen || isMobile) && (
             <IconButton
               color="inherit"
               aria-label="History"
@@ -376,6 +383,23 @@ export default function HomePage() {
           >
             <ModelSelector />
           </Box>
+          {/* Keep Info Button */}
+          {!isMobile && (
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (isMobile) {
+                  openMobileDrawer({ tab: "modelInfo" });
+                } else {
+                  openModelInfoAlert();
+                }
+              }}
+              disabled={!selectedModel}
+              sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
+            >
+              <InfoOutlinedIcon />
+            </IconButton>
+          )}
           {/* Conditionally render Settings Button */}
           {!isSettingsPersistentOpen && !isMobile && (
             <>
@@ -398,23 +422,7 @@ export default function HomePage() {
               </IconButton>
             </>
           )}
-          {/* Keep Info Button */}
-          {!isMobile && (
-            <IconButton
-              size="small"
-              onClick={() => {
-                if (isMobile) {
-                  openMobileDrawer({ tab: "modelInfo" });
-                } else {
-                  openModelInfoAlert();
-                }
-              }}
-              disabled={!selectedModel}
-              sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
-            >
-              <InfoOutlinedIcon />
-            </IconButton>
-          )}
+
           {/* Render Settings Button always on mobile */}
           {isMobile && (
             <IconButton
@@ -428,49 +436,7 @@ export default function HomePage() {
             </IconButton>
           )}
         </Toolbar>
-        <UsageInfoDialog
-          open={usageDialogOpen}
-          onClose={() => setUsageDialogOpen(false)}
-        />
       </AppBar>
-      {/* Desktop Drawers */}
-      {!isMobile && (
-        <Drawer
-          variant="persistent"
-          open={isHistoryPersistentOpen}
-          anchor="left"
-          sx={{
-            width: HISTORY_DRAWER_WIDTH,
-            flexShrink: 0,
-            "& .MuiDrawer-paper": {
-              width: HISTORY_DRAWER_WIDTH,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          <Box sx={{ overflow: "auto" }}>
-            {/* Make drawer content scrollable if needed */}
-            <ChatHistoryContent {...historyPanelProps} />
-          </Box>
-        </Drawer>
-      )}
-      {!isMobile && (
-        <Drawer
-          variant="persistent"
-          open={isSettingsPersistentOpen}
-          anchor="right"
-          sx={{
-            width: SETTINGS_DRAWER_WIDTH,
-            flexShrink: 0,
-            "& .MuiDrawer-paper": {
-              width: SETTINGS_DRAWER_WIDTH,
-              boxSizing: "border-box",
-            },
-          }}
-        >
-          <ChatSettingsContent {...settingsPanelProps} />
-        </Drawer>
-      )}
       {/* Main Content Area Wrapper */}
       <Box
         component="main"
@@ -489,7 +455,7 @@ export default function HomePage() {
           marginRight: 0, // Start at 0
           ...(isHistoryPersistentOpen &&
             !isMobile && {
-              marginLeft: `${HISTORY_DRAWER_WIDTH}px`, // Add left margin when history open
+              marginLeft: `${DRAWER_WIDTH}px`, // Add left margin when history open
               transition: theme.transitions.create("margin", {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
@@ -497,7 +463,7 @@ export default function HomePage() {
             }),
           ...(isSettingsPersistentOpen &&
             !isMobile && {
-              marginRight: `${SETTINGS_DRAWER_WIDTH}px`, // Add right margin when settings open
+              marginRight: `${DRAWER_WIDTH}px`, // Add right margin when settings open
               transition: theme.transitions.create("margin", {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
@@ -676,6 +642,48 @@ export default function HomePage() {
         <ApiKeyMissingDialog />
       </Box>{" "}
       {/* End Main Content Box */}
+      <UsageInfoDialog
+        open={usageDialogOpen}
+        onClose={() => setUsageDialogOpen(false)}
+      />
+      {/* Desktop Drawers */}
+      {!isMobile && (
+        <Drawer
+          variant="persistent"
+          open={isHistoryPersistentOpen}
+          anchor="left"
+          sx={{
+            width: DRAWER_WIDTH,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
+              width: DRAWER_WIDTH,
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <Box sx={{ overflow: "auto" }}>
+            {/* Make drawer content scrollable if needed */}
+            <ChatHistoryContent {...historyPanelProps} />
+          </Box>
+        </Drawer>
+      )}
+      {!isMobile && (
+        <Drawer
+          variant="persistent"
+          open={isSettingsPersistentOpen}
+          anchor="right"
+          sx={{
+            width: DRAWER_WIDTH,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
+              width: DRAWER_WIDTH,
+              boxSizing: "border-box",
+            },
+          }}
+        >
+          <ChatSettingsContent {...settingsPanelProps} />
+        </Drawer>
+      )}
       {/* Mobile Drawer (Temporary/Modal) */}
       {isMobile && (
         <MobileUnifiedDrawer
