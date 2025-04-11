@@ -339,7 +339,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden", fontSize: 22 }}>
+    <Box sx={{ height: "100vh", overflow: "hidden", fontSize: 20 }}>
       {" "}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
@@ -436,44 +436,27 @@ export default function HomePage() {
           >
             <ModelSelector />
           </Box>
-          {/* Keep Info Button */}
           {!isMobile && (
             <IconButton
-              size="small"
+              color="inherit"
+              aria-label="usage info"
               onClick={() => {
-                if (isMobile) {
-                  openMobileDrawer({ tab: "modelInfo" });
-                } else {
-                  openModelInfoAlert();
-                }
+                refreshUsageInfo();
+                setUsageDialogOpen(true);
               }}
-              disabled={!selectedModel}
-              sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
             >
-              <InfoOutlinedIcon />
+              <QueryStatsIcon />
             </IconButton>
           )}
           {/* Conditionally render Settings Button */}
           {!isSettingsPersistentOpen && !isMobile && (
-            <>
-              <IconButton
-                color="inherit"
-                aria-label="usage info"
-                onClick={() => {
-                  refreshUsageInfo();
-                  setUsageDialogOpen(true);
-                }}
-              >
-                <QueryStatsIcon />
-              </IconButton>
-              <IconButton
-                color="inherit"
-                aria-label="settings"
-                onClick={clickSettings}
-              >
-                <SettingsIcon />
-              </IconButton>
-            </>
+            <IconButton
+              color="inherit"
+              aria-label="settings"
+              onClick={clickSettings}
+            >
+              <SettingsIcon />
+            </IconButton>
           )}
 
           {/* Render Settings Button always on mobile */}
@@ -658,6 +641,7 @@ export default function HomePage() {
               variant="outlined"
               placeholder="Type your message..."
               sx={{ flexGrow: 1 }}
+              slotProps={{ input: { sx: { fontSize: 22, py: 1 } } }}
               value={messageText}
               onChange={changeMessage}
             />

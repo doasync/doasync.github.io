@@ -148,7 +148,7 @@ export const ModelSelector: React.FC = () => {
         disabled={isLoading || error !== null}
         // disableClearable removed to allow clearing (null value)
         sx={{
-          //minWidth: 180,
+          maxWidth: 460,
           flexGrow: 1,
           mx: 0.6,
         }}
@@ -189,6 +189,23 @@ export const ModelSelector: React.FC = () => {
         )}
         // Removed invalid PaperProps
       />
+      {/* Keep Info Button */}
+      {!isMobile && (
+        <IconButton
+          size="small"
+          onClick={() => {
+            if (isMobile) {
+              openMobileDrawer({ tab: "modelInfo" });
+            } else {
+              openModelInfoAlert();
+            }
+          }}
+          disabled={!selectedModel}
+          sx={{ color: "inherit" }} // Ensure icon inherits AppBar color
+        >
+          <InfoOutlinedIcon />
+        </IconButton>
+      )}
     </Box>
   );
 };
