@@ -41,17 +41,15 @@ export function useMiniChatTextSelection() {
       });
     } // End of handleSelection function
 
-    document.addEventListener("mouseup", handleSelection);
-    document.addEventListener("keyup", handleSelection);
-    document.addEventListener("touchend", handleSelection); // Add listener for touch devices
+    // Use selectionchange event for more reliable detection
+    document.addEventListener("selectionchange", handleSelection);
 
     const hideToolbarListener = () => hideMiniChatToolbar();
     document.addEventListener("scroll", hideToolbarListener, true);
 
     return () => {
-      document.removeEventListener("mouseup", handleSelection);
-      document.removeEventListener("keyup", handleSelection);
-      document.removeEventListener("touchend", handleSelection); // Remove listener on cleanup
+      // Remove selectionchange listener
+      document.removeEventListener("selectionchange", handleSelection);
       document.removeEventListener("scroll", hideToolbarListener, true);
     };
   }, []);

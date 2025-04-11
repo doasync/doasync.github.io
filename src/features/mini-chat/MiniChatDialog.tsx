@@ -1,6 +1,7 @@
 import React from "react";
 import Draggable from "react-draggable";
 import {
+  Box, // Add Box import
   Paper,
   Stack,
   Typography,
@@ -41,38 +42,54 @@ export const MiniChatDialog: React.FC = () => {
         elevation={6}
         style={{
           position: "fixed",
-          top: "30%",
-          left: "40%",
-          width: 300,
-          maxHeight: 400,
+          bottom: "20px", // Use bottom/right for initial placement
+          right: "20px", // Use bottom/right for initial placement
+          maxWidth: "min(350px, 80vw)", // Responsive max width
+          maxHeight: "60vh", // Responsive max height
           overflow: "auto",
           zIndex: 9999,
           display: "flex",
           flexDirection: "column",
+          transform: "translate(0, 0)", // Helps prevent initial off-screen placement before drag
         }}
       >
+        {/* Header Stack - Main container */}
         <Stack
           direction="row"
-          justifyContent="space-between"
+          justifyContent="space-between" // Pushes title and buttons apart
           alignItems="center"
-          className="drag-handle"
+          // Removed className="drag-handle" and cursor: "move" from here
           sx={{
-            cursor: "move",
+            // Removed cursor: "move"
             p: 0.5,
             pl: 1.3,
             borderBottom: 1,
             borderColor: "divider",
           }}
         >
-          <Typography variant="subtitle1">Mini chat</Typography>
+          {/* Title Wrapper - This is now the drag handle */}
+          <Box
+            className="drag-handle"
+            sx={{ cursor: "move", flexGrow: 1, mr: 1 /* Add some margin */ }}
+          >
+            <Typography variant="subtitle1">Mini chat</Typography>
+          </Box>
           <Stack direction="row" spacing={1}>
             {/* Conditionally render Expand button */}
             {!isCompact && (
-              <IconButton size="small" onClick={() => expandMiniChat()}>
+              <IconButton
+                aria-label="Expand"
+                size="small"
+                onClick={() => expandMiniChat()} // Re-wrap in arrow function
+              >
                 <OpenInFullIcon fontSize="small" />
               </IconButton>
             )}
-            <IconButton size="small" onClick={() => miniChatClosed()}>
+            <IconButton
+              aria-label="Close"
+              size="small"
+              onClick={() => miniChatClosed()} // Re-wrap in arrow function
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Stack>
@@ -87,6 +104,7 @@ export const MiniChatDialog: React.FC = () => {
             {messages.map((msg, idx) => (
               <Paper
                 key={idx}
+                className="chat-message" // Added className here
                 sx={{
                   p: 1,
                   minWidth: "30%",
