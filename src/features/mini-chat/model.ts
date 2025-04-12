@@ -1,10 +1,4 @@
-import {
-  createStore,
-  createEvent,
-  createEffect,
-  sample,
-  guard,
-} from "effector"; // Import guard
+import { createStore, createEvent, createEffect, sample } from "effector";
 import { sendAssistantMessage } from "./api";
 import {
   $apiKey,
@@ -339,7 +333,7 @@ const $shouldMinimize = sample({
 });
 
 // Trigger 1: Mobile Drawer Opens
-guard({
+sample({
   clock: $isMobileDrawerOpen,
   source: $shouldMinimize,
   filter: (shouldMinimize, isDrawerOpen) => shouldMinimize && isDrawerOpen,
@@ -347,7 +341,7 @@ guard({
 });
 
 // Trigger 2: Main Model Selector Becomes Active
-guard({
+sample({
   clock: $isModelSelectorActive,
   source: $shouldMinimize,
   filter: (shouldMinimize, isSelectorActive) =>
@@ -356,7 +350,7 @@ guard({
 });
 
 // Trigger 3: Main Chat Input Gets Focus
-guard({
+sample({
   clock: $isMainInputFocused,
   source: $shouldMinimize,
   filter: (shouldMinimize, isInputFocused) => shouldMinimize && isInputFocused,

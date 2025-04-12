@@ -1,4 +1,4 @@
-import { createDomain, createStore, sample, guard } from "effector";
+import { createDomain, createStore, sample } from "effector";
 import { debug } from "patronum/debug";
 import { debounce } from "patronum/debounce";
 import { $messageText } from "@/features/chat";

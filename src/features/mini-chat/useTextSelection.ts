@@ -46,7 +46,7 @@ export function useMiniChatTextSelection() {
     function handleSelection() {
       cancelMiniChatToolbar();
 
-      const delay = 300;
+      const delay = 400;
 
       // Debounce mini chat toolbar
       debounceTimeoutRef.current = setTimeout(() => {
