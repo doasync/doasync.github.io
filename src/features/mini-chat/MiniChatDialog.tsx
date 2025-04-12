@@ -220,12 +220,13 @@ export const MiniChatDialog: React.FC = () => {
                 */
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    p: 0.6,
-                    pr: 1,
+                    p: 0.5,
+                    pl: 1.2,
+                    pr: 0.7,
+                    //border: "1px solid red",
                   },
                   // Clickable area for the input
                   "& textarea": {
-                    pl: 1,
                     overflow: "auto", // Ensure textarea itself is scrollable
                   },
                 }}

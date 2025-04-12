@@ -1,6 +1,7 @@
 import { createDomain, createStore, sample } from "effector";
 import { debug } from "patronum/debug";
 import { debounce } from "patronum/debounce";
+import { persist } from "effector-storage/local";
 import { $messageText } from "@/features/chat";
 import {
   $messages,
@@ -36,18 +37,25 @@ import {
 } from "./lib";
 import { appStarted } from "@/app";
 
-// --- History Domain ---
 const historyDomain = createDomain("history");
+
+export const loadChatHistory = historyDomain.event("loadChatHistory");
+export const chatSelected = historyDomain.event<string>("chatSelected");
+
+// --- Persisted Active Chat ID Store ---
+export const $activeChatId = historyDomain
+  .store<string | null>(null, {
+    name: "$activeChatId",
+  })
+  .on(chatSelected, (_, id) => id);
+
+// Persist the active chat ID in localStorage using effector-storage
+persist({ store: $activeChatId, key: "currentChatId" });
 
 // --- Restoration Guard ---
 export const $isRestoring = historyDomain.store(false, {
   name: "$isRestoring",
 });
-
-// --- Events ---
-
-export const loadChatHistory = historyDomain.event("loadChatHistory");
-export const chatSelected = historyDomain.event<string>("chatSelected");
 
 // Sets isRestoring to true when chat is selected (restoration phase starts)
 $isRestoring.on(chatSelected, () => true);
@@ -321,6 +329,45 @@ sample({
 sample({
   clock: [appStarted, loadChatHistory],
   target: loadChatHistoryIndexFx,
+});
+
+// On appStarted (after chat history index is loaded), restore session from persisted $activeChatId if possible
+export const restoreChatSession = historyDomain.event<string | null>(
+  "restoreChatSession"
+);
+
+sample({
+  clock: loadChatHistoryIndexFx.done,
+  source: {
+    activeId: $activeChatId,
+    chatHistory: $chatHistoryIndex,
+  },
+  fn: ({ activeId, chatHistory }) => {
+    if (activeId && chatHistory.some((c) => c.id === activeId)) {
+      return activeId;
+    }
+    if (chatHistory.length > 0) {
+      return chatHistory[0].id;
+    }
+    return null;
+  },
+  target: restoreChatSession,
+});
+
+// Only allow valid string to reach chatSelected
+sample({
+  clock: restoreChatSession,
+  filter: (id): id is string => typeof id === "string" && !!id,
+  target: chatSelected,
+});
+
+// If a chat is deleted and it was the active chat, clear $activeChatId (will be re-set by fallback below if needed)
+sample({
+  clock: deleteChat,
+  source: $activeChatId,
+  filter: (activeId, deletedId) => activeId === deletedId,
+  fn: () => null,
+  target: $activeChatId,
 });
 
 // Load specific chat details when selected from the history list

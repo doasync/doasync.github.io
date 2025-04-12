@@ -10,10 +10,13 @@ import Paper, { PaperProps } from "@mui/material/Paper";
 import Draggable from "react-draggable";
 import { TransitionProps } from "@mui/material/transitions";
 import { useUnit } from "effector-react";
+import { useMediaQuery, useTheme } from "@mui/material";
+
 import {
   $isApiKeyDialogOpen,
   hideApiKeyDialog,
   openSettingsDrawer,
+  openMobileDrawer,
 } from "@/features/ui-state";
 
 const Transition = React.forwardRef(function Transition(
@@ -43,9 +46,16 @@ export default function ApiKeyMissingDialog() {
     openSettingsDrawer,
   ]);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const handleGotoSettings = () => {
     closeDialog();
-    openSettings();
+    if (isMobile) {
+      openMobileDrawer({ tab: "settings" });
+    } else {
+      openSettings();
+    }
   };
 
   return (
@@ -69,7 +79,7 @@ export default function ApiKeyMissingDialog() {
       </DialogContent>
       <DialogActions>
         <Button onClick={closeDialog}>Close</Button>
-        <Button onClick={handleGotoSettings} autoFocus>
+        <Button variant="contained" onClick={handleGotoSettings} autoFocus>
           Go to Settings
         </Button>
       </DialogActions>
