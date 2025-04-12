@@ -17,6 +17,7 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import RemoveIcon from "@mui/icons-material/Remove"; // Import Minimize icon
 import LinearProgress from "@mui/material/LinearProgress";
 import SendIcon from "@mui/icons-material/Send";
+import StopIcon from "@mui/icons-material/Stop"; // Import Stop icon
 
 import { useUnit } from "effector-react";
 import {
@@ -26,7 +27,8 @@ import {
   miniChatClosed,
   expandMiniChat,
   minimizeMiniChat, // Import minimize event
-  $miniChatScrollTrigger, // Import scroll trigger store
+  $miniChatScrollTrigger,
+  stopMiniChatGenerationClicked, // Import cancellation event
 } from "./model";
 
 export const MiniChatDialog: React.FC = () => {
@@ -232,22 +234,34 @@ export const MiniChatDialog: React.FC = () => {
                 }}
                 slotProps={{
                   input: {
-                    endAdornment: (
-                      <IconButton
-                        aria-label="send"
-                        size="small"
-                        edge="end"
-                        disabled={!input.trim() || loading}
-                        onClick={() => {
-                          if (input.trim()) {
-                            sendMiniChatMessage(input.trim());
-                          }
-                        }}
-                        sx={{ alignSelf: "flex-end" }} // Align to the end of the input
-                      >
-                        <SendIcon fontSize="small" />
-                      </IconButton>
-                    ),
+                    endAdornment:
+                      // Conditionally render Send or Stop button
+                      loading ? (
+                        <IconButton
+                          aria-label="Stop Generation"
+                          size="small"
+                          edge="end"
+                          onClick={() => stopMiniChatGenerationClicked()}
+                          sx={{ alignSelf: "flex-end", color: "warning.main" }}
+                        >
+                          <StopIcon fontSize="small" />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          aria-label="send"
+                          size="small"
+                          edge="end"
+                          disabled={!input.trim()} // Disable only based on input when not loading
+                          onClick={() => {
+                            if (input.trim()) {
+                              sendMiniChatMessage(input.trim());
+                            }
+                          }}
+                          sx={{ alignSelf: "flex-end" }}
+                        >
+                          <SendIcon fontSize="small" />
+                        </IconButton>
+                      ),
                   },
                 }}
               />

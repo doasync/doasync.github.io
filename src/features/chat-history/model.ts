@@ -9,8 +9,9 @@ import {
   initialChatSaveNeeded,
   editMessage,
   deleteMessage,
-  retryUpdate, // For saving after retry/generate updates
-  normalResponseProcessed, // For saving after normal API responses <-- Added Import
+  // retryUpdate, // Removed
+  normalResponseProcessed, // For saving after normal API responses
+  assistantResponseCompleted, // Added: For saving after generate/retry completion
 } from "@/features/chat";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $autoTitleModelId } from "@/features/models-select/model";
@@ -485,7 +486,8 @@ sample({
     normalResponseProcessed, // Normal API response processed
     editMessage, // Message edited
     deleteMessage, // Message deleted
-    retryUpdate, // Message list updated after retry/generate
+    // retryUpdate, // Replaced by assistantResponseCompleted
+    assistantResponseCompleted, // Save after generate/retry response is complete
     debouncedDraft, // Debounced draft changes can trigger save
   ],
   source: {

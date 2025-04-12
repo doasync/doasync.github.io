@@ -620,6 +620,7 @@ export default function HomePage() {
             borderTop: 1,
             borderColor: "divider",
             p: 1,
+            justifyItems: "center",
           }}
         >
           {/* Added flexShrink */}

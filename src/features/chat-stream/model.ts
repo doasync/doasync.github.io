@@ -112,6 +112,5 @@ abortStream.watch(({ streamId }) => {
   }
 });
 
-// Optional: Debugging
-// import { debug } from 'patronum';
-// debug(abortStream, streamChatFx);
+import { debug } from "patronum";
+debug(abortStream, streamChatFx);

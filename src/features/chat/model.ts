@@ -74,6 +74,10 @@ export const mainInputFocused = chatDomain.event<boolean>("mainInputFocused");
 export const stopGenerationClicked = chatDomain.event<void>(
   "stopGenerationClicked"
 );
+// Event to signal assistant response cycle completion (success, error, or abort)
+export const assistantResponseCompleted = chatDomain.event<void>(
+  "assistantResponseCompleted"
+);
 
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
@@ -163,7 +167,6 @@ $messages
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
   .on(userMessageCreated, (messages, newMsg) => [...messages, newMsg])
   .on(placeholderGenerated, (messages, placeholder) => [
-    ...messages,
     ...messages,
     placeholder,
   ]); // Placeholder added
@@ -286,10 +289,10 @@ $messages
 $apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // Helper type for the combined payload sent to the split event
+// Removed placeholderMessage as it's handled separately
 type StreamTriggerPayload = {
   streamParams: StreamChatParams;
   streamId: string;
-  placeholderMessage: Message;
 };
 
 // Combined event/effect trigger using split
@@ -298,14 +301,12 @@ const triggerStream = chatDomain.event<StreamTriggerPayload>();
 split({
   source: triggerStream,
   match: {
-    placeholder: (p): p is StreamTriggerPayload => !!p.placeholderMessage,
+    // placeholder: (p): p is StreamTriggerPayload => !!p.placeholderMessage, // Removed placeholder case
     start: (p): p is StreamTriggerPayload => !!p.streamId,
     effect: (p): p is StreamTriggerPayload => !!p.streamParams,
   },
   cases: {
-    placeholder: placeholderGenerated.prepend<StreamTriggerPayload>(
-      (p) => p.placeholderMessage
-    ),
+    // placeholder: placeholderGenerated.prepend<StreamTriggerPayload>(...), // Removed placeholder case
     start: streamRequestInitiated.prepend<StreamTriggerPayload>((p) => ({
       streamId: p.streamId,
     })),
@@ -366,7 +367,8 @@ sample({
 
     const onComplete = () => {
       _messageCompleted({ placeholderId });
-      normalResponseProcessed(); // Trigger save/downstream logic
+      normalResponseProcessed(); // Trigger save/downstream logic for normal flow
+      assistantResponseCompleted(); // Signal completion for history save etc.
       scrollToLastMessageNeeded(); // Trigger scroll
     };
 
@@ -396,7 +398,7 @@ sample({
     };
 
     // 5. Return payload for the split target
-    return { streamParams, streamId, placeholderMessage };
+    return { streamParams, streamId }; // Removed placeholderMessage
   },
   target: triggerStream,
 });
@@ -476,6 +478,7 @@ sample({
     const onComplete = () => {
       _messageCompleted({ placeholderId });
       // Trigger save/downstream for generate? Maybe not needed if placeholder is just updated
+      assistantResponseCompleted(); // Signal completion
       scrollToLastMessageNeeded();
     };
     const onError = ({ error }: StreamErrorPayload) => {
@@ -502,7 +505,7 @@ sample({
     };
 
     // 5. Return payload for split
-    return { streamParams, streamId, placeholderMessage: placeholder }; // Include ph for consistency
+    return { streamParams, streamId }; // Removed placeholderMessage
   },
   target: triggerStream, // Target the split event
 });
@@ -594,6 +597,7 @@ sample({
       _messageCompleted({ placeholderId });
       // TODO: Trigger different downstream logic for retry completion?
       // Maybe a `retryResponseProcessed` event?
+      assistantResponseCompleted(); // Signal completion
       scrollToLastMessageNeeded();
     };
     const onError = ({ error }: StreamErrorPayload) => {
@@ -620,7 +624,7 @@ sample({
     };
 
     // 5. Return payload for split
-    return { streamParams, streamId, placeholderMessage };
+    return { streamParams, streamId }; // Removed placeholderMessage
   },
   target: triggerStream, // Target the split event
 });

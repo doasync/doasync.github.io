@@ -32,14 +32,15 @@ export {
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,
   apiKeyMissing,
-  apiRequestTokensUpdated, // May be needed to trigger save in history
+  // apiRequestTokensUpdated, // Removed - No longer exists in model
   userMessageCreated, // May be needed to trigger save in history
   mainInputFocused,
   // scrollToBottomNeeded, // REMOVED
-  retryUpdate, // <-- Add retryUpdate here for history feature to use
+  // retryUpdate, // Removed - No longer exists in model
   scrollToLastMessageNeeded, // <-- Export assistant scroll event
   normalResponseProcessed, // <-- Export event for saving normal responses
   stopGenerationClicked,
+  assistantResponseCompleted, // Added export
   // Effects - Generally not exported unless specifically needed externally
   // sendApiRequestFx // Keep internal for now
 } from "./model";
