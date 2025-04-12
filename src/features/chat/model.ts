@@ -408,7 +408,7 @@ sample({
 });
 
 // --- Debugging ---
-/*
+
 debug(
   // Stores
   $messageText,
@@ -450,4 +450,3 @@ debug(
   // Effects
   sendApiRequestFx
 );
-*/

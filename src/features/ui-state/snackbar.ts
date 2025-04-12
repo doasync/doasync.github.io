@@ -60,7 +60,7 @@ sample({
 });
 
 // --- Debugging ---
-/*
+
 debug({
   showSnackbar,
   hideSnackbar,
@@ -68,4 +68,3 @@ debug({
   startAutoHide,
   autoHide,
 });
-*/

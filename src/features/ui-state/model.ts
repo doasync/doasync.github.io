@@ -217,7 +217,7 @@ sample({
 });
 
 // --- Debugging ---
-/*
+
 debug(
   // Stores
   $isApiKeyDialogOpen,
@@ -254,4 +254,3 @@ debug(
   saveHistoryDrawerStateFx,
   saveSettingsDrawerStateFx
 );
-*/

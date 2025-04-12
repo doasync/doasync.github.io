@@ -39,10 +39,18 @@ import { appStarted } from "@/app";
 // --- History Domain ---
 const historyDomain = createDomain("history");
 
+// --- Restoration Guard ---
+export const $isRestoring = historyDomain.store(false, {
+  name: "$isRestoring",
+});
+
 // --- Events ---
 
 export const loadChatHistory = historyDomain.event("loadChatHistory");
 export const chatSelected = historyDomain.event<string>("chatSelected");
+
+// Sets isRestoring to true when chat is selected (restoration phase starts)
+$isRestoring.on(chatSelected, () => true);
 export const deleteChat = historyDomain.event<string>("deleteChat");
 export const newChatCreated = historyDomain.event("newChatCreated");
 export const chatTitleEdited =
@@ -189,6 +197,7 @@ export const $chatHistoryIndex = historyDomain.store<ChatHistoryIndex[]>([], {
 
 export const $currentChatSession = historyDomain.store<ChatSession | null>(
   null,
+
   {
     name: "$currentChatSession",
   }
@@ -266,6 +275,17 @@ sample({
   clock: loadSpecificChatFx.doneData,
   fn: (chat) => chat,
   target: $currentChatSession,
+});
+
+// After all restoring is done, set isRestoring to false
+sample({
+  clock: [
+    loadSpecificChatFx.doneData, // restoration flows triggered here
+    // If more clocks are needed for other store updates, add them here
+  ],
+  filter: (chat) => chat !== null, // Only after valid session loaded
+  fn: () => false,
+  target: $isRestoring,
 });
 
 sample({
@@ -392,11 +412,15 @@ sample({
 });
 
 // Save chat when current session is updated (draft or anything else)
-sample({
-  clock: $currentChatSession,
-  filter: (session): session is ChatSession => session !== null,
-  target: saveChatFx,
-});
+/**
+ * Remove unconditional save on every update to $currentChatSession.
+ * Instead, saving is guarded by isRestoring, and only triggered on explicit user/edit/draft events.
+ */
+// sample({
+//   clock: $currentChatSession,
+//   filter: (session): session is ChatSession => session !== null,
+//   target: saveChatFx,
+// });
 
 // Reset $currentChatTokens in chat feature when new chat is created
 sample({
@@ -415,6 +439,7 @@ sample({
     editMessage, // Message edited
     deleteMessage, // Message deleted
     retryUpdate, // Message list updated after retry/generate
+    debouncedDraft, // Debounced draft changes can trigger save
   ],
   source: {
     currentSession: $currentChatSession,
@@ -428,13 +453,16 @@ sample({
       (models) =>
         models.find((m) => m.id === $selectedModelId.getState()) ?? null
     ),
+    isRestoring: $isRestoring,
   },
-  filter: ({ messages }) => messages.length > 0, // Only save if there are messages
+  filter: ({ messages, isRestoring }) => messages.length > 0 && !isRestoring, // Only save if not restoring
   fn: (source) => {
     // Corrected logging function
     console.log(
       "[saveChatFx Trigger] Fired. Source Messages Length:",
-      source.messages.length
+      source.messages.length,
+      "Restoring:",
+      source.isRestoring
     ); // DEBUG LOG
     if (source.messages.length > 0) {
       console.log(
@@ -442,7 +470,10 @@ sample({
         source.messages[source.messages.length - 1].id
       ); // Log ID for easier tracking
     }
-    return prepareChatSessionFn(source);
+    // Remove isRestoring from session passed to prepareChatSessionFn
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { isRestoring, ...rest } = source;
+    return prepareChatSessionFn(rest);
   },
   target: saveChatFx,
 });
@@ -530,13 +561,16 @@ sample({
   target: $currentChatSession,
 });
 
-sample({
-  clock: $currentChatSession.updates,
-  filter: (session): session is ChatSession => session !== null,
-  target: saveChatFx,
-}); // Added regenerate effect
+/**
+ * Remove unconditional regenerate/save trigger on every update of $currentChatSession.
+ * Saving is now only triggered by guarded, explicit user-driven events.
+ */
+// sample({
+//   clock: $currentChatSession.updates,
+//   filter: (session): session is ChatSession => session !== null,
+//   target: saveChatFx,
+// }); // Removed to prevent save loops
 
-/*
 debug(
   // Stores
   $chatHistoryIndex,
@@ -562,7 +596,6 @@ debug(
   deleteChatFx,
   editChatTitleFx,
   generateTitleFx,
-  duplicateChatFx // Added duplicate effect
+  duplicateChatFx, // Added duplicate effect
   regenerateTitleForChatFx
 );
-*/

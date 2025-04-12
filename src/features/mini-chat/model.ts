@@ -12,8 +12,13 @@ import {
 } from "@/features/models-select/model";
 import { saveChatFx } from "@/features/chat-history/model";
 import { appStarted } from "@/app"; // Import appStarted for triggering load
-import { $isMobileDrawerOpen } from "@/features/ui-state/model"; // Import mobile drawer state
+import {
+  $isMobileDrawerOpen,
+  setMobileDrawerTab,
+  closeMobileDrawer,
+} from "@/features/ui-state/model"; // Import mobile drawer state and tab switching
 import { $isMainInputFocused } from "@/features/chat/model"; // Import main input focus state
+import { chatSelected } from "@/features/chat-history/model"; // Import chat selection for main chat switch
 
 const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
 const DEFAULT_MINI_CHAT_MODEL = "openai/gpt-3.5-turbo"; // Or choose another default
@@ -282,6 +287,14 @@ expandMiniChatFx.use(async () => {
   };
 
   await saveChatFx(newChatSession);
+
+  // After saving, trigger main chat selection and UI tab/nav
+  chatSelected(id);
+
+  // On mobile: switch to the "history" tab (main chat), or close drawer if main chat is outside drawer
+  // This covers both tabbed mobile drawer ("history") and drawer-closed UX
+  setMobileDrawerTab("history");
+  closeMobileDrawer();
 
   // Close ephemeral mini chat after expand
   resetMiniChat();

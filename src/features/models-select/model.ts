@@ -154,7 +154,7 @@ $modelsError.reset(fetchModelsFx.done);
 $isModelSelectorActive.on(modelSelectorFocused, (_, isFocused) => isFocused);
 
 // --- Debugging ---
-/*
+
 debug(
   // Stores
   $availableModels,
@@ -169,4 +169,3 @@ debug(
   // Effects
   fetchModelsFx
 );
-*/
