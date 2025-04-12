@@ -36,7 +36,8 @@ import SubjectIcon from "@mui/icons-material/Subject";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SendIcon from "@mui/icons-material/Send"; // Keep for reference if needed, but we'll use AutoAwesome
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"; // Import the new icon
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import StopIcon from "@mui/icons-material/Stop"; // Use standard Stop icon
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"; // Import InfoOutlinedIcon
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import Stack from "@mui/material/Stack";
@@ -70,7 +71,8 @@ import {
   $preventScroll, // Import scroll prevention state
   setPreventScroll, // Import scroll prevention setter
   $scrollTrigger, // Import explicit scroll trigger
-  mainInputFocused, // Import the new event
+  mainInputFocused,
+  stopGenerationClicked, // Import the cancellation event
 } from "@/features/chat";
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
@@ -654,31 +656,45 @@ export default function HomePage() {
               onFocus={() => mainInputFocused(true)} // Trigger event on focus
               onBlur={() => mainInputFocused(false)} // Trigger event on blur
             />
-            <Box>
-              {/* Calculate disabled state based on new logic */}
-              {(() => {
-                const isInputEmpty = messageText.trim().length === 0;
-                const lastMessage =
-                  messages.length > 0 ? messages[messages.length - 1] : null;
-                const isLastMessageUser = lastMessage?.role === "user";
-                // Disable if generating OR (input is empty AND last message was NOT user)
-                const isDisabled =
-                  isGenerating || (isInputEmpty && !isLastMessageUser);
+            <Box sx={{ position: "relative" }}>
+              {" "}
+              {/* Keep relative positioning */}
+              {isGenerating ? (
+                <IconButton
+                  aria-label="Stop Generation"
+                  onClick={() => stopGenerationClicked()} // Ensure event is called correctly
+                  sx={{
+                    mx: -0.5,
+                    color: "warning.main", // Keep warning color for stop
+                  }}
+                >
+                  <StopIcon /> {/* Use correct icon */}
+                </IconButton>
+              ) : (
+                // Calculate disabled state based on new logic only when not generating
+                (() => {
+                  const isInputEmpty = messageText.trim().length === 0;
+                  const lastMessage =
+                    messages.length > 0 ? messages[messages.length - 1] : null;
+                  const isLastMessageUser = lastMessage?.role === "user";
+                  // Disable if (input is empty AND last message was NOT user)
+                  const isDisabled = isInputEmpty && !isLastMessageUser;
 
-                return (
-                  <IconButton
-                    aria-label="Generate" // Updated tooltip
-                    onClick={handleSendButtonClick} // Use updated handler
-                    disabled={isDisabled} // Use new disabled logic
-                    sx={{
-                      mx: -0.5,
-                      color: "primary.light",
-                    }}
-                  >
-                    <AutoAwesomeIcon /> {/* Use new icon */}
-                  </IconButton>
-                );
-              })()}
+                  return (
+                    <IconButton
+                      aria-label="Send / Generate"
+                      onClick={handleSendButtonClick}
+                      disabled={isDisabled}
+                      sx={{
+                        mx: -0.5,
+                        color: "primary.light",
+                      }}
+                    >
+                      <AutoAwesomeIcon />
+                    </IconButton>
+                  );
+                })()
+              )}
             </Box>
           </Box>{" "}
           {/* End Input Paper */}

@@ -39,6 +39,7 @@ export {
   retryUpdate, // <-- Add retryUpdate here for history feature to use
   scrollToLastMessageNeeded, // <-- Export assistant scroll event
   normalResponseProcessed, // <-- Export event for saving normal responses
+  stopGenerationClicked,
   // Effects - Generally not exported unless specifically needed externally
   // sendApiRequestFx // Keep internal for now
 } from "./model";
