@@ -12,42 +12,9 @@ export interface Message {
   isLoading?: boolean; // Added for placeholder/retry state
 }
 
-// Internal types related to OpenRouter API structure
-export interface OpenRouterMessage {
-  role: Role;
-  content: string | any; // Consider refining 'any' if possible
-}
-
-export interface OpenRouterRequestBody {
-  model: string;
-  messages: OpenRouterMessage[];
-  temperature?: number;
-}
-
-export interface OpenRouterUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-export interface OpenRouterResponseChoice {
-  finish_reason: string;
-  message: OpenRouterMessage;
-}
-
-export interface OpenRouterResponseBody {
-  id: string;
-  model: string;
-  choices: OpenRouterResponseChoice[];
-  usage: OpenRouterUsage;
-}
-
-export interface OpenRouterErrorBody {
-  error: {
-    code: number;
-    message: string;
-  };
-}
+// Removed internal types related to the old OpenRouter non-streaming API structure
+// (OpenRouterMessage, OpenRouterRequestBody, OpenRouterUsage, OpenRouterResponseChoice, OpenRouterResponseBody, OpenRouterErrorBody)
+// These are replaced by the types provided by the chat-stream feature.
 
 // Define the types of request contexts
 export type RequestContextNormal = { type: "normal" };
@@ -67,15 +34,8 @@ export type RequestContext =
   | RequestContextGenerate
   | RequestContextRetry;
 
-// Type for parameters passed to the API request effect/function
-export interface SendApiRequestParams {
-  modelId: string;
-  messages: Message[]; // History slice to send
-  apiKey: string;
-  temperature: number;
-  systemPrompt: string;
-  requestContext: RequestContext | null; // Explicit context for processing the response
-}
+// Removed SendApiRequestParams as API calls are now handled by chat-stream feature
+// The parameters for the new streamChatFx effect are defined in chat-stream/types.ts
 
 // Type for the payload of the internal retryUpdate event
 export interface RetryUpdatePayload {

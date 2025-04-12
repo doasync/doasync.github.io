@@ -19,6 +19,7 @@
     "effector": "^23.3.0",
     "effector-react": "^23.3.0",
     "effector-storage": "^7.1.0",
+    "eventsource-parser": "^3.0.1",
     "idb": "^8.0.2",
     "katex": "^0.16.21",
     "mermaid": "^11.6.0",
