@@ -488,7 +488,7 @@ sample({
     deleteMessage, // Message deleted
     // retryUpdate, // Replaced by assistantResponseCompleted
     assistantResponseCompleted, // Save after generate/retry response is complete
-    debouncedDraft, // Debounced draft changes can trigger save
+    // debouncedDraft, // REMOVED: Draft changes update $currentChatSession, but don't trigger save directly
   ],
   source: {
     currentSession: $currentChatSession,

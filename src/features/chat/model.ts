@@ -289,10 +289,10 @@ $messages
 $apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // Helper type for the combined payload sent to the split event
-// Removed placeholderMessage as it's handled separately
 type StreamTriggerPayload = {
   streamParams: StreamChatParams;
   streamId: string;
+  placeholderMessage: Message; // Re-add placeholder message to the payload
 };
 
 // Combined event/effect trigger using split
@@ -301,12 +301,15 @@ const triggerStream = chatDomain.event<StreamTriggerPayload>();
 split({
   source: triggerStream,
   match: {
-    // placeholder: (p): p is StreamTriggerPayload => !!p.placeholderMessage, // Removed placeholder case
+    placeholder: (p): p is StreamTriggerPayload => !!p.placeholderMessage, // Match if placeholder exists
     start: (p): p is StreamTriggerPayload => !!p.streamId,
     effect: (p): p is StreamTriggerPayload => !!p.streamParams,
   },
   cases: {
-    // placeholder: placeholderGenerated.prepend<StreamTriggerPayload>(...), // Removed placeholder case
+    // Add placeholder case targeting placeholderGenerated
+    placeholder: placeholderGenerated.prepend<StreamTriggerPayload>(
+      (p) => p.placeholderMessage
+    ),
     start: streamRequestInitiated.prepend<StreamTriggerPayload>((p) => ({
       streamId: p.streamId,
     })),
@@ -353,14 +356,14 @@ sample({
       timestamp: Date.now(),
     };
 
-    // Prepare message history
-    const messagesForApi = [...messages, userMessage];
+    // Prepare message history (use current state which includes the new user message)
+    const currentMessages = $messages.getState(); // Get messages *after* userMessageCreated updated it
+    const messagesForApi = [...currentMessages]; // Use the already updated list
 
     // 3. Define Callbacks (Target internal events)
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
-        // Only trigger if there's content
         _messageChunkReceived({ placeholderId, chunkContent: content });
       }
     };
@@ -375,7 +378,6 @@ sample({
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}] Error callback:`, error);
       _messageErrored({ placeholderId, error });
-      // $apiError is updated via .on(_messageErrored) handler
     };
 
     const onAbort = () => {
@@ -387,18 +389,17 @@ sample({
     const streamParams: StreamChatParams = {
       streamId,
       model: selectedModelId,
-      messages: messagesForApi,
+      messages: messagesForApi, // Send history including the user message that triggered this
       apiKey,
       temperature,
-      // systemPrompt: systemPrompt, // Pass systemPrompt if needed by API; ensure type allows it
       onChunk,
       onComplete,
       onError,
       onAbort,
     };
 
-    // 5. Return payload for the split target
-    return { streamParams, streamId }; // Removed placeholderMessage
+    // 5. Return payload for the split target, including the placeholder
+    return { streamParams, streamId, placeholderMessage };
   },
   target: triggerStream,
 });
@@ -434,41 +435,50 @@ sample({
   target: placeholderGenerated,
 });
 
-// Trigger stream for GENERATE action
+// Trigger stream initiation (streamId) for GENERATE action
+sample({
+  clock: placeholderGenerated, // Trigger *after* placeholder is created
+  source: $apiKey, // Only need API key to filter
+  filter: (apiKey): apiKey is string => !!apiKey, // Ensure API key exists
+  fn: () => ({ streamId: crypto.randomUUID() }), // Generate streamId
+  target: streamRequestInitiated, // Target specific event
+});
+
+// Trigger stream effect (streamChatFx) for GENERATE action
 sample({
   clock: placeholderGenerated, // Trigger *after* placeholder is created
   source: {
-    // Define source types explicitly
     messages: $messages,
     apiKey: $apiKey,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
+    activeStreamId: $activeChatStreamId, // Get the streamId generated above
   },
-  filter: ({ apiKey, messages }): boolean => !!apiKey && messages.length > 0, // Ensure API key and some history (at least placeholder)
-  fn: (
-    sourceData: {
-      messages: Message[];
-      apiKey: string;
-      temperature: number;
-      systemPrompt: string;
-      selectedModelId: string;
-    },
-    placeholder: Message // Use placeholder as clock data
-  ): StreamTriggerPayload => {
-    const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
-      sourceData;
-    const placeholderId = placeholder.id;
+  // Filter needs to ensure apiKey and the activeStreamId (just set by the previous sample) exist
+  filter: (
+    source
+  ): source is {
+    messages: Message[];
+    apiKey: string;
+    temperature: number;
+    systemPrompt: string;
+    selectedModelId: string;
+    activeStreamId: string; // Ensure streamId is a string
+  } => !!source.apiKey && source.messages.length > 0 && !!source.activeStreamId,
+  fn: (source, placeholder): StreamChatParams => {
+    // Destructure and assert activeStreamId is string due to filter
+    const { messages, apiKey, temperature, selectedModelId, activeStreamId } =
+      source;
+    const placeholderId = placeholder.id; // ID from the clock data
+    const currentStreamId = activeStreamId!; // Chacked by filtrer, so it's safe to assert
 
-    // 1. Generate Stream ID
-    const streamId = crypto.randomUUID();
+    // Prepare message history (use current state which includes the placeholder)
+    const currentMessages = messages; // Source already has the updated message list
+    // Send history *excluding* the placeholder that was just added
+    const messagesForApi = currentMessages.slice(0, -1);
 
-    // 2. Placeholder already created and added via placeholderGenerated event
-
-    // Prepare message history (excludes the placeholder itself)
-    const messagesForApi = messages.slice(0, -1);
-
-    // 3. Define Callbacks (Target internal events)
+    // Define Callbacks
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
@@ -477,37 +487,40 @@ sample({
     };
     const onComplete = () => {
       _messageCompleted({ placeholderId });
-      // Trigger save/downstream for generate? Maybe not needed if placeholder is just updated
-      assistantResponseCompleted(); // Signal completion
-      scrollToLastMessageNeeded();
+      assistantResponseCompleted();
+      // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
     };
     const onError = ({ error }: StreamErrorPayload) => {
-      console.error(`[Stream ${streamId}/Generate] Error callback:`, error);
+      // Use currentStreamId (guaranteed string) for logging
+      console.error(
+        `[Stream ${currentStreamId}/Generate] Error callback:`,
+        error
+      );
       _messageErrored({ placeholderId, error });
     };
     const onAbort = () => {
-      console.log(`[Stream ${streamId}/Generate] Abort callback triggered.`);
+      // Use currentStreamId (guaranteed string) for logging
+      console.log(
+        `[Stream ${currentStreamId}/Generate] Abort callback triggered.`
+      );
       _messageAborted({ placeholderId });
     };
 
-    // 4. Prepare StreamChatParams
+    // Prepare StreamChatParams
     const streamParams: StreamChatParams = {
-      streamId,
+      streamId: currentStreamId, // Use the local const (guaranteed string)
       model: selectedModelId,
-      messages: messagesForApi, // systemPrompt should be included here if needed by the API
+      messages: messagesForApi,
       apiKey,
       temperature,
-      // systemPrompt, // Removed - Not a top-level param for chat-stream
       onChunk,
       onComplete,
       onError,
       onAbort,
     };
-
-    // 5. Return payload for split
-    return { streamParams, streamId }; // Removed placeholderMessage
+    return streamParams;
   },
-  target: triggerStream, // Target the split event
+  target: streamChatFx, // Target the effect directly
 });
 
 // Trigger API key missing event if generate clicked without key
@@ -566,24 +579,20 @@ sample({
       { messages, apiKey, temperature, systemPrompt, selectedModelId },
       messageToRetry
     );
-    // Note: prepareRetryRequestParamsFn handles the history slicing internally.
+    // Note: baseParams.messages contains the correctly sliced history for the API call.
 
     // 1. Generate IDs
     const streamId = crypto.randomUUID();
-    // Crucially, use the ID of the message being retried if it's an assistant,
-    // or generate a new ID if retrying a user message (as we insert a new assistant message).
-    // We need a mechanism to handle replacement vs. insertion.
-    // For now, let's assume retry *always* adds a new placeholder and message.
-    // TODO: Refine retry placeholder logic if replacement is desired.
-    const placeholderId = crypto.randomUUID();
+    const placeholderId = crypto.randomUUID(); // Always generate a new placeholder for retry response
 
-    // 2. Create Placeholder Message (will be added via split target: placeholderGenerated)
+    // 2. Create Placeholder Message
     const placeholderMessage: Message = {
       id: placeholderId,
       role: "assistant",
       content: "",
-      isLoading: true,
+      isLoading: true, // Start loading
       timestamp: Date.now(),
+      isRetryOf: messageToRetry.id, // Optional: Mark which message this retry is for
     };
 
     // 3. Define Callbacks (Target internal events, closing over placeholderId)
@@ -595,10 +604,9 @@ sample({
     };
     const onComplete = () => {
       _messageCompleted({ placeholderId });
-      // TODO: Trigger different downstream logic for retry completion?
-      // Maybe a `retryResponseProcessed` event?
+      // Maybe trigger a specific 'retryResponseProcessed' event here?
       assistantResponseCompleted(); // Signal completion
-      scrollToLastMessageNeeded();
+      // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
     };
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}/Retry] Error callback:`, error);
@@ -613,18 +621,17 @@ sample({
     const streamParams: StreamChatParams = {
       streamId,
       model: baseParams.modelId,
-      messages: baseParams.messages, // Use history from prepareRetryRequestParamsFn
+      messages: baseParams.messages, // Use sliced history from prepareRetryRequestParamsFn
       apiKey: baseParams.apiKey,
       temperature: baseParams.temperature,
-      // systemPrompt handled within baseParams.messages if necessary
       onChunk,
       onComplete,
       onError,
       onAbort,
     };
 
-    // 5. Return payload for split
-    return { streamParams, streamId }; // Removed placeholderMessage
+    // 5. Return payload for split, including the placeholder
+    return { streamParams, streamId, placeholderMessage };
   },
   target: triggerStream, // Target the split event
 });

@@ -329,10 +329,10 @@ export default function HomePage() {
   React.useEffect(() => {
     if (!preventScrollFlag) {
       requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        chatEndRef.current?.scrollIntoView({ behavior: "instant" });
       });
     }
-  }, [lastMessage, scrollTrigger, preventScrollFlag]); // Depend on explicit scroll trigger and flag
+  }, [messages.length, scrollTrigger, preventScrollFlag]); // Depend on explicit scroll trigger and flag
 
   // Remove the old effect that depended on scrollToLastMessageNeeded
 

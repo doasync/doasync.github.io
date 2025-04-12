@@ -10,6 +10,7 @@ export interface Message {
   isEdited?: boolean;
   originalContent?: string | any; // Consider refining 'any' if possible
   isLoading?: boolean; // Added for placeholder/retry state
+  isRetryOf?: string; // Optional: ID of the message this is a retry for
 }
 
 // Removed internal types related to the old OpenRouter non-streaming API structure
