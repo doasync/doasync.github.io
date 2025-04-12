@@ -65,7 +65,7 @@ export const MiniChatDialog: React.FC = () => {
         element.scrollTop = element.scrollHeight;
       });
     }
-  }, [isOpen, isCompact, messages]); // Depend on messages array
+  }, [isOpen, isCompact, messages, miniChatScrollTrigger]); // Depend on messages array
 
   if (!isOpen) return null;
 
@@ -163,7 +163,7 @@ export const MiniChatDialog: React.FC = () => {
                   p: 1,
                   overflowY: "auto",
                   flexShrink: 1000,
-                  minHeight: "96px",
+                  minHeight: "66px",
                 }}
                 ref={messagesAreaRef} // Re-assign ref
               >
