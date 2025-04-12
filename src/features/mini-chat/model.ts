@@ -1,5 +1,21 @@
-import { createStore, createEvent, createEffect, sample } from "effector";
-import { sendAssistantMessage } from "./api";
+import {
+  createStore,
+  createEvent,
+  createEffect,
+  sample,
+  split,
+} from "effector"; // Added split
+// import { sendAssistantMessage } from "./api"; // Removed old API import
+// Import chat-stream feature
+import {
+  streamChatFx,
+  abortStream,
+  StreamChatParams,
+  StreamChunkPayload,
+  StreamCompletePayload,
+  StreamErrorPayload,
+  StreamAbortPayload,
+} from "@/features/chat-stream";
 import {
   $apiKey,
   $temperature,
@@ -35,8 +51,10 @@ export interface MiniChatToolbarState {
 }
 
 export interface MiniChatMessage {
+  id?: string; // Add optional ID for placeholder tracking
   role: "user" | "assistant";
   content: string;
+  isLoading?: boolean; // Add loading state for streaming
 }
 
 export interface MiniChatState {
@@ -138,7 +156,11 @@ export const minimizeMiniChat = createEvent(); // Event to minimize
 export const restoreMiniChat = createEvent(); // Event to restore from FAB
 
 export const resetMiniChat = createEvent();
-export const triggerMiniChatScroll = createEvent<void>("triggerMiniChatScroll"); // Event to trigger scroll
+export const triggerMiniChatScroll = createEvent<void>("triggerMiniChatScroll");
+// Event to trigger stream cancellation from UI
+export const stopMiniChatGenerationClicked = createEvent<void>(
+  "stopMiniChatGenerationClicked"
+);
 
 export const $miniChat = createStore<MiniChatState>({
   isOpen: false,
@@ -176,19 +198,9 @@ export const $miniChat = createStore<MiniChatState>({
     ...state,
     input,
   }))
-  .on(sendMiniChatMessage, (state, message) => ({
-    ...state,
-    isCompact: false, // Sending a message expands the view
-    input: "",
-    messages: [...state.messages, { role: "user", content: message }],
-    loading: true,
-  }))
-  .on(receiveMiniChatMessage, (state, reply) => ({
-    ...state,
-    isCompact: false, // Receiving a message expands the view
-    messages: [...state.messages, { role: "assistant", content: reply }],
-    loading: false,
-  }))
+  // Refactor sendMiniChatMessage logic below using samples and split
+  // .on(sendMiniChatMessage, ...) // Removed direct state update
+  // .on(receiveMiniChatMessage, ...) // Removed direct state update
   .on(minimizeMiniChat, (state) => ({
     ...state,
     isMinimized: true,
@@ -204,39 +216,233 @@ export const $miniChatScrollTrigger = createStore<number>(0, {
   name: "$miniChatScrollTrigger",
 })
   .on(triggerMiniChatScroll, () => Date.now())
-  .reset(resetMiniChat, miniChatClosed); // Reset on close/reset
+  .reset(resetMiniChat, miniChatClosed);
 
-//
-// API Effect
-//
-
-export const sendMiniChatMessageFx = createEffect<
-  { message: string; model?: string; apiKey: string },
-  string,
-  Error
->();
-
-sendMiniChatMessageFx.use(async ({ message, model, apiKey }) => {
-  return sendAssistantMessage({ message, model, apiKey });
+// Store for the currently active stream ID (for cancellation)
+export const $miniChatActiveStreamId = createStore<string | null>(null, {
+  name: "$miniChatActiveStreamId",
 });
+// Internal event to signal stream request start with its ID
+const miniChatStreamRequestInitiated = createEvent<{ streamId: string }>(
+  "miniChatStreamRequestInitiated"
+);
+
+$miniChatActiveStreamId.on(
+  miniChatStreamRequestInitiated,
+  (_, { streamId }) => streamId
+);
+// Reset logic will be added later, triggered by internal callback events
+
+// Removed old API Effect (sendMiniChatMessageFx)
+
+// --- Stream Handling Logic ---
+
+// Define internal events FIRST
+const _miniChatMessageChunkReceived = createEvent<{
+  placeholderId: string;
+  chunkContent: string;
+}>();
+const _miniChatMessageCompleted = createEvent<{ placeholderId: string }>();
+const _miniChatMessageErrored = createEvent<{
+  placeholderId: string;
+  error: Error;
+}>();
+const _miniChatMessageAborted = createEvent<{ placeholderId: string }>();
+
+// Add reset logic to active stream ID store
+$miniChatActiveStreamId.reset(
+  _miniChatMessageCompleted,
+  _miniChatMessageErrored,
+  _miniChatMessageAborted
+);
+
+// Add handlers to $miniChat store for internal events
+$miniChat
+  .on(
+    _miniChatMessageChunkReceived,
+    (state, { placeholderId, chunkContent }) => {
+      const targetMsgIndex = state.messages.findIndex(
+        (m) => m.id === placeholderId
+      );
+      if (targetMsgIndex === -1) return state;
+
+      const updatedMsg = {
+        ...state.messages[targetMsgIndex],
+        content: state.messages[targetMsgIndex].content + chunkContent,
+        isLoading: true, // Keep loading
+      };
+      const newMsgs = [...state.messages];
+      newMsgs[targetMsgIndex] = updatedMsg;
+      return { ...state, messages: newMsgs };
+    }
+  )
+  .on(_miniChatMessageCompleted, (state, { placeholderId }) => {
+    const targetMsgIndex = state.messages.findIndex(
+      (m) => m.id === placeholderId
+    );
+    if (targetMsgIndex === -1) return state;
+
+    const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
+    const newMsgs = [...state.messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    // loading state is now driven by streamChatFx.pending
+    return { ...state, messages: newMsgs };
+  })
+  .on(_miniChatMessageErrored, (state, { placeholderId, error }) => {
+    const targetMsgIndex = state.messages.findIndex(
+      (m) => m.id === placeholderId
+    );
+    if (targetMsgIndex === -1) return state;
+
+    const updatedMsg = {
+      ...state.messages[targetMsgIndex],
+      isLoading: false,
+      content: `Error: ${error.message}`, // Example error display
+    };
+    const newMsgs = [...state.messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    // Potentially add a separate error state to $miniChat if needed
+    // loading state is now driven by streamChatFx.pending
+    return { ...state, messages: newMsgs };
+  })
+  .on(_miniChatMessageAborted, (state, { placeholderId }) => {
+    const targetMsgIndex = state.messages.findIndex(
+      (m) => m.id === placeholderId
+    );
+    if (targetMsgIndex === -1) return state;
+
+    const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
+    const newMsgs = [...state.messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    // loading state is now driven by streamChatFx.pending
+    return { ...state, messages: newMsgs };
+  });
+
+// Placeholder event for adding the placeholder message
+const _addPlaceholderMessage = createEvent<MiniChatMessage>();
+$miniChat.on(_addPlaceholderMessage, (state, placeholder) => ({
+  ...state,
+  isCompact: false, // Expand on send
+  input: "", // Clear input
+  messages: [...state.messages, placeholder],
+  // loading: true, // Removed - loading state driven by streamChatFx.pending
+}));
 
 //
 // Wiring send → API → receive
 //
 
-sample({
-  clock: sendMiniChatMessage,
-  source: {
-    apiKey: $apiKey,
-    model: $miniChatModelId, // Use the dedicated mini-chat model ID
+// Helper type for split payload
+type MiniChatStreamTriggerPayload = {
+  streamParams: StreamChatParams;
+  streamId: string;
+  placeholderMessage: MiniChatMessage;
+};
+
+// Combined event/effect trigger using split
+const triggerMiniChatStream = createEvent<MiniChatStreamTriggerPayload>();
+
+split({
+  source: triggerMiniChatStream,
+  match: {
+    placeholder: (p): p is MiniChatStreamTriggerPayload =>
+      !!p.placeholderMessage,
+    start: (p): p is MiniChatStreamTriggerPayload => !!p.streamId,
+    effect: (p): p is MiniChatStreamTriggerPayload => !!p.streamParams,
   },
-  fn: ({ apiKey, model }, message) => ({ message, model, apiKey }),
-  target: sendMiniChatMessageFx,
+  cases: {
+    placeholder: _addPlaceholderMessage.prepend<MiniChatStreamTriggerPayload>(
+      (p) => p.placeholderMessage
+    ),
+    start: miniChatStreamRequestInitiated.prepend<MiniChatStreamTriggerPayload>(
+      (p) => ({ streamId: p.streamId })
+    ),
+    effect: streamChatFx.prepend<MiniChatStreamTriggerPayload>(
+      (p) => p.streamParams
+    ),
+  },
 });
 
+// Refactored sample for sending a message
 sample({
-  clock: sendMiniChatMessageFx.doneData,
-  target: receiveMiniChatMessage,
+  clock: sendMiniChatMessage, // User triggers this event with the text content
+  source: {
+    apiKey: $apiKey,
+    model: $miniChatModelId,
+    currentMessages: $miniChat.map((s) => s.messages), // Get current messages for history
+  },
+  filter: ({ apiKey }) => !!apiKey,
+  fn: (
+    { apiKey, model, currentMessages },
+    messageText
+  ): MiniChatStreamTriggerPayload => {
+    // 1. Generate IDs
+    const streamId = crypto.randomUUID();
+    const placeholderId = crypto.randomUUID();
+
+    // 2. Create User and Placeholder Messages
+    const userMessage: MiniChatMessage = { role: "user", content: messageText };
+    const placeholderMessage: MiniChatMessage = {
+      id: placeholderId, // Assign ID to placeholder
+      role: "assistant",
+      content: "",
+      isLoading: true,
+    };
+
+    // Prepare history for API
+    const messagesForApi = [...currentMessages, userMessage];
+
+    // 3. Define Callbacks
+    const onChunk = ({ chunk }: StreamChunkPayload) => {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        _miniChatMessageChunkReceived({ placeholderId, chunkContent: content });
+      }
+    };
+    const onComplete = () => {
+      _miniChatMessageCompleted({ placeholderId });
+      triggerMiniChatScroll(); // Scroll on completion
+    };
+    const onError = ({ error }: StreamErrorPayload) => {
+      console.error(`[MiniChat Stream ${streamId}] Error:`, error);
+      _miniChatMessageErrored({ placeholderId, error });
+    };
+    const onAbort = () => {
+      console.log(`[MiniChat Stream ${streamId}] Aborted.`);
+      _miniChatMessageAborted({ placeholderId });
+    };
+
+    // 4. Prepare StreamChatParams
+    const streamParams: StreamChatParams = {
+      streamId,
+      model,
+      messages: messagesForApi, // Pass history including the new user message
+      apiKey,
+      // temperature, systemPrompt could be added from settings if needed
+      onChunk,
+      onComplete,
+      onError,
+      onAbort,
+    };
+
+    // 5. Return payload for split
+    // Note: We pass the *placeholder* message, not the user message, to the split target
+    // because _addPlaceholderMessage needs it. The user message is implicitly added
+    // when preparing messagesForApi.
+    return { streamParams, streamId, placeholderMessage };
+  },
+  target: triggerMiniChatStream, // Target the split event
+});
+
+// Removed old sample wiring sendMiniChatMessageFx.doneData to receiveMiniChatMessage
+
+// --- Cancellation Logic ---
+sample({
+  clock: stopMiniChatGenerationClicked,
+  source: $miniChatActiveStreamId,
+  filter: (streamId: string | null): streamId is string => !!streamId,
+  fn: (streamId) => ({ streamId }),
+  target: abortStream, // Target the abortStream event from chat-stream
 });
 
 //
