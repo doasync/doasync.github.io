@@ -3,10 +3,9 @@ import {
   createEvent,
   createEffect,
   sample,
-  split,
-} from "effector"; // Added split
-// import { sendAssistantMessage } from "./api"; // Removed old API import
-// Import chat-stream feature
+  // Removed split as per FIX_PLAN.md
+} from "effector";
+// Removed old API import (already commented out)
 import {
   streamChatFx,
   abortStream,
@@ -24,20 +23,20 @@ import {
 import {
   $selectedModelId,
   $availableModels,
-  $isModelSelectorActive, // Import model selector focus state
+  $isModelSelectorActive,
 } from "@/features/models-select/model";
 import { saveChatFx } from "@/features/chat-history/model";
-import { appStarted } from "@/app"; // Import appStarted for triggering load
+import { appStarted } from "@/app";
 import {
   $isMobileDrawerOpen,
   setMobileDrawerTab,
   closeMobileDrawer,
-} from "@/features/ui-state/model"; // Import mobile drawer state and tab switching
-import { $isMainInputFocused } from "@/features/chat/model"; // Import main input focus state
-import { chatSelected } from "@/features/chat-history/model"; // Import chat selection for main chat switch
+} from "@/features/ui-state/model";
+import { $isMainInputFocused } from "@/features/chat/model";
+import { chatSelected } from "@/features/chat-history/model";
 
 const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
-const DEFAULT_MINI_CHAT_MODEL = "openai/gpt-3.5-turbo"; // Or choose another default
+const DEFAULT_MINI_CHAT_MODEL = "openai/gpt-3.5-turbo";
 
 //
 // Types
@@ -51,28 +50,28 @@ export interface MiniChatToolbarState {
 }
 
 export interface MiniChatMessage {
-  id?: string; // Add optional ID for placeholder tracking
+  id?: string;
   role: "user" | "assistant";
   content: string;
-  isLoading?: boolean; // Add loading state for streaming
+  isLoading?: boolean;
 }
 
 export interface MiniChatState {
   isOpen: boolean;
-  isCompact: boolean; // Add compact state flag
+  isCompact: boolean;
   input: string;
   messages: MiniChatMessage[];
   loading: boolean;
-  isMinimized: boolean; // Flag for minimized state
-  initialX?: number | null; // Optional initial position X
-  initialY?: number | null; // Optional initial position Y
+  isMinimized: boolean;
+  initialX?: number | null;
+  initialY?: number | null;
 }
 
 //
 // Mini Chat Settings State
 //
 export const miniChatModelSelected = createEvent<string>();
-export const miniChatSettingsLoaded = createEvent(); // Triggered on app start
+export const miniChatSettingsLoaded = createEvent();
 
 export const $miniChatModelId = createStore<string>(DEFAULT_MINI_CHAT_MODEL);
 
@@ -86,23 +85,19 @@ const saveMiniChatModelIdFx = createEffect<string, void>((modelId) => {
 });
 
 // --- Wiring Persistence ---
-// Load on app start
 sample({
-  clock: appStarted, // Use appStarted from "@/app"
+  clock: appStarted,
   target: loadMiniChatModelIdFx,
 });
 
-// Update store on successful load
 sample({
   clock: loadMiniChatModelIdFx.doneData,
-  filter: (loadedId): loadedId is string => loadedId !== null, // Only update if not null
+  filter: (loadedId): loadedId is string => loadedId !== null,
   target: $miniChatModelId,
 });
 
-// Update store on manual selection
 $miniChatModelId.on(miniChatModelSelected, (_, newModelId) => newModelId);
 
-// Save to localStorage whenever the store changes
 sample({
   clock: $miniChatModelId.updates,
   target: saveMiniChatModelIdFx,
@@ -143,64 +138,72 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
 export const miniChatOpened = createEvent<{
   initialInput?: string;
   startCompact?: boolean;
-  x?: number; // Add optional position
-  y?: number; // Add optional position
+  x?: number;
+  y?: number;
 }>();
 export const miniChatClosed = createEvent();
 export const updateMiniChatInput = createEvent<string>();
 
-export const sendMiniChatMessage = createEvent<string>(); // message to send
-export const receiveMiniChatMessage = createEvent<string>(); // assistant reply
+export const sendMiniChatMessage = createEvent<string>();
+export const receiveMiniChatMessage = createEvent<string>(); // Keep for potential future use or old code cleanup
 export const expandMiniChat = createEvent();
-export const minimizeMiniChat = createEvent(); // Event to minimize
-export const restoreMiniChat = createEvent(); // Event to restore from FAB
+export const minimizeMiniChat = createEvent();
+export const restoreMiniChat = createEvent();
 
 export const resetMiniChat = createEvent();
 export const triggerMiniChatScroll = createEvent<void>("triggerMiniChatScroll");
-// Event to trigger stream cancellation from UI
+
 export const stopMiniChatGenerationClicked = createEvent<void>(
   "stopMiniChatGenerationClicked"
 );
 
+// Event for adding user message to UI state - NEW as per FIX_PLAN.md
+export const _addMiniChatUserMessage = createEvent<MiniChatMessage>(
+  "addMiniChatUserMessage"
+);
+
 export const $miniChat = createStore<MiniChatState>({
   isOpen: false,
-  isCompact: false, // Initialize compact state
+  isCompact: false,
   input: "",
   messages: [],
   loading: false,
-  isMinimized: false, // Initialize minimized state
-  initialX: null, // Initialize position
-  initialY: null, // Initialize position
+  isMinimized: false,
+  initialX: null,
+  initialY: null,
 })
   .on(miniChatOpened, (state, { initialInput, startCompact, x, y }) => ({
-    ...state, // Keep existing messages etc. if already open
+    ...state,
     isOpen: true,
-    isCompact: !!startCompact, // Set compact based on flag, default false
-    input: initialInput ?? state.input, // Use initial input or keep current
-    messages: state.isOpen ? state.messages : [], // Reset messages only if it was previously closed
+    isCompact: !!startCompact,
+    input: initialInput ?? state.input,
+    messages: state.isOpen ? state.messages : [],
     loading: false,
-    isMinimized: false, // Ensure it's not minimized when opened/re-opened
-    initialX: x ?? null, // Store initial position if provided
-    initialY: y ?? null, // Store initial position if provided
+    isMinimized: false,
+    initialX: x ?? null,
+    initialY: y ?? null,
   }))
   .on(miniChatClosed, () => ({
-    // Reset all state on close
     isOpen: false,
     isCompact: false,
     input: "",
     messages: [],
     loading: false,
-    isMinimized: false, // Also reset minimized state on close
-    initialX: null, // Reset initial position
-    initialY: null, // Reset initial position
+    isMinimized: false,
+    initialX: null,
+    initialY: null,
   }))
   .on(updateMiniChatInput, (state, input) => ({
     ...state,
     input,
   }))
-  // Refactor sendMiniChatMessage logic below using samples and split
-  // .on(sendMiniChatMessage, ...) // Removed direct state update
-  // .on(receiveMiniChatMessage, ...) // Removed direct state update
+  // Add handler for user message, clearing input and setting compact state - NEW as per FIX_PLAN.md
+  .on(_addMiniChatUserMessage, (state, userMessage) => ({
+    ...state,
+    messages: [...state.messages, userMessage],
+    isCompact: false, // Expand on send
+    input: "", // Clear input
+  }))
   .on(minimizeMiniChat, (state) => ({
     ...state,
     isMinimized: true,
@@ -231,9 +234,6 @@ $miniChatActiveStreamId.on(
   miniChatStreamRequestInitiated,
   (_, { streamId }) => streamId
 );
-// Reset logic will be added later, triggered by internal callback events
-
-// Removed old API Effect (sendMiniChatMessageFx)
 
 // --- Stream Handling Logic ---
 
@@ -269,7 +269,7 @@ $miniChat
       const updatedMsg = {
         ...state.messages[targetMsgIndex],
         content: state.messages[targetMsgIndex].content + chunkContent,
-        isLoading: true, // Keep loading
+        isLoading: true, // Keep loading until complete/error/abort
       };
       const newMsgs = [...state.messages];
       newMsgs[targetMsgIndex] = updatedMsg;
@@ -285,7 +285,6 @@ $miniChat
     const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    // loading state is now driven by streamChatFx.pending
     return { ...state, messages: newMsgs };
   })
   .on(_miniChatMessageErrored, (state, { placeholderId, error }) => {
@@ -297,12 +296,10 @@ $miniChat
     const updatedMsg = {
       ...state.messages[targetMsgIndex],
       isLoading: false,
-      content: `Error: ${error.message}`, // Example error display
+      content: `Error: ${error.message}`,
     };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    // Potentially add a separate error state to $miniChat if needed
-    // loading state is now driven by streamChatFx.pending
     return { ...state, messages: newMsgs };
   })
   .on(_miniChatMessageAborted, (state, { placeholderId }) => {
@@ -314,85 +311,60 @@ $miniChat
     const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    // loading state is now driven by streamChatFx.pending
     return { ...state, messages: newMsgs };
   });
 
-// Placeholder event for adding the placeholder message
+// Placeholder event for adding the placeholder message - Adjusted as per FIX_PLAN.md
 const _addPlaceholderMessage = createEvent<MiniChatMessage>();
 $miniChat.on(_addPlaceholderMessage, (state, placeholder) => ({
   ...state,
-  isCompact: false, // Expand on send
-  input: "", // Clear input
   messages: [...state.messages, placeholder],
-  // loading: true, // Removed - loading state driven by streamChatFx.pending
 }));
 
 //
 // Wiring send → API → receive
 //
 
-// Helper type for split payload
-type MiniChatStreamTriggerPayload = {
+// NEW: Internal event to prepare and trigger the stream payload - as per FIX_PLAN.md
+type PrepareStreamPayload = {
   streamParams: StreamChatParams;
   streamId: string;
   placeholderMessage: MiniChatMessage;
+  userMessage: MiniChatMessage; // Include user message in payload
 };
 
-// Combined event/effect trigger using split
-const triggerMiniChatStream = createEvent<MiniChatStreamTriggerPayload>();
+const _prepareAndTriggerStream = createEvent<PrepareStreamPayload>(
+  "prepareAndTriggerMiniChatStream"
+);
 
-split({
-  source: triggerMiniChatStream,
-  match: {
-    placeholder: (p): p is MiniChatStreamTriggerPayload =>
-      !!p.placeholderMessage,
-    start: (p): p is MiniChatStreamTriggerPayload => !!p.streamId,
-    effect: (p): p is MiniChatStreamTriggerPayload => !!p.streamParams,
-  },
-  cases: {
-    placeholder: _addPlaceholderMessage.prepend<MiniChatStreamTriggerPayload>(
-      (p) => p.placeholderMessage
-    ),
-    start: miniChatStreamRequestInitiated.prepend<MiniChatStreamTriggerPayload>(
-      (p) => ({ streamId: p.streamId })
-    ),
-    effect: streamChatFx.prepend<MiniChatStreamTriggerPayload>(
-      (p) => p.streamParams
-    ),
-  },
-});
+// Removed the old split block here as per FIX_PLAN.md
 
-// Refactored sample for sending a message
+// Refactored sample for sending a message - NEW target as per FIX_PLAN.md
 sample({
-  clock: sendMiniChatMessage, // User triggers this event with the text content
+  clock: sendMiniChatMessage,
   source: {
     apiKey: $apiKey,
     model: $miniChatModelId,
-    currentMessages: $miniChat.map((s) => s.messages), // Get current messages for history
+    currentMessages: $miniChat.map((s) => s.messages),
   },
   filter: ({ apiKey }) => !!apiKey,
   fn: (
     { apiKey, model, currentMessages },
     messageText
-  ): MiniChatStreamTriggerPayload => {
-    // 1. Generate IDs
+  ): PrepareStreamPayload => {
     const streamId = crypto.randomUUID();
     const placeholderId = crypto.randomUUID();
 
-    // 2. Create User and Placeholder Messages
     const userMessage: MiniChatMessage = { role: "user", content: messageText };
     const placeholderMessage: MiniChatMessage = {
-      id: placeholderId, // Assign ID to placeholder
+      id: placeholderId,
       role: "assistant",
       content: "",
       isLoading: true,
     };
 
-    // Prepare history for API
     const messagesForApi = [...currentMessages, userMessage];
 
-    // 3. Define Callbacks
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
@@ -401,7 +373,7 @@ sample({
     };
     const onComplete = () => {
       _miniChatMessageCompleted({ placeholderId });
-      triggerMiniChatScroll(); // Scroll on completion
+      triggerMiniChatScroll();
     };
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[MiniChat Stream ${streamId}] Error:`, error);
@@ -412,29 +384,52 @@ sample({
       _miniChatMessageAborted({ placeholderId });
     };
 
-    // 4. Prepare StreamChatParams
     const streamParams: StreamChatParams = {
       streamId,
       model,
-      messages: messagesForApi, // Pass history including the new user message
+      messages: messagesForApi,
       apiKey,
-      // temperature, systemPrompt could be added from settings if needed
       onChunk,
       onComplete,
       onError,
       onAbort,
     };
 
-    // 5. Return payload for split
-    // Note: We pass the *placeholder* message, not the user message, to the split target
-    // because _addPlaceholderMessage needs it. The user message is implicitly added
-    // when preparing messagesForApi.
-    return { streamParams, streamId, placeholderMessage };
+    return { streamParams, streamId, placeholderMessage, userMessage };
   },
-  target: triggerMiniChatStream, // Target the split event
+  target: _prepareAndTriggerStream, // Target the new event
 });
 
-// Removed old sample wiring sendMiniChatMessageFx.doneData to receiveMiniChatMessage
+// NEW: Chain samples to orchestrate sequential updates and API call - as per FIX_PLAN.md
+// 1. Add user message to UI state
+sample({
+  clock: _prepareAndTriggerStream,
+  target: _addMiniChatUserMessage.prepend<PrepareStreamPayload>(
+    (p) => p.userMessage
+  ),
+});
+
+// 2. Add placeholder message to UI state
+sample({
+  clock: _prepareAndTriggerStream,
+  target: _addPlaceholderMessage.prepend<PrepareStreamPayload>(
+    (p) => p.placeholderMessage
+  ),
+});
+
+// 3. Notify about stream initiation (for activeStreamId)
+sample({
+  clock: _prepareAndTriggerStream,
+  target: miniChatStreamRequestInitiated.prepend<PrepareStreamPayload>((p) => ({
+    streamId: p.streamId,
+  })),
+});
+
+// 4. Finally, trigger the stream effect
+sample({
+  clock: _prepareAndTriggerStream,
+  target: streamChatFx.prepend<PrepareStreamPayload>((p) => p.streamParams),
+});
 
 // --- Cancellation Logic ---
 sample({
@@ -442,8 +437,14 @@ sample({
   source: $miniChatActiveStreamId,
   filter: (streamId: string | null): streamId is string => !!streamId,
   fn: (streamId) => ({ streamId }),
-  target: abortStream, // Target the abortStream event from chat-stream
+  target: abortStream,
 });
+
+// Wire $miniChat.loading to streamChatFx.pending - NEW as per FIX_PLAN.md
+$miniChat.on(streamChatFx.pending, (state, pending) => ({
+  ...state,
+  loading: pending,
+}));
 
 //
 // Expand Logic (stub)
@@ -453,7 +454,7 @@ export const expandMiniChatFx = createEffect<void, void>();
 
 expandMiniChatFx.use(async () => {
   const miniChat = $miniChat.getState();
-  if (!miniChat.messages.length) return; // nothing to save
+  if (!miniChat.messages.length) return;
 
   const id = crypto.randomUUID();
   const now = Date.now();
@@ -462,7 +463,7 @@ expandMiniChatFx.use(async () => {
     id,
     createdAt: now,
     lastModified: now,
-    title: "", // empty, triggers auto-title generation later
+    title: "",
     messages: miniChat.messages.map((m) => ({
       id: crypto.randomUUID(),
       timestamp: Date.now(),
@@ -470,61 +471,53 @@ expandMiniChatFx.use(async () => {
       content: m.content,
     })),
     settings: (() => {
-      // Get the full model info for the mini-chat's current model
       const miniChatModelId = $miniChatModelId.getState();
       const availableModels = $availableModels.getState();
       const modelInfo = availableModels.find((m) => m.id === miniChatModelId);
 
       return {
-        // Assign the minimal model info object
         model: {
           pricing: {
             prompt: Number(modelInfo?.pricing?.prompt) || 0,
             completion: Number(modelInfo?.pricing?.completion) || 0,
           },
-          context_length: modelInfo?.context_length ?? 1000000, // Default if not found
+          context_length: modelInfo?.context_length ?? 1000000,
         },
         temperature: $temperature.getState(),
         systemPrompt: $systemPrompt.getState(),
       };
     })(),
-    totalTokens: 0, // optional, can be updated later
+    totalTokens: 0,
     draft: "",
   };
 
   await saveChatFx(newChatSession);
 
-  // After saving, trigger main chat selection and UI tab/nav
   chatSelected(id);
 
-  // On mobile: switch to the "history" tab (main chat), or close drawer if main chat is outside drawer
-  // This covers both tabbed mobile drawer ("history") and drawer-closed UX
   setMobileDrawerTab("history");
   closeMobileDrawer();
 
-  // Close ephemeral mini chat after expand
   resetMiniChat();
   hideMiniChatToolbar();
 });
 
 // --- Scroll Trigger Logic ---
 
-// Trigger scroll
 sample({
   clock: [
+    // Removed receiveMiniChatMessage as per new streaming logic
     sendMiniChatMessage,
-    receiveMiniChatMessage,
     miniChatOpened,
     restoreMiniChat,
   ],
   target: triggerMiniChatScroll,
 });
 
-// Trigger scroll after quoting text into an already open chat
 sample({
   clock: updateMiniChatInput,
   source: $miniChat,
-  filter: (miniChatState) => miniChatState.isOpen, // Only trigger if already open
+  filter: (miniChatState) => miniChatState.isOpen,
   target: triggerMiniChatScroll,
 });
 
@@ -532,15 +525,6 @@ sample({
   clock: expandMiniChat,
   target: expandMiniChatFx,
 });
-
-//
-// Close/Reset Logic
-//
-
-// No need for the extra sample block here anymore
-
-// miniChatClosed already triggers resetMiniChat (which triggers hideInlineAskInput via sample above)
-// It also implicitly hides the toolbar via the resetMiniChat sample trigger
 
 //
 // Auto-Minimize Logic
@@ -551,7 +535,6 @@ const $shouldMinimize = sample({
   fn: (miniChatState) => miniChatState.isOpen && !miniChatState.isMinimized,
 });
 
-// Trigger 1: Mobile Drawer Opens
 sample({
   clock: $isMobileDrawerOpen,
   source: $shouldMinimize,
@@ -559,7 +542,6 @@ sample({
   target: minimizeMiniChat,
 });
 
-// Trigger 2: Main Model Selector Becomes Active
 sample({
   clock: $isModelSelectorActive,
   source: $shouldMinimize,
@@ -568,7 +550,6 @@ sample({
   target: minimizeMiniChat,
 });
 
-// Trigger 3: Main Chat Input Gets Focus
 sample({
   clock: $isMainInputFocused,
   source: $shouldMinimize,
