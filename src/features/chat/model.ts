@@ -1,4 +1,4 @@
-import { sample, createDomain, createEvent, split } from "effector";
+import { sample, createDomain, createEvent } from "effector"; // Removed split
 import { debug } from "patronum/debug";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $selectedModelId } from "@/features/models-select";
@@ -15,10 +15,7 @@ import {
 
 import {
   Message,
-  // OpenRouterResponseBody, // Removed
-  // SendApiRequestParams, // Removed
   RetryUpdatePayload, // Keep for now, might become obsolete
-  // CalculatedRetryUpdatePayload, // Removed
   MessageRetryInitiatedPayload, // Keep for spinner logic potentially
   RequestContext, // Import the new context type
   RequestContextNormal,
@@ -27,12 +24,8 @@ import {
   Role, // Import Role type
 } from "./types";
 import {
-  // sendApiRequestFn, // Removed
-  // addAssistantMessageFn, // Removed
   prepareRetryRequestParamsFn, // Keep for retry param prep
-  // calculateRetryUpdatePayloadFn, // Removed
   determineRetryingMessageIdFn, // Keep for spinner logic
-  // updateMessagesOnRetryFn, // Removed
 } from "./lib"; // Only keep necessary imports
 
 // --- Domain ---
@@ -54,8 +47,6 @@ export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
 );
 export const apiKeyMissing = chatDomain.event("apiKeyMissing");
-// Removed apiRequestTokensUpdated event as token updates are handled differently with streaming (if at all)
-// export const apiRequestSuccess = chatDomain.event<OpenRouterResponseBody>("apiRequestSuccess"); // REMOVED
 export const userMessageCreated =
   chatDomain.event<Message>("userMessageCreated");
 export const scrollToLastMessageNeeded = chatDomain.event<void>(
@@ -65,7 +56,6 @@ export const setPreventScroll = chatDomain.event<boolean>("setPreventScroll");
 export const generateResponseClicked = chatDomain.event<void>(
   "generateResponseClicked"
 );
-// export const retryUpdate = chatDomain.event<RetryUpdatePayload>("retryUpdate"); // Replaced by callback logic
 export const normalResponseProcessed = chatDomain.event<void>(
   "normalResponseProcessed"
 ); // Explicit trigger for saving normal responses
@@ -82,25 +72,39 @@ export const assistantResponseCompleted = chatDomain.event<void>(
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
 );
-// const prepareRetryParams = chatDomain.event<SendApiRequestParams>("prepareRetryParams"); // Removed
-// const calculatedRetryUpdate = chatDomain.event<CalculatedRetryUpdatePayload>("calculatedRetryUpdate"); // Removed
 
-// Internal event to signal stream request start with its ID
+// New type alias for the payload of streamInitiatedWithTarget
+type StreamInitiatedWithTargetPayload = {
+  streamId: string;
+  targetMessageId: string;
+  shouldAddNewMessage: boolean;
+  streamParams: StreamChatParams;
+};
+
+// New event to orchestrate message preparation and stream initiation
+const streamInitiatedWithTarget =
+  chatDomain.event<StreamInitiatedWithTargetPayload>();
+
+// Internal event to signal stream request start with its ID (moved down to avoid "cannot find name")
 const streamRequestInitiated = chatDomain.event<{ streamId: string }>(
   "streamRequestInitiated"
 );
-const addPlaceholderForGeneration = chatDomain.event<void>(
-  "addPlaceholderForGeneration"
-);
-const placeholderGenerated = chatDomain.event<Message>("placeholderGenerated"); // Carries the placeholder message
+
+// Internal events for stream callbacks, now using targetMessageId
+const _messageChunkReceived = chatDomain.event<{
+  targetMessageId: string;
+  chunkContent: string;
+  isFirstChunk: boolean; // Added isFirstChunk
+}>();
+const _messageCompleted = chatDomain.event<{ targetMessageId: string }>();
+const _messageErrored = chatDomain.event<{
+  targetMessageId: string;
+  error: Error;
+}>();
+const _messageAborted = chatDomain.event<{ targetMessageId: string }>();
 
 // Internal event to signal chat stream has finished (success, error, or abort) for local state management
 const chatStreamFinished = chatDomain.event<void>("chatStreamFinished");
-
-// REMOVED: retryTriggered, placeholderCalculated, cleanupAfterUpdate
-
-// --- Effects ---
-// Removed sendApiRequestFx, using streamChatFx from chat-stream feature directly
 
 // --- Stores ---
 export const $messageText = chatDomain.store<string>("", {
@@ -111,7 +115,7 @@ export const $isGenerating = chatDomain
   .store<boolean>(false, {
     name: "$isGenerating",
   })
-  .on(streamRequestInitiated, () => true) // Set true when *this* chat's stream starts
+  .on(streamInitiatedWithTarget, () => true) // Set true when *this* chat's stream starts
   .on(chatStreamFinished, () => false); // Set false when *this* chat's stream finishes (complete/error/abort)
 
 export const $currentChatTokens = chatDomain.store<number>(0, {
@@ -119,15 +123,14 @@ export const $currentChatTokens = chatDomain.store<number>(0, {
 });
 export const $apiError = chatDomain.store<string | null>(null, {
   name: "$apiError",
-}); // Definition corrected
+});
 
 // Store for the currently active stream ID (for cancellation)
 export const $activeChatStreamId = chatDomain
   .store<string | null>(null, {
     name: "$activeChatStreamId",
   })
-  .on(streamRequestInitiated, (_, { streamId }) => streamId);
-// Reset logic added further down
+  .on(streamInitiatedWithTarget, (_, { streamId }) => streamId);
 
 export const $retryingMessageId = chatDomain.store<string | null>(null, {
   name: "$retryingMessageId",
@@ -172,16 +175,33 @@ $messages
   )
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
   .on(userMessageCreated, (messages, newMsg) => [...messages, newMsg])
-  .on(placeholderGenerated, (messages, placeholder) => [
-    ...messages,
-    placeholder,
-  ]); // Placeholder added
-// .on handlers for internal events are added AFTER the events are defined below
+  .on(
+    streamInitiatedWithTarget,
+    (messages, { targetMessageId, shouldAddNewMessage }) => {
+      if (shouldAddNewMessage) {
+        // Add a new assistant message
+        return [
+          ...messages,
+          {
+            id: targetMessageId,
+            role: "assistant", // Always assistant for generated/retried responses
+            content: "",
+            timestamp: Date.now(),
+            isLoading: true,
+          } as Message,
+        ];
+      } else {
+        // Update an existing message (e.g., clear content and set loading)
+        return messages.map((msg) =>
+          msg.id === targetMessageId
+            ? { ...msg, isLoading: true } // Preserve content, only set loading for existing
+            : msg
+        );
+      }
+    }
+  );
 
 $apiError.reset(messageSent, generateResponseClicked, messageRetry); // Reset on user action start
-
-// Removed old $isGenerating.on(streamChatFx, ...) definition
-// $currentChatTokens removed
 
 $retryingMessageId
   .on(messageRetryInitiated, (_, payload) => {
@@ -190,12 +210,91 @@ $retryingMessageId
     if (payload.role === "assistant") return payload.messageId;
     return determineRetryingMessageIdFn(messages, payload);
   })
-  .on(placeholderGenerated, (_, placeholder) => placeholder.id); // Show spinner on placeholder
+  .on(streamInitiatedWithTarget, (_, { targetMessageId }) => targetMessageId); // Show spinner on target message
 
 $preventScroll
   .on(editMessage, () => true) // Prevent scroll during edit
   .on(messageRetryInitiated, () => false) // Allow scroll on retry start
-  .on(placeholderGenerated, () => false); // Allow scroll when placeholder added
+  .on(streamInitiatedWithTarget, () => false); // Allow scroll when a stream target is prepared
+
+// Now, add reset logic to stores using these events
+$activeChatStreamId.reset(_messageCompleted, _messageErrored, _messageAborted);
+$retryingMessageId.reset(_messageCompleted, _messageErrored, _messageAborted);
+$preventScroll.reset(_messageCompleted, _messageErrored, _messageAborted); // Reset scroll lock on finish
+
+// Add handlers to $messages for internal events
+$messages
+  .on(
+    _messageChunkReceived,
+    (messages, { targetMessageId, chunkContent, isFirstChunk }) => {
+      const targetMsgIndex = messages.findIndex(
+        (m) => m.id === targetMessageId
+      );
+      if (targetMsgIndex === -1) {
+        console.warn(`Target message not found for chunk: ${targetMessageId}`);
+        return messages; // Safety check: if message not found, return original array
+      }
+
+      const currentContent = messages[targetMsgIndex].content;
+      const updatedContent = isFirstChunk
+        ? chunkContent
+        : currentContent + chunkContent;
+
+      const updatedMsg = {
+        ...messages[targetMsgIndex],
+        content: updatedContent,
+        isLoading: true, // Keep loading during chunks
+      };
+      const newMsgs = [...messages];
+      newMsgs[targetMsgIndex] = updatedMsg;
+      return newMsgs;
+    }
+  )
+  .on(_messageCompleted, (messages, { targetMessageId }) => {
+    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
+    if (targetMsgIndex === -1) {
+      console.warn(
+        `Target message not found for completion: ${targetMessageId}`
+      );
+      return messages;
+    }
+    const updatedMsg = {
+      ...messages[targetMsgIndex],
+      isLoading: false,
+    };
+    const newMsgs = [...messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    return newMsgs;
+  })
+  .on(_messageErrored, (messages, { targetMessageId, error }) => {
+    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
+    if (targetMsgIndex === -1) {
+      console.warn(`Target message not found for error: ${targetMessageId}`);
+      return messages;
+    }
+    const updatedMsg = {
+      ...messages[targetMsgIndex],
+      isLoading: false,
+      content: `Error: ${error.message}`, // Show error in content
+    };
+    const newMsgs = [...messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    return newMsgs;
+  })
+  .on(_messageAborted, (messages, { targetMessageId }) => {
+    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
+    if (targetMsgIndex === -1) {
+      console.warn(`Target message not found for abort: ${targetMessageId}`);
+      return messages;
+    }
+    const updatedMsg = { ...messages[targetMsgIndex], isLoading: false };
+    const newMsgs = [...messages];
+    newMsgs[targetMsgIndex] = updatedMsg;
+    return newMsgs;
+  });
+
+// Add handler to $apiError
+$apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // --- Samples (Flow Logic) ---
 
@@ -224,110 +323,11 @@ sample({
   target: initialChatSaveNeeded,
 });
 
-// --- Stream Trigger & Handling Logic ---
-
-// Define internal events FIRST
-const _messageChunkReceived = chatDomain.event<{
-  placeholderId: string;
-  chunkContent: string;
-}>();
-const _messageCompleted = chatDomain.event<{ placeholderId: string }>();
-const _messageErrored = chatDomain.event<{
-  placeholderId: string;
-  error: Error;
-}>();
-const _messageAborted = chatDomain.event<{ placeholderId: string }>();
-
-// Now, add reset logic to stores using these events
-$activeChatStreamId.reset(_messageCompleted, _messageErrored, _messageAborted);
-$retryingMessageId.reset(_messageCompleted, _messageErrored, _messageAborted);
-$preventScroll.reset(_messageCompleted, _messageErrored, _messageAborted); // Reset scroll lock on finish
-
-// Add handlers to $messages for internal events
-$messages
-  .on(_messageChunkReceived, (messages, { placeholderId, chunkContent }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === placeholderId);
-    if (targetMsgIndex === -1) return messages; // Safety check
-    const updatedMsg = {
-      ...messages[targetMsgIndex],
-      content: messages[targetMsgIndex].content + chunkContent,
-      isLoading: true, // Keep loading during chunks
-    };
-    const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
-    return newMsgs;
-  })
-  .on(_messageCompleted, (messages, { placeholderId }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === placeholderId);
-    if (targetMsgIndex === -1) return messages; // Safety check
-    const updatedMsg = {
-      ...messages[targetMsgIndex],
-      isLoading: false,
-      // id: finalId || messages[targetMsgIndex].id, // Update ID?
-    };
-    const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
-    return newMsgs;
-  })
-  .on(_messageErrored, (messages, { placeholderId, error }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === placeholderId);
-    if (targetMsgIndex === -1) return messages; // Safety check
-    const updatedMsg = {
-      ...messages[targetMsgIndex],
-      isLoading: false,
-      content: `Error: ${error.message}`, // Example: Show error in content
-    };
-    const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
-    return newMsgs;
-  })
-  .on(_messageAborted, (messages, { placeholderId }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === placeholderId);
-    if (targetMsgIndex === -1) return messages; // Safety check
-    const updatedMsg = { ...messages[targetMsgIndex], isLoading: false };
-    const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
-    return newMsgs;
-  });
-
-// Add handler to $apiError
-$apiError.on(_messageErrored, (_, { error }) => error.message);
-
-// Helper type for the combined payload sent to the split event
-type StreamTriggerPayload = {
-  streamParams: StreamChatParams;
-  streamId: string;
-  placeholderMessage: Message; // Re-add placeholder message to the payload
-};
-
-// Combined event/effect trigger using split
-const triggerStream = chatDomain.event<StreamTriggerPayload>();
-
-split({
-  source: triggerStream,
-  match: {
-    placeholder: (p): p is StreamTriggerPayload => !!p.placeholderMessage, // Match if placeholder exists
-    start: (p): p is StreamTriggerPayload => !!p.streamId,
-    effect: (p): p is StreamTriggerPayload => !!p.streamParams,
-  },
-  cases: {
-    // Add placeholder case targeting placeholderGenerated
-    placeholder: placeholderGenerated.prepend<StreamTriggerPayload>(
-      (p) => p.placeholderMessage
-    ),
-    start: streamRequestInitiated.prepend<StreamTriggerPayload>((p) => ({
-      streamId: p.streamId,
-    })),
-    effect: streamChatFx.prepend<StreamTriggerPayload>((p) => p.streamParams),
-  },
-});
-
 // Trigger stream for a NEW user message
 sample({
   clock: userMessageCreated,
   source: {
-    // Define source types explicitly
-    messages: $messages,
+    messages: $messages, // messages as it is *before* the new user message (since userMessageCreated already updated it)
     apiKey: $apiKey,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
@@ -336,45 +336,42 @@ sample({
   filter: ({ apiKey }) => !!apiKey,
   fn: (
     sourceData: {
-      messages: Message[];
+      messages: Message[]; // This `messages` already includes the new `userMessage` due to `userMessageCreated` effect.
       apiKey: string;
       temperature: number;
       systemPrompt: string;
       selectedModelId: string;
     },
-    userMessage: Message
-  ): StreamTriggerPayload => {
-    // Add types
+    userMessage: Message // The user message that was just created and added
+  ): StreamInitiatedWithTargetPayload => {
+    // Corrected type
     const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
       sourceData;
 
-    // 1. Generate IDs
     const streamId = crypto.randomUUID();
-    const placeholderId = crypto.randomUUID();
-
-    // 2. Create Placeholder Message
-    const placeholderMessage: Message = {
-      id: placeholderId,
-      role: "assistant",
-      content: "",
-      isLoading: true,
-      timestamp: Date.now(),
-    };
+    const targetMessageId = crypto.randomUUID(); // For a new assistant response
+    const shouldAddNewMessage = true; // Always add a new message for a direct user message response
 
     // Prepare message history (use current state which includes the new user message)
-    const currentMessages = $messages.getState(); // Get messages *after* userMessageCreated updated it
-    const messagesForApi = [...currentMessages]; // Use the already updated list
+    const messagesForApi = [...messages]; // This list already includes the new user message.
 
-    // 3. Define Callbacks (Target internal events)
+    let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
+
+    // Define Callbacks (Target internal events)
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
-        _messageChunkReceived({ placeholderId, chunkContent: content });
+        _messageChunkReceived({
+          targetMessageId,
+          chunkContent: content,
+          isFirstChunk: isFirstChunkForThisStream,
+        });
+        isFirstChunkForThisStream = false; // After the first chunk, all subsequent are appending
       }
     };
 
     const onComplete = () => {
-      _messageCompleted({ placeholderId });
+      _messageCompleted({ targetMessageId });
       normalResponseProcessed(); // Trigger save/downstream logic for normal flow
       assistantResponseCompleted(); // Signal completion for history save etc.
       scrollToLastMessageNeeded(); // Trigger scroll
@@ -383,17 +380,17 @@ sample({
 
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}] Error callback:`, error);
-      _messageErrored({ placeholderId, error });
+      _messageErrored({ targetMessageId, error });
       chatStreamFinished(); // Signal that this chat's stream has finished due to error
     };
 
     const onAbort = () => {
       console.log(`[Stream ${streamId}] Abort callback triggered.`);
-      _messageAborted({ placeholderId });
+      _messageAborted({ targetMessageId });
       chatStreamFinished(); // Signal that this chat's stream has finished due to abort
     };
 
-    // 4. Prepare StreamChatParams
+    // Prepare StreamChatParams
     const streamParams: StreamChatParams = {
       streamId,
       model: selectedModelId,
@@ -406,10 +403,9 @@ sample({
       onAbort,
     };
 
-    // 5. Return payload for the split target, including the placeholder
-    return { streamParams, streamId, placeholderMessage };
+    return { streamParams, streamId, targetMessageId, shouldAddNewMessage };
   },
-  target: triggerStream,
+  target: streamInitiatedWithTarget, // Direct target
 });
 
 // Trigger API key missing event if message sent without key
@@ -420,106 +416,99 @@ sample({
   target: apiKeyMissing,
 });
 
-// --- Generate Response Logic ---
-
-// Trigger placeholder creation for generation
+// Refactored Generate Response Logic
 sample({
   clock: generateResponseClicked,
-  source: $isGenerating,
-  filter: (isGen) => !isGen,
-  target: addPlaceholderForGeneration,
-});
-
-// Create the placeholder message
-sample({
-  clock: addPlaceholderForGeneration,
-  fn: (): Message => ({
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content: "",
-    timestamp: Date.now(),
-    isLoading: true,
-  }),
-  target: placeholderGenerated,
-});
-
-// Trigger stream initiation (streamId) for GENERATE action
-sample({
-  clock: placeholderGenerated, // Trigger *after* placeholder is created
-  source: $apiKey, // Only need API key to filter
-  filter: (apiKey): apiKey is string => !!apiKey, // Ensure API key exists
-  fn: () => ({ streamId: crypto.randomUUID() }), // Generate streamId
-  target: streamRequestInitiated, // Target specific event
-});
-
-// Trigger stream effect (streamChatFx) for GENERATE action
-sample({
-  clock: placeholderGenerated, // Trigger *after* placeholder is created
   source: {
     messages: $messages,
     apiKey: $apiKey,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
-    activeStreamId: $activeChatStreamId, // Get the streamId generated above
   },
-  // Filter needs to ensure apiKey and the activeStreamId (just set by the previous sample) exist
-  filter: (
-    source
-  ): source is {
+  filter: ({ apiKey, messages }) => !!apiKey && messages.length > 0, // Ensure API key exists and there are messages to generate from
+  fn: (sourceData: {
     messages: Message[];
     apiKey: string;
     temperature: number;
     systemPrompt: string;
     selectedModelId: string;
-    activeStreamId: string; // Ensure streamId is a string
-  } => !!source.apiKey && source.messages.length > 0 && !!source.activeStreamId,
-  fn: (source, placeholder): StreamChatParams => {
-    // Destructure and assert activeStreamId is string due to filter
-    const { messages, apiKey, temperature, selectedModelId, activeStreamId } =
-      source;
-    const placeholderId = placeholder.id; // ID from the clock data
-    const currentStreamId = activeStreamId!; // Chacked by filtrer, so it's safe to assert
+  }): StreamInitiatedWithTargetPayload => {
+    // Corrected type
+    const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
+      sourceData;
 
-    // Prepare message history (use current state which includes the placeholder)
-    const currentMessages = messages; // Source already has the updated message list
-    // Send history *excluding* the placeholder that was just added
-    const messagesForApi = currentMessages.slice(0, -1);
+    const streamId = crypto.randomUUID();
+    let targetMessageId: string;
+    let shouldAddNewMessage: boolean;
+
+    // Check if the last message is an assistant placeholder that was loading
+    const lastMessage = messages[messages.length - 1];
+
+    if (
+      lastMessage &&
+      lastMessage.role === "assistant" &&
+      lastMessage.isLoading // Check if it's currently a loading placeholder
+    ) {
+      // If the last message is an assistant placeholder (e.g., from a previous failed generation),
+      // we should reuse its ID and update it.
+      targetMessageId = lastMessage.id;
+      shouldAddNewMessage = false;
+    } else {
+      // For a fresh generation or if the last assistant message is complete,
+      // generate a new ID and add a new message.
+      targetMessageId = crypto.randomUUID();
+      shouldAddNewMessage = true;
+    }
+
+    // Prepare message history: for generate, we send all messages up to the last user message
+    // If shouldAddNewMessage is true, the API history includes all current messages.
+    // If shouldAddNewMessage is false (updating existing), the API history excludes the target message.
+    let messagesForApi: Message[];
+    if (shouldAddNewMessage) {
+      messagesForApi = [...messages]; // Send all current messages, new assistant will be appended in UI
+    } else {
+      // If updating an existing assistant message, slice the history *before* that message.
+      const targetIndex = messages.findIndex((m) => m.id === targetMessageId);
+      if (targetIndex !== -1) {
+        messagesForApi = messages.slice(0, targetIndex);
+      } else {
+        messagesForApi = [...messages]; // Fallback, should not happen if logic is correct
+      }
+    }
+
+    let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
     // Define Callbacks
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
-        _messageChunkReceived({ placeholderId, chunkContent: content });
+        _messageChunkReceived({
+          targetMessageId,
+          chunkContent: content,
+          isFirstChunk: isFirstChunkForThisStream,
+        });
+        isFirstChunkForThisStream = false;
       }
     };
     const onComplete = () => {
-      _messageCompleted({ placeholderId });
+      _messageCompleted({ targetMessageId });
       assistantResponseCompleted();
-      // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
-      chatStreamFinished(); // Signal that this chat's stream has finished
+      chatStreamFinished();
     };
     const onError = ({ error }: StreamErrorPayload) => {
-      // Use currentStreamId (guaranteed string) for logging
-      console.error(
-        `[Stream ${currentStreamId}/Generate] Error callback:`,
-        error
-      );
-      _messageErrored({ placeholderId, error });
-      chatStreamFinished(); // Signal that this chat's stream has finished due to error
+      console.error(`[Stream ${streamId}/Generate] Error callback:`, error);
+      _messageErrored({ targetMessageId, error });
+      chatStreamFinished();
     };
     const onAbort = () => {
-      // Use currentStreamId (guaranteed string) for logging
-      console.log(
-        `[Stream ${currentStreamId}/Generate] Abort callback triggered.`
-      );
-      _messageAborted({ placeholderId });
-      chatStreamFinished(); // Signal that this chat's stream has finished due to abort
+      console.log(`[Stream ${streamId}/Generate] Abort callback triggered.`);
+      _messageAborted({ targetMessageId });
+      chatStreamFinished();
     };
 
-    // Prepare StreamChatParams
     const streamParams: StreamChatParams = {
-      streamId: currentStreamId, // Use the local const (guaranteed string)
+      streamId,
       model: selectedModelId,
       messages: messagesForApi,
       apiKey,
@@ -529,22 +518,12 @@ sample({
       onError,
       onAbort,
     };
-    return streamParams;
+    return { streamParams, streamId, targetMessageId, shouldAddNewMessage };
   },
-  target: streamChatFx, // Target the effect directly
+  target: streamInitiatedWithTarget,
 });
 
 // Trigger API key missing event if generate clicked without key
-sample({
-  clock: generateResponseClicked,
-  source: $apiKey,
-  filter: (key) => !key,
-  target: apiKeyMissing,
-});
-
-// Removed duplicate Generate Response Logic block
-
-// Trigger API key missing event (Keep as is)
 sample({
   clock: generateResponseClicked,
   source: $apiKey,
@@ -556,14 +535,12 @@ sample({
 sample({
   clock: messageRetry,
   source: {
-    // Define source types explicitly
     messages: $messages,
     apiKey: $apiKey,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
   },
-  // Ensure sourceData type includes all used properties
   filter: (
     sourceData: {
       apiKey: string | null;
@@ -579,75 +556,90 @@ sample({
     temperature: number;
     systemPrompt: string;
     selectedModelId: string;
-  } => !!sourceData.apiKey && isRetryableMessage(messageToRetry), // Filter and type guard
-  fn: (sourceData, messageToRetry): StreamTriggerPayload => {
-    // Add types
+  } => !!sourceData.apiKey && isRetryableMessage(messageToRetry),
+  fn: (sourceData, messageToRetry): StreamInitiatedWithTargetPayload => {
+    // Corrected type
     const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
       sourceData;
 
-    // Prepare base parameters (history slice)
-    const baseParams = prepareRetryRequestParamsFn(
+    const streamId = crypto.randomUUID();
+    let targetMessageId: string;
+    let shouldAddNewMessage: boolean;
+
+    // Use prepareRetryRequestParamsFn to get the correct history slice for the API call
+    const { messages: messagesForApi, modelId } = prepareRetryRequestParamsFn(
       { messages, apiKey, temperature, systemPrompt, selectedModelId },
       messageToRetry
     );
-    // Note: baseParams.messages contains the correctly sliced history for the API call.
 
-    // 1. Generate IDs
-    const streamId = crypto.randomUUID();
-    const placeholderId = crypto.randomUUID(); // Always generate a new placeholder for retry response
+    const originalMessageIndex = messages.findIndex(
+      (m) => m.id === messageToRetry.id
+    );
 
-    // 2. Create Placeholder Message
-    const placeholderMessage: Message = {
-      id: placeholderId,
-      role: "assistant",
-      content: "",
-      isLoading: true, // Start loading
-      timestamp: Date.now(),
-      isRetryOf: messageToRetry.id, // Optional: Mark which message this retry is for
-    };
-
-    // 3. Define Callbacks (Target internal events, closing over placeholderId)
-    const onChunk = ({ chunk }: StreamChunkPayload) => {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        _messageChunkReceived({ placeholderId, chunkContent: content });
+    if (originalMessageIndex === -1) {
+      console.warn(
+        "messageRetry: Original message not found in $messages. Creating new."
+      );
+      targetMessageId = crypto.randomUUID();
+      shouldAddNewMessage = true;
+    } else if (messageToRetry.role === "assistant") {
+      // If retrying an assistant message, update it in place
+      targetMessageId = messageToRetry.id;
+      shouldAddNewMessage = false;
+    } else {
+      // messageToRetry.role === "user"
+      // Look for an assistant message immediately following it.
+      const nextMessage = messages[originalMessageIndex + 1];
+      if (nextMessage && nextMessage.role === "assistant") {
+        // If there's an existing assistant message, update it
+        targetMessageId = nextMessage.id;
+        shouldAddNewMessage = false;
+      } else {
+        // No existing assistant message, create a new one
+        targetMessageId = crypto.randomUUID();
+        shouldAddNewMessage = true;
       }
-    };
-    const onComplete = () => {
-      _messageCompleted({ placeholderId });
-      // Maybe trigger a specific 'retryResponseProcessed' event here?
-      assistantResponseCompleted(); // Signal completion
-      // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
-      chatStreamFinished(); // Signal that this chat's stream has finished
-    };
-    const onError = ({ error }: StreamErrorPayload) => {
-      console.error(`[Stream ${streamId}/Retry] Error callback:`, error);
-      _messageErrored({ placeholderId, error });
-      chatStreamFinished(); // Signal that this chat's stream has finished due to error
-    };
-    const onAbort = () => {
-      console.log(`[Stream ${streamId}/Retry] Abort callback triggered.`);
-      _messageAborted({ placeholderId });
-      chatStreamFinished(); // Signal that this chat's stream has finished due to abort
-    };
+    }
 
-    // 4. Prepare StreamChatParams using baseParams
+    let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
+
     const streamParams: StreamChatParams = {
       streamId,
-      model: baseParams.modelId,
-      messages: baseParams.messages, // Use sliced history from prepareRetryRequestParamsFn
-      apiKey: baseParams.apiKey,
-      temperature: baseParams.temperature,
-      onChunk,
-      onComplete,
-      onError,
-      onAbort,
+      model: modelId, // Use modelId from prepareRetryRequestParamsFn
+      messages: messagesForApi, // Use sliced history from prepareRetryRequestParamsFn
+      apiKey,
+      temperature,
+      onChunk: ({ chunk }: StreamChunkPayload) => {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          _messageChunkReceived({
+            targetMessageId,
+            chunkContent: content,
+            isFirstChunk: isFirstChunkForThisStream,
+          });
+          isFirstChunkForThisStream = false;
+        }
+      },
+      onComplete: () => {
+        _messageCompleted({ targetMessageId });
+        assistantResponseCompleted();
+        chatStreamFinished();
+      },
+      onError: ({ error }: StreamErrorPayload) => {
+        console.error(`[Stream ${streamId}/Retry] Error callback:`, error);
+        _messageErrored({ targetMessageId, error });
+        chatStreamFinished();
+      },
+      onAbort: () => {
+        console.log(`[Stream ${streamId}/Retry] Abort callback triggered.`);
+        _messageAborted({ targetMessageId });
+        chatStreamFinished();
+      },
     };
 
-    // 5. Return payload for split, including the placeholder
-    return { streamParams, streamId, placeholderMessage };
+    return { streamParams, streamId, targetMessageId, shouldAddNewMessage };
   },
-  target: triggerStream, // Target the split event
+  target: streamInitiatedWithTarget,
 });
 
 // Trigger spinner update event for retry (Keep as is)
@@ -661,21 +653,20 @@ sample({
   target: messageRetryInitiated,
 });
 
-// Removed sample triggering old effect from prepareRetryParams
-
 // --- Common Post-API Logic ---
 
-// Removed samples for calculatedRetryUpdate and retryUpdate
-// Message updates are now handled within the streamChatFx callbacks
+// Trigger streamChatFx and streamRequestInitiated
+sample({
+  clock: streamInitiatedWithTarget,
+  fn: (payload) => payload.streamParams,
+  target: streamChatFx,
+});
 
-// Removed sample triggering normalResponseProcessed from effect.done
-// This trigger will be moved into the onComplete callback.
-
-// Forward successful API response data to apiRequestTokensUpdated event
-// Removed sample forwarding to apiRequestTokensUpdated
-
-// Removed sample triggering scroll on $messages.updates.
-// Scrolling is now triggered within the onComplete callbacks.
+sample({
+  clock: streamInitiatedWithTarget,
+  fn: ({ streamId }: StreamInitiatedWithTargetPayload) => ({ streamId }), // Explicitly type the destructured payload
+  target: streamRequestInitiated,
+});
 
 // --- Cancellation Logic ---
 sample({
@@ -716,29 +707,16 @@ debug(
 
   // Internal events
   userMessageCreated,
-  placeholderGenerated,
-  addPlaceholderForGeneration,
-  streamRequestInitiated,
-  triggerStream,
+  streamRequestInitiated, // Keep streamRequestInitiated in debug
+  streamInitiatedWithTarget, // Add new event to debug
   _messageChunkReceived,
   _messageCompleted,
   _messageErrored,
   _messageAborted,
-  chatStreamFinished, // Add to debug
-  // Removed: retryUpdate, prepareRetryParams, calculatedRetryUpdate, apiRequestTokensUpdated
+  chatStreamFinished,
   messageRetryInitiated,
   scrollToLastMessageNeeded,
 
   // Effects
-  streamChatFx // Effect
-  // Removed: sendApiRequestFx
+  streamChatFx
 );
-
-// --- Cancellation Logic ---
-sample({
-  clock: stopGenerationClicked,
-  source: $activeChatStreamId,
-  filter: (streamId: string | null): streamId is string => !!streamId,
-  fn: (streamId: string) => ({ streamId }),
-  target: abortStream,
-});

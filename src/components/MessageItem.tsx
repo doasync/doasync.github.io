@@ -67,7 +67,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const [isGoingToDelete, setIsGoingToDelete] = useState(false);
   const [isGoingToRetry, setIsGoingToRetry] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(message.content);
+  const [editedText, setEditedText] = useState(message.content); // Initialize with prop
   const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
   const messageItemRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +81,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const handleEditClick = () => {
     // Don't allow editing if another edit is active or already editing this one
     if (isEditing || globalEditingMessageId !== null) return;
+    setEditedText(message.content); // Ensure editedText is always the current message.content
     setOriginalContentOnEdit(message.content); // Store original content
     startEditingMessage(message.id); // Set this message as globally editing
     setIsEditing(true); // Set local editing state
