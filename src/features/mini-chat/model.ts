@@ -162,6 +162,21 @@ export const _addMiniChatUserMessage = createEvent<MiniChatMessage>(
   "addMiniChatUserMessage"
 );
 
+// Internal event to signal stream request start with its ID - Moved for declaration order
+const miniChatStreamRequestInitiated = createEvent<{ streamId: string }>(
+  "miniChatStreamRequestInitiated"
+);
+
+// Store for the currently active stream ID (for cancellation) - Moved for declaration order
+export const $miniChatActiveStreamId = createStore<string | null>(null, {
+  name: "$miniChatActiveStreamId",
+});
+
+$miniChatActiveStreamId.on(
+  miniChatStreamRequestInitiated,
+  (_, { streamId }) => streamId
+);
+
 export const $miniChat = createStore<MiniChatState>({
   isOpen: false,
   isCompact: false,
@@ -212,7 +227,12 @@ export const $miniChat = createStore<MiniChatState>({
     ...state,
     isMinimized: false,
   }))
-  .reset(resetMiniChat);
+  .reset(resetMiniChat)
+  .on(miniChatStreamRequestInitiated, (state) => ({
+    // Set loading to true when stream starts
+    ...state,
+    loading: true,
+  }));
 
 // Scroll trigger store
 export const $miniChatScrollTrigger = createStore<number>(0, {
@@ -220,20 +240,6 @@ export const $miniChatScrollTrigger = createStore<number>(0, {
 })
   .on(triggerMiniChatScroll, () => Date.now())
   .reset(resetMiniChat, miniChatClosed);
-
-// Store for the currently active stream ID (for cancellation)
-export const $miniChatActiveStreamId = createStore<string | null>(null, {
-  name: "$miniChatActiveStreamId",
-});
-// Internal event to signal stream request start with its ID
-const miniChatStreamRequestInitiated = createEvent<{ streamId: string }>(
-  "miniChatStreamRequestInitiated"
-);
-
-$miniChatActiveStreamId.on(
-  miniChatStreamRequestInitiated,
-  (_, { streamId }) => streamId
-);
 
 // --- Stream Handling Logic ---
 
@@ -285,7 +291,7 @@ $miniChat
     const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    return { ...state, messages: newMsgs };
+    return { ...state, messages: newMsgs, loading: false }; // MODIFIED: Set loading to false
   })
   .on(_miniChatMessageErrored, (state, { placeholderId, error }) => {
     const targetMsgIndex = state.messages.findIndex(
@@ -300,7 +306,7 @@ $miniChat
     };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    return { ...state, messages: newMsgs };
+    return { ...state, messages: newMsgs, loading: false }; // MODIFIED: Set loading to false
   })
   .on(_miniChatMessageAborted, (state, { placeholderId }) => {
     const targetMsgIndex = state.messages.findIndex(
@@ -311,7 +317,7 @@ $miniChat
     const updatedMsg = { ...state.messages[targetMsgIndex], isLoading: false };
     const newMsgs = [...state.messages];
     newMsgs[targetMsgIndex] = updatedMsg;
-    return { ...state, messages: newMsgs };
+    return { ...state, messages: newMsgs, loading: false }; // MODIFIED: Set loading to false
   });
 
 // Placeholder event for adding the placeholder message - Adjusted as per FIX_PLAN.md
@@ -325,7 +331,7 @@ $miniChat.on(_addPlaceholderMessage, (state, placeholder) => ({
 // Wiring send → API → receive
 //
 
-// NEW: Internal event to prepare and trigger the stream payload - as per FIX_PLAN.md
+// Internal event to prepare and trigger the stream payload - as per FIX_PLAN.md
 type PrepareStreamPayload = {
   streamParams: StreamChatParams;
   streamId: string;
@@ -400,7 +406,7 @@ sample({
   target: _prepareAndTriggerStream, // Target the new event
 });
 
-// NEW: Chain samples to orchestrate sequential updates and API call - as per FIX_PLAN.md
+// Chain samples to orchestrate sequential updates and API call - as per FIX_PLAN.md
 // 1. Add user message to UI state
 sample({
   clock: _prepareAndTriggerStream,
@@ -440,11 +446,7 @@ sample({
   target: abortStream,
 });
 
-// Wire $miniChat.loading to streamChatFx.pending - NEW as per FIX_PLAN.md
-$miniChat.on(streamChatFx.pending, (state, pending) => ({
-  ...state,
-  loading: pending,
-}));
+// Removed: Wire $miniChat.loading to streamChatFx.pending
 
 //
 // Expand Logic (stub)

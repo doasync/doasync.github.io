@@ -74,7 +74,6 @@ export const mainInputFocused = chatDomain.event<boolean>("mainInputFocused");
 export const stopGenerationClicked = chatDomain.event<void>(
   "stopGenerationClicked"
 );
-// Event to signal assistant response cycle completion (success, error, or abort)
 export const assistantResponseCompleted = chatDomain.event<void>(
   "assistantResponseCompleted"
 );
@@ -95,6 +94,9 @@ const addPlaceholderForGeneration = chatDomain.event<void>(
 );
 const placeholderGenerated = chatDomain.event<Message>("placeholderGenerated"); // Carries the placeholder message
 
+// Internal event to signal chat stream has finished (success, error, or abort) for local state management
+const chatStreamFinished = chatDomain.event<void>("chatStreamFinished");
+
 // REMOVED: retryTriggered, placeholderCalculated, cleanupAfterUpdate
 
 // --- Effects ---
@@ -105,9 +107,13 @@ export const $messageText = chatDomain.store<string>("", {
   name: "$messageText",
 });
 export const $messages = chatDomain.store<Message[]>([], { name: "$messages" });
-export const $isGenerating = chatDomain.store<boolean>(false, {
-  name: "$isGenerating",
-});
+export const $isGenerating = chatDomain
+  .store<boolean>(false, {
+    name: "$isGenerating",
+  })
+  .on(streamRequestInitiated, () => true) // Set true when *this* chat's stream starts
+  .on(chatStreamFinished, () => false); // Set false when *this* chat's stream finishes (complete/error/abort)
+
 export const $currentChatTokens = chatDomain.store<number>(0, {
   name: "$currentChatTokens",
 });
@@ -174,8 +180,7 @@ $messages
 
 $apiError.reset(messageSent, generateResponseClicked, messageRetry); // Reset on user action start
 
-$isGenerating.on(streamChatFx, () => true).reset(streamChatFx.finally); // Driven by chat-stream effect
-
+// Removed old $isGenerating.on(streamChatFx, ...) definition
 // $currentChatTokens removed
 
 $retryingMessageId
@@ -373,16 +378,19 @@ sample({
       normalResponseProcessed(); // Trigger save/downstream logic for normal flow
       assistantResponseCompleted(); // Signal completion for history save etc.
       scrollToLastMessageNeeded(); // Trigger scroll
+      chatStreamFinished(); // Signal that this chat's stream has finished
     };
 
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}] Error callback:`, error);
       _messageErrored({ placeholderId, error });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to error
     };
 
     const onAbort = () => {
       console.log(`[Stream ${streamId}] Abort callback triggered.`);
       _messageAborted({ placeholderId });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to abort
     };
 
     // 4. Prepare StreamChatParams
@@ -489,6 +497,7 @@ sample({
       _messageCompleted({ placeholderId });
       assistantResponseCompleted();
       // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
+      chatStreamFinished(); // Signal that this chat's stream has finished
     };
     const onError = ({ error }: StreamErrorPayload) => {
       // Use currentStreamId (guaranteed string) for logging
@@ -497,6 +506,7 @@ sample({
         error
       );
       _messageErrored({ placeholderId, error });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to error
     };
     const onAbort = () => {
       // Use currentStreamId (guaranteed string) for logging
@@ -504,6 +514,7 @@ sample({
         `[Stream ${currentStreamId}/Generate] Abort callback triggered.`
       );
       _messageAborted({ placeholderId });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to abort
     };
 
     // Prepare StreamChatParams
@@ -607,14 +618,17 @@ sample({
       // Maybe trigger a specific 'retryResponseProcessed' event here?
       assistantResponseCompleted(); // Signal completion
       // scrollToLastMessageNeeded(); // Don't scroll here, already scrolled by placeholder
+      chatStreamFinished(); // Signal that this chat's stream has finished
     };
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}/Retry] Error callback:`, error);
       _messageErrored({ placeholderId, error });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to error
     };
     const onAbort = () => {
       console.log(`[Stream ${streamId}/Retry] Abort callback triggered.`);
       _messageAborted({ placeholderId });
+      chatStreamFinished(); // Signal that this chat's stream has finished due to abort
     };
 
     // 4. Prepare StreamChatParams using baseParams
@@ -710,6 +724,7 @@ debug(
   _messageCompleted,
   _messageErrored,
   _messageAborted,
+  chatStreamFinished, // Add to debug
   // Removed: retryUpdate, prepareRetryParams, calculatedRetryUpdate, apiRequestTokensUpdated
   messageRetryInitiated,
   scrollToLastMessageNeeded,
@@ -723,7 +738,7 @@ debug(
 sample({
   clock: stopGenerationClicked,
   source: $activeChatStreamId,
-  filter: (streamId): streamId is string => !!streamId, // Only run if there's an active stream
-  fn: (streamId: string) => ({ streamId }), // Explicitly type streamId as string
+  filter: (streamId: string | null): streamId is string => !!streamId,
+  fn: (streamId: string) => ({ streamId }),
   target: abortStream,
 });
