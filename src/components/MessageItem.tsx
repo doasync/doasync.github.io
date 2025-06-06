@@ -372,6 +372,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 onClick={handleEditClick}
                 color="inherit"
                 title="Edit Message (Double-Click)"
+                disabled={isRetryingThisMessage}
               >
                 <EditIcon fontSize="small" />
               </IconButton>
@@ -383,6 +384,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 title="Long press to delete"
                 color={isGoingToDelete ? "error" : "inherit"}
                 {...deleteLongPressProps}
+                disabled={isRetryingThisMessage}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
