@@ -1,31 +1,32 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.8  
-**Date:** 2025-04-10  
-**Author:** doasync  
-**Status:** Updated after Phase 13 (Usage Info & Mini Chat)
+**Version:** 1.9
+**Date:** 2025-06-08
+**Author:** doasync
+**Status:** Updated with Real-Time Streaming capabilities
 
 ---
 
 ### 1. Introduction
 
-This document outlines the requirements for a static, adaptive web application designed as a chat interface for interacting with Large Language Models (LLMs). The App will be built using TypeScript, React, Next.js, Material UI (MUI) for React components, Effector for state management, and fetch API for data fetching. It will be a client-side only App. The interface will primarily interact with LLMs through the **OpenRouter** unified API, utilizing user-provided API keys stored locally in the browser. The UI must be responsive, automatically adjusting its layout, functionality, and content based on the user's device and screen size. Core actions will primarily be represented by icon buttons.
+This document outlines the requirements for a static, adaptive web application designed as a chat interface for interacting with Large Language Models (LLMs). The App will be built using TypeScript, React, Next.js, Material UI (MUI) for React components, Effector for state management, and fetch API for data fetching. It will be a client-side only App. The interface will primarily interact with LLMs through the **OpenRouter** unified API, utilizing user-provided API keys stored locally in the browser, **delivering responses in real-time via streaming.** The UI must be responsive, automatically adjusting its layout, functionality, and content based on the user's device and screen size. Core actions will primarily be represented by icon buttons.
 
 ---
 
 ### 2. Goals
 
-- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter.
+- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter, **featuring real-time streaming of responses.**
+- **Deliver an interactive and immediate user experience through real-time streaming of LLM responses, with the capability to stop message generation.**
 - Enable users to manage multiple chat conversations (history) persistently using IndexedDB, including duplication and title regeneration.
 - Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically, with options to filter and view detailed model information.
-- Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, and retry with resubmission.
+- Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, retry with resubmission, **and the ability to stop ongoing message generation.**
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) stored locally.
 - Support client-side file attachment (text/images) for multimodal interaction where supported by the model.
 - Ensure a seamless experience across desktop and mobile devices, including persistent side drawers on desktop.
 - **Persist in-progress message drafts per chat session with debounce, restoring drafts on reload.**
 - **Provide real-time resource usage insights (tokens, cost, storage).**
-- **Enable quick contextual interactions via a Mini Chat interface with a dedicated model selector.**
+- **Enable quick contextual interactions via a Mini Chat interface with a dedicated model selector, also supporting real-time streaming responses and generation cancellation.**
 
 ---
 
@@ -64,7 +65,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 #### 4.3. Chat Window (Middle Area)
 
-- **4.3.1. Display Area:** Scrollable, centered, auto-scrolls on new user messages.
+- **4.3.1. Display Area:** Scrollable, centered. **Displays assistant messages as they stream in real-time.** Auto-scrolls on new user messages and during streaming (pauses on user interaction).
 - **4.3.2. Message Rendering:** Via `react-markdown` and plugins.
   - Standard and GitHub Flavored Markdown.
   - Syntax-highlighted code blocks.
@@ -80,10 +81,14 @@ Users who need a web-based interface to interact with various LLM APIs via the O
   - **Retry/Resubmit:**
     - **User message retry:** Resubmits up to and including this message.
       - If next message is a model reply, replaces it.
-      - **If next is another user or absent, inserts placeholder assistant message immediately after retried user message, replaced upon API success.**
+      - **If next is another user or absent, inserts placeholder assistant message immediately after retried user message. This placeholder is then populated with the assistant's response as it streams in.**
     - **Model message retry:** Resubmits up to preceding user message, replaces model reply.
-    - **Generate:** When input is empty and last message is user, inserts placeholder assistant message immediately, replaced upon API success.
-  - **All retry/generate placeholders appear instantly, show spinners, and are replaced seamlessly.**
+    - **Generate:** When input is empty and last message is user, inserts placeholder assistant message immediately. **This placeholder is then populated with the assistant's response as it streams in.**
+  - **All retry/generate placeholders appear instantly, show spinners, and are seamlessly replaced by streaming content.**
+  - **Stop Generation:**
+    - A 'Stop' button (or similar UI element) becomes available when an assistant message is actively being streamed.
+    - Allows the user to cancel the ongoing stream for the current assistant message.
+    - The message will retain the content received up to the point of cancellation.
 
 #### 4.4. Message Input Area (Bottom)
 
@@ -91,7 +96,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - **4.4.2. Attach File Button:** (Not Implemented)
 - **4.4.3. Send Button:**
   - Sends on click or Enter.
-  - **If input empty & last message is user, triggers Generate flow (see above).**
+  - **If input empty & last message is user, triggers Generate flow, which streams the response (see above).**
 - **4.4.4. Draft Persistence:**
   - The current input text is saved as a **`draft`** field inside the chat session.
   - Debounced (~1s) to minimize storage writes.
@@ -151,13 +156,15 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 #### 4.9. Mini Chat (New)
 
-- **Lightweight, contextual chat interface embedded within the main UI.**
+- **Lightweight, contextual chat interface embedded within the main UI, providing real-time streaming responses.**
 - **Accessible via contextual buttons (e.g., explain selection).**
 - **Features:**
   - Minimal toolbar and dialog.
   - Dedicated Effector state model.
   - Sends quick prompts without affecting main chat history.
   - **Dedicated model selector independent of main chat.**
+  - **Streaming Responses:** Assistant messages appear in real-time as they are generated.
+  - **Stop Generation:** Allows users to cancel an ongoing message stream within the mini chat.
   - Option to **expand Mini Chat into a full persistent chat session** saved in IndexedDB.
   - Preserves input if expanded.
   - Handles "Explain" flow immediately if already open.
@@ -167,11 +174,11 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 ### 5. Non-Functional Requirements
 
-- **Technology Stack:** TypeScript, React, Next.js, MUI v5+, Effector, `idb`, OpenRouter API, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
+- **Technology Stack:** TypeScript, React, Next.js, MUI v5+, Effector, `idb`, OpenRouter API, `eventsource-parser`, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
 - **Architecture:** Static Web Application, client-side only, feature-based modular.
 - **Data Persistence:** IndexedDB (chats), LocalStorage (settings, API key, free toggle, mini chat model, drawer states).
 - **Responsiveness:** Desktop drawers persistent; mobile drawers as tabs. Smooth transitions.
-- **Performance:** Responsive UI, smooth scrolling, efficient state updates, clear loading indicators, optimized markdown rendering.
+- **Performance:** Responsive UI, **real-time feedback via streaming responses,** smooth scrolling, efficient state updates, clear loading indicators for generation and streaming, optimized markdown rendering.
 - **Usability & Error Handling:** Intuitive icons with tooltips, clear feedback, accessible actions, user-facing errors via MUI Alerts.
 - **Resource Visibility:** Real-time usage info to aid user awareness of tokens, costs, storage.
 
@@ -187,6 +194,8 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - Rich content rendering clean and non-disruptive.
 - **Mini Chat UI integrated seamlessly.**
 - **Usage Info presented clearly and accessibly.**
+- Clear visual indication of messages being streamed in real-time (e.g., text appearing progressively).
+- Accessible and intuitive 'Stop Generation' controls during message streaming for both main and mini chat.
 
 ---
 
