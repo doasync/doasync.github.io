@@ -36,7 +36,7 @@ import { $isMainInputFocused } from "@/features/chat/model";
 import { chatSelected } from "@/features/chat-history/model";
 
 const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
-const DEFAULT_MINI_CHAT_MODEL = "gemini-2.5-flash-preview-05-20";
+const DEFAULT_MINI_CHAT_MODEL = "chatgpt-4o-latest";
 
 //
 // Types

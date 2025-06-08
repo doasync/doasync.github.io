@@ -9,24 +9,33 @@ const modelsDomain = createDomain("models");
 // Structure based on docs/essentials.md (VoidAI /models response)
 export interface ModelInfo {
   id: string; // Model ID (e.g., "openai/gpt-4o") - USE THIS
-  name: string; // Display name (e.g., "OpenAI: GPT-4o") - USE THIS
-  description: string;
-  context_length: number;
+  object: string; // e.g., "model"
+  owned_by: string; // e.g., "google", "openai"
+  type: string; // e.g., "/v1/chat/completions", "/v1/images/generations"
+
+  // Fields that might be missing or derived from VoidAI's /v1/models response
+  name?: string; // Display name (e.g., "OpenAI: GPT-4o") - Will be derived if missing
+  description?: string;
+  context_length?: number;
   created?: number; // epoch seconds
-  architecture: {
-    modality: string;
-    input_modalities: string[]; // Check this array for image support
-    output_modalities: string[];
-  };
   pricing?: {
-    prompt: string;
-    completion: string;
-    [key: string]: string;
+    prompt?: string;
+    completion?: string;
+    [key: string]: string | undefined;
   };
 }
 
-interface ModelsApiResponse {
-  data: ModelInfo[];
+// The raw response from the API, before transformation
+interface RawModelsApiResponse {
+  object: string;
+  data: Array<{
+    id: string;
+    object: string;
+    owned_by: string;
+    type: string;
+    // Potentially other fields not in ModelInfo
+    [key: string]: any;
+  }>;
 }
 
 // --- Stores ---
@@ -65,10 +74,9 @@ persist({ store: $showFreeOnly, key: "showFreeOnly" });
 
 persist({ store: $selectedModelId, key: "selectedModelId" });
 
-export const $autoTitleModelId = modelsDomain.store<string>(
-  "gemini-2.5-flash-preview-05-20",
-  { name: "autoTitleModelId" }
-);
+export const $autoTitleModelId = modelsDomain.store<string>("gpt-4.1", {
+  name: "autoTitleModelId",
+});
 
 export const autoTitleModelSelected = modelsDomain.event<string>(
   "autoTitleModelSelected"
@@ -101,9 +109,32 @@ const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data: ModelsApiResponse = await response.json();
-    // Sort models descending by created timestamp (newest first)
-    return data.data.sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
+    const rawData: RawModelsApiResponse = await response.json();
+
+    // Filter for chat completion models and transform to ModelInfo
+    const chatModels: ModelInfo[] = rawData.data
+      .filter((model) => model.type === "/v1/chat/completions")
+      .map((model) => ({
+        id: model.id,
+        object: model.object,
+        owned_by: model.owned_by,
+        type: model.type,
+        // Derive a 'name' for display since it's not directly provided
+        name: `${model.owned_by}: ${model.id}`,
+        // Other fields are optional and will be undefined if not present in rawData
+        description: model.description, // Will be undefined
+        context_length: model.context_length, // Will be undefined
+        created: model.created, // Will be undefined
+        pricing: model.pricing, // Will be undefined
+      }));
+
+    // Sort models descending by created timestamp (if available) or by ID
+    return chatModels.sort((a, b) => {
+      if (a.created && b.created) {
+        return b.created - a.created;
+      }
+      return a.id.localeCompare(b.id); // Fallback to alphabetical by ID
+    });
   },
 });
 
