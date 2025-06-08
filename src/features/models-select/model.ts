@@ -6,7 +6,7 @@ const modelsDomain = createDomain("models");
 
 // --- Types ---
 
-// Structure based on docs/essentials.md (OpenRouter /models response)
+// Structure based on docs/essentials.md (VoidAI /models response)
 export interface ModelInfo {
   id: string; // Model ID (e.g., "openai/gpt-4o") - USE THIS
   name: string; // Display name (e.g., "OpenAI: GPT-4o") - USE THIS
@@ -37,7 +37,7 @@ export const $availableModels = modelsDomain.store<ModelInfo[]>([], {
 // Holds the ID of the currently selected model
 // Initialize with a sensible default or the first model after fetch
 export const $selectedModelId = modelsDomain.store<string>(
-  "openrouter/quasar-alpha",
+  "gemini-2.5-flash-preview-05-20",
   { name: "selectedModelId" }
 ); // Default to free model initially
 // Loading state for the models fetch
@@ -66,7 +66,7 @@ persist({ store: $showFreeOnly, key: "showFreeOnly" });
 persist({ store: $selectedModelId, key: "selectedModelId" });
 
 export const $autoTitleModelId = modelsDomain.store<string>(
-  "google/gemini-2.0-flash-lite-001",
+  "gemini-2.5-flash-preview-05-20",
   { name: "autoTitleModelId" }
 );
 
@@ -97,7 +97,7 @@ export const modelSelectorFocused = modelsDomain.event<boolean>( // Ensure this 
 const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
   name: "fetchModelsFx",
   handler: async () => {
-    const response = await fetch("https://openrouter.ai/api/v1/models");
+    const response = await fetch("https://api.voidai.app/v1/models");
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

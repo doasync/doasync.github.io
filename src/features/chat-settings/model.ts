@@ -9,7 +9,7 @@ import {
 import { debug } from "patronum/debug";
 
 // Define LocalStorage keys
-const API_KEY_LS_KEY = "openrouter_api_key";
+const API_KEY_LS_KEY = "voidai_api_key";
 const TEMPERATURE_LS_KEY = "default_temperature";
 const SYSTEM_PROMPT_LS_KEY = "default_system_prompt";
 

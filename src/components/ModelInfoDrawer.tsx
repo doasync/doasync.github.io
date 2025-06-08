@@ -85,7 +85,13 @@ const ModelInfoDrawer: React.FC<ModelInfoDrawerProps> = ({ model }) => {
               Created {formattedDate}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {model.context_length.toLocaleString()} context
+              {
+                // TODO: Why is there no model.context_length?
+                model.context_length
+                  ? model.context_length.toLocaleString()
+                  : "N/A"
+              }{" "}
+              context
             </Typography>
           </Stack>
           <Stack direction="row" spacing={2} flexWrap="wrap">

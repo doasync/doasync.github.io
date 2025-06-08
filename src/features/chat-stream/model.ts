@@ -24,7 +24,7 @@ export const abortStream = createEvent<AbortStreamPayload>("abortStream");
 
 // --- Effects ---
 /**
- * Effect to initiate an OpenRouter chat stream.
+ * Effect to initiate a VoidAI chat stream.
  * Handles the underlying fetch request, SSE parsing, and cancellation.
  * Communicates results via callbacks provided in StreamChatParams.
  *

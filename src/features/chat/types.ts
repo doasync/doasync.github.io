@@ -13,10 +13,6 @@ export interface Message {
   isRetryOf?: string; // Optional: ID of the message this is a retry for
 }
 
-// Removed internal types related to the old OpenRouter non-streaming API structure
-// (OpenRouterMessage, OpenRouterRequestBody, OpenRouterUsage, OpenRouterResponseChoice, OpenRouterResponseBody, OpenRouterErrorBody)
-// These are replaced by the types provided by the chat-stream feature.
-
 // Define the types of request contexts
 export type RequestContextNormal = { type: "normal" };
 export type RequestContextGenerate = {

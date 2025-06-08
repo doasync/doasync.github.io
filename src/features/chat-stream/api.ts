@@ -4,18 +4,18 @@ import {
   EventSourceParserEvent,
   isParsedDataEvent,
   isCompletionEvent,
-  OpenRouterParsedChunkData,
+  VoidAIParsedChunkData,
 } from "./types";
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const VOIDAI_API_URL = "https://api.voidai.app/v1/chat/completions";
 
 /**
  * Performs the actual fetch request and processes the SSE stream.
  * This function is intended to be used as the handler for an Effector effect.
  * It communicates progress, data, completion, errors, and abortion via callbacks.
  *
- * @param params Parameters including OpenRouter request details, API key, and callbacks.
- * @param params Parameters including OpenRouter request details, API key, callbacks, and the consumer-generated streamId.
+ * @param params Parameters including VoidAI request details, API key, and callbacks.
+ * @param params Parameters including VoidAI request details, API key, callbacks, and the consumer-generated streamId.
  * @param signal An AbortSignal to allow cancellation of the fetch request.
  * @throws An error if a non-abort related issue occurs (e.g., initial fetch failure, critical stream error).
  *         AbortError is caught and handled via the onAbort callback, allowing the promise to resolve.
@@ -52,7 +52,7 @@ export async function fetchChatStream(
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(VOIDAI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export async function fetchChatStream(
         // Ignore JSON parsing error if body is not valid JSON
       }
       throw new Error(
-        `OpenRouter API Error (${response.status}): ${
+        `VoidAI API Error (${response.status}): ${
           errorPayload?.error?.message || response.statusText
         }`
       );
@@ -101,7 +101,7 @@ export async function fetchChatStream(
 
       if (isParsedDataEvent(event)) {
         try {
-          const jsonData: OpenRouterParsedChunkData = JSON.parse(event.data);
+          const jsonData: VoidAIParsedChunkData = JSON.parse(event.data);
           // console.log(`[Stream ${streamId}] Data chunk received:`, jsonData);
           onChunk({ streamId, chunk: jsonData });
         } catch (parseError) {
@@ -147,7 +147,7 @@ export async function fetchChatStream(
         // This requires managing state, which we aim to avoid here.
         // Relying on [DONE] event is safer. If the stream ends without
         // [DONE], it might indicate an issue. We could call onError here instead.
-        // For now, assume OpenRouter sends [DONE] reliably.
+        // For now, assume VoidAI sends [DONE] reliably.
         break;
       }
 

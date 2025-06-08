@@ -96,7 +96,7 @@ sequenceDiagram
     participant ChatStream (chat-stream/model.ts)
     participant ChatStreamAPI (chat-stream/api.ts)
     participant EventsourceParser
-    participant OpenRouterAPI
+    participant VoidAI_API [VoidAI API]
 
     alt User Sends Message
         UI->>ChatModel: messageSent(userContent)
@@ -122,10 +122,10 @@ sequenceDiagram
     ChatModel->>ChatStream: streamChatFx(streamParams)
     deactivate ChatModel
     ChatStream->>ChatStreamAPI: Execute effect handler (creates AbortController, stores [streamId, controller])
-    ChatStreamAPI->>OpenRouterAPI: fetch(..., stream: true, signal)
-    activate OpenRouterAPI
-    OpenRouterAPI-->>ChatStreamAPI: Streaming Response (ReadableStream)
-    deactivate OpenRouterAPI
+    ChatStreamAPI->>VoidAI_API: fetch(..., stream: true, signal)
+    activate VoidAI_API
+    VoidAI_API-->>ChatStreamAPI: Streaming Response (ReadableStream)
+    deactivate VoidAI_API
     ChatStreamAPI->>EventsourceParser: parser.feed(chunk)
     loop Parse Chunks
         EventsourceParser->>ChatStreamAPI: onParse(event)
@@ -146,7 +146,7 @@ sequenceDiagram
     UI->>ChatModel: User clicks Stop button
     ChatModel->>ChatStream: Call abortStream({ streamId: $activeChatStreamId })
     ChatStream->>ChatStreamAPI: Look up AbortController, call controller.abort()
-    ChatStreamAPI->>OpenRouterAPI: Abort signal received
+    ChatStreamAPI->>VoidAI_API: Abort signal received
     ChatStreamAPI-->>ChatStream: Reject effect promise (AbortError)
     ChatStream->>ChatModel: Effect fails (AbortError) - handled silently or via onAbort callback
     ChatModel->>ChatModel: Update msg by targetMessageId (isLoading=false)

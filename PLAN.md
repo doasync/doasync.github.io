@@ -3,7 +3,7 @@
 **1. Goals Recap:**
 
 - Build a static, responsive React/Next.js web app using TypeScript, MUI, Effector, and fetch API.
-- Interface with OpenRouter API for LLM interactions using user-provided keys (stored locally).
+- Interface with VoidAI API for LLM interactions using user-provided keys (stored locally).
 - Support multiple chat histories (IndexedDB) with rename/delete/duplicate/regenerate title actions, dynamic model selection with filtering and info display, message editing (double-click/button)/deletion/retry, rich message content rendering (Markdown, code, LaTeX, Mermaid), basic settings (LocalStorage), and file attachments (text/image - future).
 - Provide persistent side drawers on desktop for History and Settings.
 
@@ -79,8 +79,8 @@ graph TD
     StateMgmt -- Reads/Writes --> LocalPersistence[Local Persistence];
     StateMgmt -- Triggers --> APIInteraction;
 
-    APIInteraction -- Fetches Models --> OpenRouterModels[OpenRouter API /models];
-    APIInteraction -- Sends Chat Request --> OpenRouterChat[OpenRouter API /chat/completions];
+    APIInteraction -- Fetches Models --> VoidAIModels[VoidAI API /models];
+    APIInteraction -- Sends Chat Request --> VoidAIChat[VoidAI API /chat/completions];
 
     LocalPersistence --> IndexedDB[(IndexedDB - Chat History)];
     LocalPersistence --> LocalStorage[(LocalStorage - Settings, UI State)]; %% Updated LocalStorage usage
@@ -93,8 +93,8 @@ graph TD
     end
 
     subgraph External Services
-        OpenRouterModels
-        OpenRouterChat
+        VoidAIModels
+        VoidAIChat
     end
 ```
 
@@ -182,7 +182,7 @@ graph TD
 **5. State Management (Effector):**
 
 - **Stores:**
-  - `$modelsList`: Stores the array of models fetched from OpenRouter.
+  - `$modelsList`: Stores the array of models fetched from VoidAI.
   - `$currentChatSession`: Holds the state of the active chat (ID, title, messages array, settings). (From `chat-history` feature)
   - `$chatHistoryIndex`: An array holding summaries (ID, title, timestamp) of all saved chats. (From `chat-history` feature)
   - `$globalSettings`: Holds API key, default temperature, default system prompt, **`showFreeOnly` boolean**. (From `chat-settings` feature)
@@ -225,9 +225,9 @@ graph TD
   - `deleteChatFx`: Delete a chat from IndexedDB. (From `chat-history`)
   - `editChatTitleFx`: Update chat title in IndexedDB. (From `chat-history`)
   - `duplicateChatFx`: Load, clone, and save a chat session. (From `chat-history`)
-  - `fetchModelsFx`: Fetch model list from OpenRouter API. (From `models-select`)
-  - `sendApiRequestFx`: Send chat completion request to OpenRouter. (From `chat`)
-  - `generateTitleFx`: Send request to OpenRouter to generate chat title. (From `chat-history`)
+  - `fetchModelsFx`: Fetch model list from VoidAI API. (From `models-select`)
+  - `sendApiRequestFx`: Send chat completion request to VoidAI. (From `chat`)
+  - `generateTitleFx`: Send request to VoidAI to generate chat title. (From `chat-history`)
   - `readFileFx`: Read file content client-side. (Future)
   - `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(New)** (From `ui-state`)
 - **Flow Example (Sending Message):** (Conceptually same, UI renders markdown)
@@ -238,7 +238,7 @@ graph TD
       C -- Uses --> D1[$currentChatSession Store];
       C -- Uses --> D2[$globalSettings Store];
       C --> E(sendApiRequestFx Effect);
-      E -- Sends --> F[OpenRouter API];
+      E -- Sends --> F[VoidAI API];
       F -- Returns --> E;
       subgraph Effector Logic
           B; C; D1; D2; E; G; H; I; J; K; L; M;
@@ -252,9 +252,9 @@ graph TD
       L --> M[Error Display (MUI Alert) Component];
   ```
 
-**6. API Interaction (OpenRouter):**
+**6. API Interaction (VoidAI):**
 
-- **Model List:** Use `fetchModelsFx` to fetch `https://openrouter.ai/api/v1/models`. Store in `$modelsList`. Includes pricing and other metadata.
+- **Model List:** Use `fetchModelsFx` to fetch `https://api.voidai.app/v1/models`. Store in `$modelsList`. Includes pricing and other metadata.
 - **Chat Completions:** Use `sendApiRequestFx`. Format messages correctly. Handle token counts.
 - **Title Generation:** Use `generateTitleFx`.
 
@@ -267,7 +267,7 @@ graph TD
   - **Index:** `lastModified`.
   - Effects: `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`, `deleteChatFx`, `editChatTitleFx`, `duplicateChatFx`.
 - **LocalStorage:**
-  - **Keys:** `openrouter_api_key`, `default_temperature`, `default_system_prompt`, `show_free_only`, `ui_historyDrawerOpen`, `ui_settingsDrawerOpen`. **(Updated)**
+  - **Keys:** `voidai_api_key`, `default_temperature`, `default_system_prompt`, `show_free_only`, `ui_historyDrawerOpen`, `ui_settingsDrawerOpen`. **(Updated)**
   - Effects: `loadGlobalSettingsFx`, `saveGlobalSettingsFx`, `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(Updated)**
 
 **8. Key Feature Implementation Notes:**
@@ -287,7 +287,7 @@ graph TD
 1.  **Foundation:** Project setup, MUI theme, basic layout components. **(Complete)**
 2.  **Settings:** Settings Drawer UI, LocalStorage persistence. **(Complete)**
 3.  **Core Chat:** Basic message sending/display, Effector state. **(Complete)**
-4.  **API Integration:** Connect to OpenRouter, handle responses, token count. **(Complete)**
+4.  **API Integration:** Connect to VoidAI, handle responses, token count. **(Complete)**
 5.  **Model Selection:** Fetch models, Model Selector dropdown UI. **(Complete)**
 6.  **History Persistence:** IndexedDB setup, save/load/delete logic, History Drawer UI. **(Complete)**
 7.  **Message Actions:** Edit, Delete, Retry logic and UI. **(Complete)**

@@ -9,16 +9,16 @@
 
 ### 1. Introduction
 
-This document outlines the requirements for a static, adaptive web application designed as a chat interface for interacting with Large Language Models (LLMs). The App will be built using TypeScript, React, Next.js, Material UI (MUI) for React components, Effector for state management, and fetch API for data fetching. It will be a client-side only App. The interface will primarily interact with LLMs through the **OpenRouter** unified API, utilizing user-provided API keys stored locally in the browser, **delivering responses in real-time via streaming.** The UI must be responsive, automatically adjusting its layout, functionality, and content based on the user's device and screen size. Core actions will primarily be represented by icon buttons.
+This document outlines the requirements for a static, adaptive web application designed as a chat interface for interacting with Large Language Models (LLMs). The App will be built using TypeScript, React, Next.js, Material UI (MUI) for React components, Effector for state management, and fetch API for data fetching. It will be a client-side only App. The interface will primarily interact with LLMs through the **VoidAI** unified API, utilizing user-provided API keys stored locally in the browser, **delivering responses in real-time via streaming.** The UI must be responsive, automatically adjusting its layout, functionality, and content based on the user's device and screen size. Core actions will primarily be represented by icon buttons.
 
 ---
 
 ### 2. Goals
 
-- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter, **featuring real-time streaming of responses.**
+- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via VoidAI, **featuring real-time streaming of responses.**
 - **Deliver an interactive and immediate user experience through real-time streaming of LLM responses, with the capability to stop message generation.**
 - Enable users to manage multiple chat conversations (history) persistently using IndexedDB, including duplication and title regeneration.
-- Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically, with options to filter and view detailed model information.
+- Allow users to easily select and switch between different LLM models available through VoidAI, fetched dynamically, with options to filter and view detailed model information.
 - Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, retry with resubmission, **and the ability to stop ongoing message generation.**
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) stored locally.
@@ -32,7 +32,7 @@ This document outlines the requirements for a static, adaptive web application d
 
 ### 3. Target Audience
 
-Users who need a web-based interface to interact with various LLM APIs via the OpenRouter service, using their own API keys, without relying on a dedicated backend. Users accept the inherent risks of storing API keys in browser storage for this client-side App.
+Users who need a web-based interface to interact with various LLM APIs via the VoidAI service, using their own API keys, without relying on a dedicated backend. Users accept the inherent risks of storing API keys in browser storage for this client-side App.
 
 ---
 
@@ -54,7 +54,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 - **4.2.3. Current Model Display (Center):** Shows cleaned model name.
 - **4.2.4. Model Info Button (Center):** Opens Model Info view.
 - **4.2.5. Model Selection Dropdown:**
-  - List fetched dynamically from OpenRouter.
+  - List fetched dynamically from VoidAI.
   - Search input for filtering.
   - Filter toggle for free models.
   - Selecting updates the current chat's model.
@@ -174,7 +174,7 @@ Users who need a web-based interface to interact with various LLM APIs via the O
 
 ### 5. Non-Functional Requirements
 
-- **Technology Stack:** TypeScript, React, Next.js, MUI v5+, Effector, `idb`, OpenRouter API, `eventsource-parser`, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
+- **Technology Stack:** TypeScript, React, Next.js, MUI v5+, Effector, `idb`, VoidAI API, `eventsource-parser`, `react-markdown`, `remark-gfm`, `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`, `@lightenna/react-mermaid-diagram`.
 - **Architecture:** Static Web Application, client-side only, feature-based modular.
 - **Data Persistence:** IndexedDB (chats), LocalStorage (settings, API key, free toggle, mini chat model, drawer states).
 - **Responsiveness:** Desktop drawers persistent; mobile drawers as tabs. Smooth transitions.

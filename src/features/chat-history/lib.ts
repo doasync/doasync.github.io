@@ -122,7 +122,7 @@ export const editChatTitleHandler = async ({
 };
 
 /**
- * Generates a chat title using the OpenRouter API.
+ * Generates a chat title using the VoidAI API.
  */
 import { $autoTitleModelId } from "@/features/models-select/model";
 const TITLE_PROMPT = `Summarize this chat conversation
@@ -159,23 +159,20 @@ export const generateTitleHandler = async ({
     max_tokens: 10, // Limit response length
   };
 
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const response = await fetch("https://api.voidai.app/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     let errorMsg = `Title generation failed! status: ${response.status}`;
     try {
       const errorBody = await response.json();
-      errorMsg = `Title Generation API Error (${response.status}): ${errorBody.error.message}`;
+      errorMsg = `VoidAI Title Generation API Error (${response.status}): ${errorBody.error.message}`;
     } catch (e) {
       /* Ignore JSON parsing error */
     }

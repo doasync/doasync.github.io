@@ -89,7 +89,10 @@ export const ModelSelector: React.FC = () => {
 
   const selectedModelName = useMemo(() => {
     const model = models.find((m) => m.id === selectedModelId);
-    return model ? model.name.replace(/^[^:]+:\s*/, "") : selectedModelId;
+    // TODO: Why is there no model.name?
+    return model && model.name
+      ? model.name.replace(/^[^:]+:\s*/, "")
+      : selectedModelId;
   }, [models, selectedModelId]);
 
   const selectedModel: ModelInfo | undefined = useMemo(() => {
@@ -147,8 +150,9 @@ export const ModelSelector: React.FC = () => {
         }}
         onChange={handleAutocompleteChange} // Use new handler
         options={filteredModels} // Use the existing filtered list (includes free filter)
+        // TODO: Why is there no option.name?
         getOptionLabel={(option) =>
-          option.name.replace(/^[^:]+:\s*/, "") || option.id
+          option.name ? option.name.replace(/^[^:]+:\s*/, "") : option.id
         } // Clean name for display
         isOptionEqualToValue={(option, value) => option.id === value.id}
         loading={isLoading}

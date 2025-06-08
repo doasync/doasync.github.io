@@ -216,7 +216,7 @@ sequenceDiagram
     participant UI (MiniChatDialog)
     participant MiniChatModel (mini-chat/model.ts)
     participant ChatStreamFeature (chat-stream/index.ts)
-    participant OpenRouterAPI
+    participant VoidAIAPI
 
     UI->>MiniChatModel: sendMiniChatMessage(messageText)
     MiniChatModel->>MiniChatModel: sample (fn: generate IDs, create messages, prepare callbacks, streamParams)
@@ -233,10 +233,10 @@ sequenceDiagram
     MiniChatModel->>MiniChatModel: streamChatFx.pending -> $miniChat.on (set loading: true)
     UI->>UI: Show global loading indicator (e.g., spinner)
     MiniChatModel->>ChatStreamFeature: streamChatFx(streamParams including callbacks)
-    ChatStreamFeature->>OpenRouterAPI: fetch(..., stream: true, signal)
-    activate OpenRouterAPI
-    OpenRouterAPI-->>ChatStreamFeature: Streaming Response (ReadableStream)
-    deactivate OpenRouterAPI
+    ChatStreamFeature->>VoidAIAPI: fetch(..., stream: true, signal)
+    activate VoidAIAPI
+    VoidAIAPI-->>ChatStreamFeature: Streaming Response (ReadableStream)
+    deactivate VoidAIAPI
 
     loop Streaming Chunks
         ChatStreamFeature-->>MiniChatModel: onChunk({streamId, chunk}) (callback from streamChatFx params)

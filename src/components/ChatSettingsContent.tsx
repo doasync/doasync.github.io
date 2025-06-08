@@ -138,13 +138,13 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
 
       <Box sx={{ p: 2, pb: 1 }}>
         <Tooltip
-          title="Your OpenRouter API Key. Stored locally in your browser."
+          title="Your VoidAI API Key. Stored locally in your browser."
           placement="left" // Change tooltip placement to avoid overlap
         >
           <TextField
             size="small"
             fullWidth
-            label="OpenRouter API Key"
+            label="VoidAI API Key"
             variant="outlined"
             type={showApiKey ? "text" : "password"}
             value={apiKey}
@@ -168,6 +168,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Tooltip>
       </Box>
 
+      {/* 
       <Box sx={{ px: 2 }}>
         <FormControlLabel
           control={
@@ -184,6 +185,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
           label="Show only free models"
         />
       </Box>
+      */}
 
       {/* Add Mini Chat Model Selector Here */}
       <Box sx={{ px: 2, py: 1 }}>
@@ -206,8 +208,9 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
             }
             return "Unknown";
           }}
+          // TODO: Why is there no model.name?
           getOptionLabel={(option) =>
-            option.name.replace(/^[^:]+:\s*/, "") || option.id
+            option.name ? option.name.replace(/^[^:]+:\s*/, "") : option.id
           }
           value={selectedAutoTitleModel}
           onChange={(_, newValue) => {

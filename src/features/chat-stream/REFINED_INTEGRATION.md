@@ -12,7 +12,7 @@ Let's refine the integration plan slightly based on these details:
 
 ## Refined Plan: Integrating `chat-stream` Feature (v1.1)
 
-**Objective:** Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling OpenRouter API communication, enabling real-time streaming responses and cancellation.
+**Objective:** Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling VoidAI API communication, enabling real-time streaming responses and cancellation.
 
 **1. Refactor `src/features/chat/model.ts` (Main Chat):**
 

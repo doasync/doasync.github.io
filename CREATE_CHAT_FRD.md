@@ -17,9 +17,9 @@ The Main Chat Interface is the primary user-facing component of the LLM Chat app
 
 The primary goals for the Main Chat Interface, aligned with the overall product vision outlined in `PRD.md`, are:
 
-- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via OpenRouter.
+- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via VoidAI.
 - Enable users to manage multiple chat conversations persistently through integration with `chat-history`, including loading and saving.
-- Allow users to easily select and switch between different LLM models available through OpenRouter, fetched dynamically via `models-select`.
+- Allow users to easily select and switch between different LLM models available through VoidAI, fetched dynamically via `models-select`.
 - Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, and retry with intelligent resubmission logic.
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) that are stored locally via `chat-settings`.
@@ -32,10 +32,10 @@ The primary goals for the Main Chat Interface, aligned with the overall product 
 
 This Feature Requirements Document specifically defines the scope of the `chat` feature. The following aspects are explicitly out of scope for this module, as they are handled by other dedicated features or are external dependencies:
 
-- **Direct API Interaction:** The `chat` feature does not directly make HTTP requests to the OpenRouter API. All streaming API communication is delegated to the `src/features/chat-stream` module.
+- **Direct API Interaction:** The `chat` feature does not directly make HTTP requests to the VoidAI API. All streaming API communication is delegated to the `src/features/chat-stream` module.
 - **Model Fetching and Management:** The fetching, filtering, and selection of available LLM models are handled by the `src/features/models-select` feature.
 - **Chat History Persistence:** While `chat` provides the in-memory message state, the saving, loading, duplication, and deletion of full chat sessions to/from IndexedDB are managed by the `src/features/chat-history` feature.
-- **API Key and Core Settings Storage:** The storage and management of the OpenRouter API key, temperature, and system prompt are handled by the `src/features/chat-settings` feature.
+- **API Key and Core Settings Storage:** The storage and management of the VoidAI API key, temperature, and system prompt are handled by the `src/features/chat-settings` feature.
 - **Detailed UI Rendering of Messages:** While `chat` provides the message data, the complex rendering of rich content (Markdown, code blocks, LaTeX, Mermaid) is handled by separate UI components like `src/components/MessageItem.tsx` and `src/components/MarkdownRenderer.tsx`.
 - **Client-side Token Estimation Libraries:** The application does not implement client-side token estimation libraries. Token usage metrics are provided by the `src/features/usage-info` feature, which consumes message data from `$messages`.
 - **Advanced File Management:** Beyond the conceptual support for file attachments mentioned in the PRD, this feature does not implement advanced file management capabilities (e.g., uploading, displaying complex media types).
@@ -231,7 +231,7 @@ This flow allows users to retry generating a response for a specific message, ei
 ### 5.8 API Key Handling
 
 - The `apiKeyMissing` event (`Event<void>`) is dispatched when the `messageSent` or `generateResponseClicked` events are triggered, but the `$apiKey` store is empty or `null`.
-- This event is consumed by UI components (e.g., `src/components/ApiKeyMissingDialog.tsx`) to display a modal dialog prompting the user to enter their OpenRouter API key.
+- This event is consumed by UI components (e.g., `src/components/ApiKeyMissingDialog.tsx`) to display a modal dialog prompting the user to enter their VoidAI API key.
 
 ### 5.9 Scroll Management
 
@@ -304,8 +304,8 @@ The following criteria define the successful implementation and behavior of the 
 ## 8. Constraints & Risks
 
 - **Strong Dependency on `chat-stream`:** The `chat` feature is entirely dependent on the `src/features/chat-stream` module for all its LLM API communication. Any issues or limitations in `chat-stream` will directly impact the `chat` feature.
-- **External API Reliance:** The application relies on the OpenRouter API for LLM interactions. Downtime, rate limits, or changes in the OpenRouter API can affect functionality.
-- **API Key Requirement:** A valid OpenRouter API key must be configured by the user for any LLM interaction to function. The application handles the missing key scenario by prompting the user.
+- **External API Reliance:** The application relies on the VoidAI API for LLM interactions. Downtime, rate limits, or changes in the VoidAI API can affect functionality.
+- **API Key Requirement:** A valid VoidAI API key must be configured by the user for any LLM interaction to function. The application handles the missing key scenario by prompting the user.
 - **Complexity of History Management for API Calls:** The logic for building the correct message history slice (`messagesForApi`) for "normal" sends, "generate" requests, and "retry" operations is complex, especially for user vs. assistant retries. Incorrect slicing could lead to incorrect LLM context or unexpected responses.
 - **In-Memory Message Store Size:** While `chat-history` handles persistence, the `$messages` store holds the entire current conversation in memory. For extremely long chat sessions, this could potentially lead to performance degradation or increased memory usage on lower-end devices.
 - **`content: string | any` Type:** The use of `any` for `Message.content` provides flexibility for rich content rendering but reduces type safety. Future enhancements might require a more structured union type for content.
