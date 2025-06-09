@@ -137,7 +137,54 @@ export const modelSelectorFocused = modelsDomain.event<boolean>( // Ensure this 
   "modelSelectorFocused"
 ); // true for focus/open, false for blur/close
 
-// Model capability detection based on VoidAI documentation
+// Comprehensive vision models list (from real VoidAI API testing)
+const VISION_MODELS = [
+  // OpenAI GPT models with vision (confirmed from OpenAI docs)
+  'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
+  'gpt-4o', 'gpt-4o-mini', 'gpt-4o-2024-08-06', 'gpt-4o-2024-11-20',
+  'gpt-4o-mini-2024-07-18', 'chatgpt-4o-latest',
+  'gpt-4o-search-preview-2025-03-11', 'gpt-4o-mini-search-preview-2025-03-11',
+  'gpt-4-1106-vision-preview', 'gpt-4.5-preview',
+  
+  // OpenAI O-series with vision
+  'o4-mini', 'o4-mini-high', 'o4-mini-medium', 'o4-mini-low',
+  'o3', 'o3-high', 'o3-medium', 'o3-low', 'o3-mini', 'o3-mini-high', 'o3-mini-low',
+  'o1', 'o1-preview', 'o1-mini',
+  
+  // OpenAI Audio models with vision
+  'gpt-4o-audio-preview', 'gpt-4o-audio-preview-2024-12-17',
+  
+  // Anthropic Claude models with vision (3.0+ series)
+  'claude-3-5-sonnet-20241022', 'claude-3-5-sonnet-20240620', 'claude-3-5-haiku-20241022',
+  'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307',
+  'claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219-thinking',
+  'claude-opus-4-20250514', 'claude-opus-4-20250514-thinking',
+  'claude-sonnet-4-20250514', 'claude-sonnet-4-20250514-thinking',
+  'brainrot-sonnet-4-20250514',
+  
+  // Google Gemini models with vision (all Gemini models support vision)
+  'gemini-2.5-pro-preview-05-06', 'gemini-2.5-pro-preview-06-05',
+  'gemini-2.5-flash-preview-04-17', 'gemini-2.5-flash-preview-05-20',
+  'gemini-2.5-flash-exp-native-audio-thinking-dialog', 'gemini-2.5-flash-preview-native-audio-dialog',
+  'gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-2.0-flash-thinking-exp-01-21', 'gemini-2.0-pro-exp-02-05',
+  'gemini-1.5-pro', 'gemini-1.5-pro-latest',
+  'gemini-1.5-flash', 'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-8b', 'gemini-1.5-flash-8b-latest',
+  'gemini-exp-1206', 'learnlm-1.5-pro-experimental', 'learnlm-2.0-flash-experimental',
+  
+  // xAI Grok models with vision
+  'grok-2-vision-1212', 'grok-vision-beta',
+  'grok-3-latest', 'grok-3-beta', 'grok-3-fast-beta', 'grok-3-mini-beta', 'grok-3-mini-fast-beta',
+  
+  // Mistral Pixtral models (vision-specific)
+  'pixtral-large-latest', 'pixtral-large-2411', 'pixtral-12b', 'pixtral-12b-2409',
+  
+  // Qwen VL models
+  'Qwen/Qwen2.5-VL-72B-Instruct'
+];
+
+// Model capability detection based on comprehensive real VoidAI testing
 const detectCapabilities = (
   modelId: string,
   ownedBy: string
@@ -145,21 +192,21 @@ const detectCapabilities = (
   const id = modelId.toLowerCase();
 
   return {
-    vision:
-      id.includes("vision") ||
-      id.includes("gpt-4o") ||
-      id.includes("grok-2-vision") ||
-      id.includes("pixtral") ||
-      id.includes("qwen2.5-vl") ||
-      id.includes("gemini") ||
-      id.includes("claude-3"),
+    // Use comprehensive tested vision models list
+    vision: VISION_MODELS.includes(modelId),
 
     audio:
       id.includes("gpt-4o-audio") ||
       id.includes("whisper") ||
-      id.includes("transcribe"),
+      id.includes("transcribe") ||
+      id.includes("native-audio"),
 
-    audioGeneration: id.includes("tts") || id.includes("gpt-4o-audio"),
+    audioGeneration: 
+      id.includes("tts") || 
+      id.includes("gpt-4o-audio") ||
+      id.includes("gpt-4o-mini-tts") ||
+      id.includes("elevenlabs") ||
+      id.includes("native-audio"),
 
     streaming: true, // Most chat models support streaming
 
@@ -167,7 +214,9 @@ const detectCapabilities = (
       ownedBy === "openai" ||
       id.includes("gpt-4") ||
       id.includes("claude") ||
-      id.includes("gemini"),
+      id.includes("gemini") ||
+      id.includes("grok") ||
+      id.includes("mistral"),
 
     imageGeneration: false, // Only specific image generation models
     moderation: id.includes("moderation"),

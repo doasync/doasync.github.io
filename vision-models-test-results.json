@@ -1,23 +1,15 @@
 {
-  "timestamp": "2025-06-09T13:34:28.448Z",
+  "timestamp": "2025-06-09T23:08:27.981Z",
   "results": [
     {
-      "model": "gpt-4-1106-vision-preview",
-      "status": "error",
-      "supportsVision": false,
-      "error": "Internal Server Error: Request failed with status code 404",
-      "errorCode": null,
-      "httpStatus": 500
-    },
-    {
-      "model": "gpt-4o",
+      "model": "gpt-4.1",
       "status": "success",
       "supportsVision": true,
-      "response": "The image is a solid bright yellow color with no other elements or details.",
+      "response": "This image is a solid color with a bright yellow shade. There are no visible objects, patterns, or text—just a uniform yellow background.",
       "usage": {
         "prompt_tokens": 275,
-        "completion_tokens": 15,
-        "total_tokens": 290,
+        "completion_tokens": 29,
+        "total_tokens": 304,
         "prompt_tokens_details": {
           "cached_tokens": 0,
           "audio_tokens": 0
@@ -29,7 +21,95 @@
           "rejected_prediction_tokens": 0
         }
       },
-      "responseTime": 1749476036295
+      "responseTime": 1749510383834
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image shows a young woman with long dark hair, wearing a white top and a black jacket. She is smiling and appears to be outdoors, with a blurred background that includes some greenery and possibly a building. The lighting suggests it is daytime.",
+      "usage": {
+        "prompt_tokens": 23,
+        "completion_tokens": 49,
+        "total_tokens": 72,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510387301
+    },
+    {
+      "model": "gpt-4.1-nano",
+      "status": "success",
+      "supportsVision": true,
+      "response": "It looks like the image is blank or empty. Could you please upload the image again or provide more details?",
+      "usage": {
+        "prompt_tokens": 24,
+        "completion_tokens": 22,
+        "total_tokens": 46,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510389550
+    },
+    {
+      "model": "gpt-4o",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid yellow square with no other features or details.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 14,
+        "total_tokens": 289,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510392707
+    },
+    {
+      "model": "gpt-4o-mini",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image appears to be a solid yellow color.",
+      "usage": {
+        "prompt_tokens": 8520,
+        "completion_tokens": 10,
+        "total_tokens": 8530,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510395384
     },
     {
       "model": "gpt-4o-2024-08-06",
@@ -51,7 +131,7 @@
           "rejected_prediction_tokens": 0
         }
       },
-      "responseTime": 1749476038544
+      "responseTime": 1749510398179
     },
     {
       "model": "gpt-4o-2024-11-20",
@@ -73,17 +153,17 @@
           "rejected_prediction_tokens": 0
         }
       },
-      "responseTime": 1749476041043
+      "responseTime": 1749510401109
     },
     {
-      "model": "chatgpt-4o-latest",
+      "model": "gpt-4o-mini-2024-07-18",
       "status": "success",
       "supportsVision": true,
-      "response": "The image is a solid color with no visible objects or patterns. The color appears to be a bright yellow.",
+      "response": "The image is a solid yellow color.",
       "usage": {
-        "prompt_tokens": 275,
-        "completion_tokens": 22,
-        "total_tokens": 297,
+        "prompt_tokens": 8520,
+        "completion_tokens": 8,
+        "total_tokens": 8528,
         "prompt_tokens_details": {
           "cached_tokens": 0,
           "audio_tokens": 0
@@ -95,7 +175,125 @@
           "rejected_prediction_tokens": 0
         }
       },
-      "responseTime": 1749476044415
+      "responseTime": 1749510404004
+    },
+    {
+      "model": "chatgpt-4o-latest",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid color with no visible objects, patterns, or text. The color appears to be a bright yellow.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 25,
+        "total_tokens": 300,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510406844
+    },
+    {
+      "model": "gpt-4-1106-vision-preview",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: Request failed with status code 404",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "o4-mini",
+      "status": "success",
+      "supportsVision": true,
+      "response": "No content",
+      "usage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 150,
+        "total_tokens": 172,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 150,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510413177
+    },
+    {
+      "model": "o4-mini-high",
+      "status": "success",
+      "supportsVision": true,
+      "response": "No content",
+      "usage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 150,
+        "total_tokens": 172,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 150,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510416868
+    },
+    {
+      "model": "o4-mini-medium",
+      "status": "success",
+      "supportsVision": true,
+      "response": "No content",
+      "usage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 150,
+        "total_tokens": 172,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 150,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510420753
+    },
+    {
+      "model": "o4-mini-low",
+      "status": "success",
+      "supportsVision": true,
+      "response": "No content",
+      "usage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 150,
+        "total_tokens": 172,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 150,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510424344
     },
     {
       "model": "grok-2-vision-1212",
@@ -106,53 +304,157 @@
       "httpStatus": 429
     },
     {
+      "model": "grok-vision-beta",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Rate limit exceeded. Please try again later.",
+      "errorCode": null,
+      "httpStatus": 429
+    },
+    {
+      "model": "grok-3",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: Invalid model.",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "grok-3-latest",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Rate limit exceeded. Please try again later.",
+      "errorCode": null,
+      "httpStatus": 429
+    },
+    {
+      "model": "grok-3-beta",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Rate limit exceeded. Please try again later.",
+      "errorCode": null,
+      "httpStatus": 429
+    },
+    {
       "model": "pixtral-large-latest",
       "status": "success",
       "supportsVision": true,
-      "response": "The image appears to be a small, circular object with a smooth, glossy surface. It is primarily white with a slight gradient or shadow effect, giving it a three-dimensional appearance. The object is set against a plain white background, which makes it stand out prominently. The overall impression is that of a simple, minimalist design, possibly a button, a coin, or a similar round item.",
+      "response": "The image appears to be a small, circular object with a smooth, glossy surface. It is predominantly white in color with a slight gradient or shadow effect, giving it a three-dimensional appearance. The object is set against a plain white background, which makes it stand out clearly. The overall shape and texture suggest it could be a button, a bead, or a similar type of small, rounded item.",
       "usage": {
-        "completion_tokens": 85,
+        "completion_tokens": 86,
         "prompt_tokens": 18,
-        "total_tokens": 103
+        "total_tokens": 104
       },
-      "responseTime": 1749476049233
+      "responseTime": 1749510436012
     },
     {
       "model": "pixtral-large-2411",
       "status": "success",
       "supportsVision": true,
-      "response": "The image appears to be a small, circular object with a smooth, glossy surface. It is predominantly white in color. Due to the limited size and resolution of the image, it is difficult to identify the object with certainty. It could be a variety of things, such as a button, a coin, or a small decorative item. Additional context or a higher resolution image would be needed for a more precise identification.",
+      "response": "The image appears to be a small, circular object with a smooth, reflective surface. It is predominantly white in color. Due to the limited size and resolution of the image, it is difficult to determine additional details or specific characteristics of the object. It could be a variety of things, such as a button, a coin, or a small decorative item.",
       "usage": {
-        "completion_tokens": 89,
+        "completion_tokens": 75,
         "prompt_tokens": 18,
-        "total_tokens": 107
+        "total_tokens": 93
       },
-      "responseTime": 1749476052675
+      "responseTime": 1749510439289
     },
     {
       "model": "Qwen/Qwen2.5-VL-72B-Instruct",
       "status": "success",
       "supportsVision": true,
-      "response": "The image is a solid, bright yellow color with no visible patterns, objects, or text. It appears to be a plain, uniform background.",
+      "response": "The image is a solid, bright yellow color with no visible objects, patterns, or text. It is a uniform yellow background.",
       "usage": {
         "prompt_tokens": 38,
-        "total_tokens": 68,
-        "completion_tokens": 30,
+        "total_tokens": 65,
+        "completion_tokens": 27,
         "prompt_tokens_details": null
       },
-      "responseTime": 1749476056642
+      "responseTime": 1749510442667
+    },
+    {
+      "model": "gemini-2.5-pro-preview-03-25",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: All retry attempts failed: content.parts is not iterable",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "gemini-2.5-pro-preview-05-06",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: All retry attempts failed: content.parts is not iterable",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "gemini-2.5-flash-preview-04-17",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid bright yellow color.",
+      "usage": {
+        "prompt_tokens": 272,
+        "completion_tokens": 9,
+        "total_tokens": 335
+      },
+      "responseTime": 1749510458026
     },
     {
       "model": "gemini-2.0-flash",
       "status": "success",
       "supportsVision": true,
-      "response": "The image is a solid, bright yellow color. There are no other objects or patterns visible.\n",
+      "response": "The image is a solid, bright yellow color. There are no other shapes, patterns, or objects visible.\n",
       "usage": {
         "prompt_tokens": 271,
-        "completion_tokens": 20,
-        "total_tokens": 291
+        "completion_tokens": 23,
+        "total_tokens": 294
       },
-      "responseTime": 1749476059023
+      "responseTime": 1749510460999
+    },
+    {
+      "model": "gemini-2.0-flash-lite-preview-02-05",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid field of yellow.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 10,
+        "total_tokens": 281
+      },
+      "responseTime": 1749510463451
+    },
+    {
+      "model": "gemini-2.0-pro-exp-02-05",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "gemini-2.0-flash-thinking-exp-01-21",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid bright yellow color.",
+      "usage": {
+        "prompt_tokens": 272,
+        "completion_tokens": 9,
+        "total_tokens": 335
+      },
+      "responseTime": 1749510471748
+    },
+    {
+      "model": "gemini-2.0-flash-exp",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid, bright yellow color.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 11,
+        "total_tokens": 282
+      },
+      "responseTime": 1749510474307
     },
     {
       "model": "gemini-1.5-pro",
@@ -161,6 +463,105 @@
       "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
       "errorCode": null,
       "httpStatus": 500
+    },
+    {
+      "model": "gemini-1.5-pro-latest",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "gemini-1.5-flash",
+      "status": "success",
+      "supportsVision": true,
+      "response": "That's a solid, bright yellow image.  There are no other elements or features present.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 21,
+        "total_tokens": 292
+      },
+      "responseTime": 1749510486493
+    },
+    {
+      "model": "gemini-1.5-flash-latest",
+      "status": "success",
+      "supportsVision": true,
+      "response": "That's a solid, bright yellow image.  There are no other elements or features present.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 21,
+        "total_tokens": 292
+      },
+      "responseTime": 1749510489463
+    },
+    {
+      "model": "gemini-1.5-flash-8b",
+      "status": "success",
+      "supportsVision": true,
+      "response": "A solid, bright yellow background.  Nothing else is visible.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 14,
+        "total_tokens": 285
+      },
+      "responseTime": 1749510491920
+    },
+    {
+      "model": "gemini-1.5-flash-8b-latest",
+      "status": "success",
+      "supportsVision": true,
+      "response": "A solid, bright, vibrant yellow color fills the entire image.  There are no other elements or details.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 23,
+        "total_tokens": 294
+      },
+      "responseTime": 1749510494163
+    },
+    {
+      "model": "claude-3-7-sonnet-20250219",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    },
+    {
+      "model": "claude-3-5-sonnet-20241022",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    },
+    {
+      "model": "claude-3-5-sonnet-20240620",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    },
+    {
+      "model": "claude-3-5-haiku-20241022",
+      "status": "success",
+      "supportsVision": true,
+      "response": "I apologize, but no image has actually been uploaded successfully in our conversation. Could you please try sharing the image again? I'm ready to describe it for you once it comes through clearly.",
+      "usage": {
+        "prompt_tokens": 27,
+        "completion_tokens": 42,
+        "total_tokens": 69,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510501239
     },
     {
       "model": "claude-3-opus-20240229",
@@ -177,50 +578,180 @@
       "httpStatus": 403
     },
     {
-      "model": "claude-3-5-sonnet-20241022",
-      "status": "error",
-      "supportsVision": false,
-      "error": "Unknown error",
-      "httpStatus": 403
+      "model": "claude-3-haiku-20240307",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image appears to show a close-up view of a human face. It depicts a person with short, dark hair and a neutral facial expression. The image is in black and white, giving it a more artistic and dramatic feel. The focus seems to be on the person's facial features, particularly the eyes, nose, and mouth. Overall, the image has a pensive, contemplative quality to it.",
+      "usage": {
+        "prompt_tokens": 24,
+        "completion_tokens": 86,
+        "total_tokens": 110,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749510506974
     }
   ],
   "report": {
     "workingModels": [
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
       "gpt-4o",
+      "gpt-4o-mini",
       "gpt-4o-2024-08-06",
       "gpt-4o-2024-11-20",
+      "gpt-4o-mini-2024-07-18",
       "chatgpt-4o-latest",
+      "o4-mini",
+      "o4-mini-high",
+      "o4-mini-medium",
+      "o4-mini-low",
       "pixtral-large-latest",
       "pixtral-large-2411",
       "Qwen/Qwen2.5-VL-72B-Instruct",
-      "gemini-2.0-flash"
+      "gemini-2.5-flash-preview-04-17",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-lite-preview-02-05",
+      "gemini-2.0-flash-thinking-exp-01-21",
+      "gemini-2.0-flash-exp",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-8b",
+      "gemini-1.5-flash-8b-latest",
+      "claude-3-5-haiku-20241022",
+      "claude-3-haiku-20240307"
     ],
     "failedModels": [
       {
         "model": "gpt-4-1106-vision-preview",
-        "error": "Internal Server Error: Request failed with status code 404"
+        "error": "Internal Server Error: Request failed with status code 404",
+        "httpStatus": 500
       },
       {
         "model": "grok-2-vision-1212",
-        "error": "Rate limit exceeded. Please try again later."
+        "error": "Rate limit exceeded. Please try again later.",
+        "httpStatus": 429
+      },
+      {
+        "model": "grok-vision-beta",
+        "error": "Rate limit exceeded. Please try again later.",
+        "httpStatus": 429
+      },
+      {
+        "model": "grok-3",
+        "error": "Internal Server Error: Invalid model.",
+        "httpStatus": 500
+      },
+      {
+        "model": "grok-3-latest",
+        "error": "Rate limit exceeded. Please try again later.",
+        "httpStatus": 429
+      },
+      {
+        "model": "grok-3-beta",
+        "error": "Rate limit exceeded. Please try again later.",
+        "httpStatus": 429
+      },
+      {
+        "model": "gemini-2.5-pro-preview-03-25",
+        "error": "Internal Server Error: All retry attempts failed: content.parts is not iterable",
+        "httpStatus": 500
+      },
+      {
+        "model": "gemini-2.5-pro-preview-05-06",
+        "error": "Internal Server Error: All retry attempts failed: content.parts is not iterable",
+        "httpStatus": 500
+      },
+      {
+        "model": "gemini-2.0-pro-exp-02-05",
+        "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+        "httpStatus": 500
       },
       {
         "model": "gemini-1.5-pro",
-        "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429"
+        "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+        "httpStatus": 500
       },
       {
-        "model": "claude-3-opus-20240229",
-        "error": "Unknown error"
+        "model": "gemini-1.5-pro-latest",
+        "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+        "httpStatus": 500
       },
       {
-        "model": "claude-3-sonnet-20240229",
-        "error": "Unknown error"
+        "model": "claude-3-7-sonnet-20250219",
+        "error": "Unknown error",
+        "httpStatus": 403
       },
       {
         "model": "claude-3-5-sonnet-20241022",
-        "error": "Unknown error"
+        "error": "Unknown error",
+        "httpStatus": 403
+      },
+      {
+        "model": "claude-3-5-sonnet-20240620",
+        "error": "Unknown error",
+        "httpStatus": 403
+      },
+      {
+        "model": "claude-3-opus-20240229",
+        "error": "Unknown error",
+        "httpStatus": 403
+      },
+      {
+        "model": "claude-3-sonnet-20240229",
+        "error": "Unknown error",
+        "httpStatus": 403
       }
     ],
-    "totalTested": 14
+    "byProvider": {
+      "openai": [
+        "gpt-4.1",
+        "gpt-4.1-mini",
+        "gpt-4.1-nano",
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4o-2024-08-06",
+        "gpt-4o-2024-11-20",
+        "gpt-4o-mini-2024-07-18",
+        "chatgpt-4o-latest",
+        "o4-mini",
+        "o4-mini-high",
+        "o4-mini-medium",
+        "o4-mini-low"
+      ],
+      "mistral": [
+        "pixtral-large-latest",
+        "pixtral-large-2411"
+      ],
+      "qwen": [
+        "Qwen/Qwen2.5-VL-72B-Instruct"
+      ],
+      "google": [
+        "gemini-2.5-flash-preview-04-17",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview-02-05",
+        "gemini-2.0-flash-thinking-exp-01-21",
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-flash-8b-latest"
+      ],
+      "anthropic": [
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307"
+      ]
+    },
+    "totalTested": 43,
+    "successRate": "62.8"
   }
 }

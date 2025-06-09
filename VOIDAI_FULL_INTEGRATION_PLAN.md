@@ -2,7 +2,21 @@
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to fully integrate VoidAI's capabilities into the chat application, covering all multimodal features including vision, audio (TTS/STT), image generation, moderation, and advanced model features. The plan follows a phased approach to ensure stability while progressively adding functionality.
+This document outlines a comprehensive plan to fully integrate VoidAI's capabilities into the chat application. **Phase 1.1 (Vision-Enabled Chat) has been successfully completed** using a refined "first-class messages" architecture. This plan now reflects the current implementation and outlines remaining phases for audio, image generation, moderation, and advanced features.
+
+## Current Status Summary
+
+### ✅ **COMPLETED: Phase 1.1 - Vision-Enabled Chat**
+- **Smart Model Selection**: Auto-detection of vision capabilities and automatic model switching when images are attached
+- **Image Upload Pipeline**: Complete file processing with validation, Base64 conversion, and attachment metadata
+- **Multimodal Message Architecture**: Messages support both text and image content with proper status tracking (`pending` → `sent`)
+- **Smart Context Bundling**: Intelligent grouping of pending images with text messages into single API requests
+- **UI Components**: Fully functional image attachment input, multimodal message rendering, and visual status indicators
+
+### 🔧 **IN PROGRESS: UI Polish & UX Improvements**
+- Recent fixes to retry button visibility for pending messages
+- Layout adjustments for horizontal input component arrangement
+- Message bundling optimization for better user control
 
 ## Integration Architecture Overview
 
@@ -12,9 +26,9 @@ graph TB
         UI[React UI Components]
         EM[Effector Models]
         CS[Chat Stream Feature]
+        VF[✅ Vision Feature - COMPLETED]
         
-        subgraph "New Features"
-            VF[Vision Feature]
+        subgraph "Next Phase Features"
             AF[Audio Feature]
             IG[Image Gen Feature]
             MF[Moderation Feature]
@@ -23,7 +37,7 @@ graph TB
     end
     
     subgraph "VoidAI API Endpoints"
-        CC[/v1/chat/completions]
+        CC[/v1/chat/completions - ✅ IMPLEMENTED]
         AT[/v1/audio/transcriptions]
         AS[/v1/audio/speech]
         IG_API[/v1/images/generate]
@@ -45,29 +59,32 @@ graph TB
 ## Phase 1: Core Multimodal Chat (Vision + Audio)
 
 ### 1.1 Vision-Enabled Chat (Image Uploads)
-**Status**: Partially planned in existing documents
+**Status**: ✅ **COMPLETED** - Implemented with "first-class messages" architecture
 
-#### Implementation Steps:
-1. **Model Discovery & Validation**
-   - Validate vision-capable models: `gpt-4-1106-vision-preview`, `gpt-4o`, `grok-2-vision-1212`, `pixtral-large-latest`, `Qwen/Qwen2.5-VL-72B-Instruct`
-   - Test OpenAI-compatible format with each model
-   - Document model-specific behaviors and limits
+#### ✅ Completed Implementation:
 
-2. **Enhanced Model Metadata**
+1. **✅ Model Discovery & Validation**
+   - ✅ Validated 8 vision-capable models via `scripts/test-vision-models.js`
+   - ✅ Confirmed OpenAI-compatible format support across providers
+   - ✅ Documented model behaviors and limits in enhanced `ModelInfo` interface
+
+2. **✅ Enhanced Model Metadata** (src/features/models-select/model.ts)
    ```typescript
    interface ModelInfo {
      id: string;
      name: string;
      provider: string;
      capabilities: {
-       vision: boolean;
+       vision: boolean;           // ✅ IMPLEMENTED
        audio: boolean;
        audioGeneration: boolean;
        streaming: boolean;
        functionCalling: boolean;
+       imageGeneration: boolean;
+       moderation: boolean;
      };
      limits: {
-       maxImageSize?: number;
+       maxImageSize?: number;     // ✅ IMPLEMENTED  
        supportedImageFormats?: string[];
        maxTokens: number;
        contextWindow: number;
@@ -75,15 +92,30 @@ graph TB
    }
    ```
 
-3. **Smart Model Selection**
-   - Auto-switch to vision model when image is attached
-   - Show capability badges in model selector
-   - Warn user if selected model doesn't support attached content
+3. **✅ Smart Model Selection** (src/features/models-select/model.ts)
+   - ✅ Auto-switch to vision model when image is attached via `autoSelectModelForCapabilities`
+   - ✅ Dynamic capability detection with `detectCapabilities` function
+   - ✅ Model categorization with `categorizeModel` helper
+   - ✅ User preference support (`preferFree` option)
+
+4. **✅ Complete Image Pipeline** (src/features/chat/model.ts)
+   - ✅ File processing with `processFilesFx` effect
+   - ✅ Base64 conversion and metadata extraction  
+   - ✅ Message status tracking (`pending` → `sent`)
+   - ✅ Smart context bundling for API requests
+   - ✅ Support for multiple image attachments
+
+5. **✅ UI Components**
+   - ✅ `ImageAttachmentInput.tsx` - File selection and preview
+   - ✅ `MessageItem.tsx` - Multimodal message rendering 
+   - ✅ Horizontal input layout with attach/text/send buttons
+   - ✅ Visual status indicators for pending messages
+   - ✅ Click-to-expand image functionality
 
 ### 1.2 Audio-Enabled Chat
-**New Feature**: Native audio support in chat.completions
+**Status**: 📋 **PLANNED** - Native audio support in chat.completions
 
-#### Implementation for Audio Chat Models:
+#### Planned Implementation for Audio Chat Models:
 ```typescript
 // For models like gpt-4o-audio-preview
 interface AudioChatMessage {
@@ -106,9 +138,18 @@ interface StreamChatParams {
 }
 ```
 
+#### Next Steps:
+1. Extend `MessageContentPart` union to include `AudioContentPart`
+2. Update `processFilesFx` to handle audio file formats
+3. Implement audio recording UI component
+4. Add audio playback controls in `MessageItem.tsx`
+5. Test with audio-capable models like `gpt-4o-audio-preview`
+
 ## Phase 2: Speech Integration (TTS/STT)
+**Status**: 📋 **PLANNED** - Separate TTS/STT endpoints
 
 ### 2.1 Speech-to-Text (Transcription)
+**Status**: 📋 **PLANNED**  
 **Models**: `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`
 
 #### New Feature: Voice Input Button
@@ -139,6 +180,7 @@ export const transcribeAudioFx = createEffect<
 ```
 
 ### 2.2 Text-to-Speech
+**Status**: 📋 **PLANNED**  
 **Models**: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
 
 #### Implementation:
@@ -170,8 +212,10 @@ export const generateSpeechFx = createEffect<
 ```
 
 ## Phase 3: Image Generation
+**Status**: 📋 **PLANNED** - Command-based image generation
 
 ### 3.1 In-Chat Image Generation
+**Status**: 📋 **PLANNED**  
 **Models**: `gpt-image-1`, `dall-e-3`, `dall-e-2`, `imagen-3.0-generate-001`, `FLUX` variants
 
 #### Command-Based Implementation:
@@ -205,14 +249,17 @@ export const generateImageFx = createEffect<
 ```
 
 ### 3.2 Image Generation UI
+**Status**: 📋 **PLANNED**
 - Add dedicated image generation mode toggle
 - Show generation parameters (size, quality, style)
 - Preview generated images inline
 - Allow saving/downloading generated images
 
 ## Phase 4: Content Moderation
+**Status**: 📋 **PLANNED** - Safety and content filtering
 
 ### 4.1 Message Moderation
+**Status**: 📋 **PLANNED**  
 **Models**: `omni-moderation-latest`, `text-moderation-latest`, `mistral-moderation-latest`
 
 #### Implementation:
@@ -250,8 +297,10 @@ sample({
 ```
 
 ## Phase 5: Advanced Features
+**Status**: 📋 **PLANNED** - Enhanced file support and processing
 
 ### 5.1 Multi-File Support
+**Status**: 📋 **PLANNED** - Currently supports multiple images, can extend to other file types  
 Extend attachment system to support multiple files:
 ```typescript
 interface Attachment {
@@ -272,6 +321,7 @@ export const $pendingAttachments = createStore<Attachment[]>([]);
 ```
 
 ### 5.2 Document Processing
+**Status**: 📋 **PLANNED**  
 Support for PDF, DOCX, TXT, MD files:
 ```typescript
 // Client-side text extraction
@@ -307,12 +357,14 @@ export const extractTextFx = createEffect<File, string>(async (file) => {
 ```
 
 ### 5.3 Enhanced Mini Chat
+**Status**: ✅ **PARTIALLY COMPLETED** - Base mini chat exists, can extend with multimodal  
 Extend mini chat with multimodal capabilities:
 - Voice input for mini chat
-- Image paste/drop support
+- Image paste/drop support  
 - Quick image generation commands
 
 ## Phase 6: Model-Specific Optimizations
+**Status**: 📋 **PLANNED** - Provider-specific enhancements
 
 ### 6.1 Provider-Specific Features
 ```typescript
@@ -339,6 +391,7 @@ interface ProviderConfig {
 ```
 
 ### 6.2 Adaptive Prompting
+**Status**: 📋 **PLANNED**  
 Different providers may need adjusted prompts:
 ```typescript
 const adaptPromptForProvider = (prompt: string, provider: string): string => {
@@ -355,31 +408,43 @@ const adaptPromptForProvider = (prompt: string, provider: string): string => {
 };
 ```
 
-## Implementation Timeline
+## Updated Implementation Timeline
 
-### Week 1-2: Foundation
-- [ ] Complete Phase 1.1 (Vision-enabled chat)
-- [ ] Test with all vision models
-- [ ] Update model selector with capabilities
+### ✅ Completed (Weeks 1-2): Foundation
+- [x] **Complete Phase 1.1 (Vision-enabled chat)**
+- [x] **Test with all vision models**
+- [x] **Update model selector with capabilities**
+- [x] **Implement smart context bundling**
+- [x] **Create multimodal message architecture**
+- [x] **Fix UI/UX issues with message handling**
 
-### Week 3-4: Audio Features
+### 📋 Next (Weeks 3-4): Audio Features
+- [ ] Implement Phase 1.2 (Audio-enabled chat models)
 - [ ] Implement Phase 2.1 (Speech-to-text)
 - [ ] Implement Phase 2.2 (Text-to-speech)
 - [ ] Add audio UI components
 
-### Week 5-6: Generation & Moderation
+### 📋 Future (Weeks 5-6): Generation & Moderation
 - [ ] Implement Phase 3 (Image generation)
 - [ ] Implement Phase 4 (Content moderation)
 - [ ] Add safety controls
 
-### Week 7-8: Advanced Features
-- [ ] Multi-file support
+### 📋 Future (Weeks 7-8): Advanced Features
+- [ ] Multi-file support (extend current image support)
 - [ ] Document processing
 - [ ] Provider optimizations
 
 ## Testing Strategy
 
+### ✅ Completed Testing
+- [x] **Vision model compatibility via test script**
+- [x] **TypeScript compilation and type safety**
+- [x] **UI component integration testing**
+- [x] **Message bundling scenarios**
+- [x] **File upload and processing pipeline**
+
 ### 1. Model Compatibility Matrix
+**Status**: ✅ **PARTIALLY COMPLETED** - Vision models tested, expand to other capabilities  
 Create comprehensive tests for each model:
 ```typescript
 const MODEL_TESTS = {
