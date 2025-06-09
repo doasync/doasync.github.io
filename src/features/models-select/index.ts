@@ -3,10 +3,16 @@
 export {
   // Types
   type ModelInfo,
+  type ModelCapabilities,
+  type ModelLimits,
 
   // Stores - Needed by UI (ModelSelector, Header)
   $availableModels,
   $selectedModelId, // Also needed by chat feature
+  $selectedModelInfo,
+  $visionModels,
+  $currentModelSupportsVision,
+  $currentModelSupportsAudio,
   $isLoadingModels,
   $modelsError,
   $showFreeOnly,
@@ -16,4 +22,5 @@ export {
   modelSelected, // Triggered by ModelSelector component
   setShowFreeOnly,
   modelSelectorFocused,
+  autoSelectModelForCapabilities,
 } from "./model";

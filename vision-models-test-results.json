@@ -1,0 +1,226 @@
+{
+  "timestamp": "2025-06-09T13:34:28.448Z",
+  "results": [
+    {
+      "model": "gpt-4-1106-vision-preview",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: Request failed with status code 404",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "gpt-4o",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid bright yellow color with no other elements or details.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 15,
+        "total_tokens": 290,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749476036295
+    },
+    {
+      "model": "gpt-4o-2024-08-06",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid yellow square with no other features or details.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 14,
+        "total_tokens": 289,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749476038544
+    },
+    {
+      "model": "gpt-4o-2024-11-20",
+      "status": "success",
+      "supportsVision": true,
+      "response": "This image is a solid yellow square with no additional details or elements.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 14,
+        "total_tokens": 289,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749476041043
+    },
+    {
+      "model": "chatgpt-4o-latest",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid color with no visible objects or patterns. The color appears to be a bright yellow.",
+      "usage": {
+        "prompt_tokens": 275,
+        "completion_tokens": 22,
+        "total_tokens": 297,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "responseTime": 1749476044415
+    },
+    {
+      "model": "grok-2-vision-1212",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Rate limit exceeded. Please try again later.",
+      "errorCode": null,
+      "httpStatus": 429
+    },
+    {
+      "model": "pixtral-large-latest",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image appears to be a small, circular object with a smooth, glossy surface. It is primarily white with a slight gradient or shadow effect, giving it a three-dimensional appearance. The object is set against a plain white background, which makes it stand out prominently. The overall impression is that of a simple, minimalist design, possibly a button, a coin, or a similar round item.",
+      "usage": {
+        "completion_tokens": 85,
+        "prompt_tokens": 18,
+        "total_tokens": 103
+      },
+      "responseTime": 1749476049233
+    },
+    {
+      "model": "pixtral-large-2411",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image appears to be a small, circular object with a smooth, glossy surface. It is predominantly white in color. Due to the limited size and resolution of the image, it is difficult to identify the object with certainty. It could be a variety of things, such as a button, a coin, or a small decorative item. Additional context or a higher resolution image would be needed for a more precise identification.",
+      "usage": {
+        "completion_tokens": 89,
+        "prompt_tokens": 18,
+        "total_tokens": 107
+      },
+      "responseTime": 1749476052675
+    },
+    {
+      "model": "Qwen/Qwen2.5-VL-72B-Instruct",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid, bright yellow color with no visible patterns, objects, or text. It appears to be a plain, uniform background.",
+      "usage": {
+        "prompt_tokens": 38,
+        "total_tokens": 68,
+        "completion_tokens": 30,
+        "prompt_tokens_details": null
+      },
+      "responseTime": 1749476056642
+    },
+    {
+      "model": "gemini-2.0-flash",
+      "status": "success",
+      "supportsVision": true,
+      "response": "The image is a solid, bright yellow color. There are no other objects or patterns visible.\n",
+      "usage": {
+        "prompt_tokens": 271,
+        "completion_tokens": 20,
+        "total_tokens": 291
+      },
+      "responseTime": 1749476059023
+    },
+    {
+      "model": "gemini-1.5-pro",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429",
+      "errorCode": null,
+      "httpStatus": 500
+    },
+    {
+      "model": "claude-3-opus-20240229",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    },
+    {
+      "model": "claude-3-sonnet-20240229",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    },
+    {
+      "model": "claude-3-5-sonnet-20241022",
+      "status": "error",
+      "supportsVision": false,
+      "error": "Unknown error",
+      "httpStatus": 403
+    }
+  ],
+  "report": {
+    "workingModels": [
+      "gpt-4o",
+      "gpt-4o-2024-08-06",
+      "gpt-4o-2024-11-20",
+      "chatgpt-4o-latest",
+      "pixtral-large-latest",
+      "pixtral-large-2411",
+      "Qwen/Qwen2.5-VL-72B-Instruct",
+      "gemini-2.0-flash"
+    ],
+    "failedModels": [
+      {
+        "model": "gpt-4-1106-vision-preview",
+        "error": "Internal Server Error: Request failed with status code 404"
+      },
+      {
+        "model": "grok-2-vision-1212",
+        "error": "Rate limit exceeded. Please try again later."
+      },
+      {
+        "model": "gemini-1.5-pro",
+        "error": "Internal Server Error: All retry attempts failed: Request failed with status code 429"
+      },
+      {
+        "model": "claude-3-opus-20240229",
+        "error": "Unknown error"
+      },
+      {
+        "model": "claude-3-sonnet-20240229",
+        "error": "Unknown error"
+      },
+      {
+        "model": "claude-3-5-sonnet-20241022",
+        "error": "Unknown error"
+      }
+    ],
+    "totalTested": 14
+  }
+}

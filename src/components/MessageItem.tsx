@@ -15,7 +15,7 @@ import {
   startEditingMessage,
   stopEditingMessage,
 } from "@/features/ui-state"; // Import global editing state
-import { Message } from "@/features/chat";
+import { Message, MessageContentPart } from "@/features/chat";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -24,6 +24,8 @@ import {
   Paper,
   Card,
   CircularProgress,
+  Box,
+  CardMedia,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -67,8 +69,31 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const [isGoingToDelete, setIsGoingToDelete] = useState(false);
   const [isGoingToRetry, setIsGoingToRetry] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(message.content); // Initialize with prop
+  const [editedText, setEditedText] = useState(
+    typeof message.content === 'string' ? message.content : extractTextContent(message.content)
+  ); // Initialize with prop
   const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
+
+  // Helper function to extract text content from multimodal content
+  const extractTextContent = (content: string | MessageContentPart[]): string => {
+    if (typeof content === 'string') {
+      return content;
+    }
+    return content
+      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      .map(part => part.text)
+      .join(' ');
+  };
+
+  // Helper function to get image parts from content
+  const getImageParts = (content: string | MessageContentPart[]) => {
+    if (typeof content === 'string') {
+      return [];
+    }
+    return content.filter((part): part is { type: 'image_url'; image_url: { url: string; detail?: string } } => 
+      part.type === 'image_url'
+    );
+  };
   const messageItemRef = useRef<HTMLDivElement>(null);
 
   // Derived State
@@ -81,8 +106,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const handleEditClick = () => {
     // Don't allow editing if another edit is active or already editing this one
     if (isEditing || globalEditingMessageId !== null) return;
-    setEditedText(message.content); // Ensure editedText is always the current message.content
-    setOriginalContentOnEdit(message.content); // Store original content
+    const textContent = extractTextContent(message.content);
+    setEditedText(textContent); // Ensure editedText is always the current text content
+    setOriginalContentOnEdit(textContent); // Store original content
     startEditingMessage(message.id); // Set this message as globally editing
     setIsEditing(true); // Set local editing state
   };
@@ -153,24 +179,26 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   };
 
   const handleCopyTextClick = () => {
-    if (typeof message.content === "string") {
+    const textContent = extractTextContent(message.content);
+    if (textContent) {
       navigator.clipboard
-        .writeText(message.content)
+        .writeText(textContent)
         .then(() => console.log("Text copied to clipboard"))
         .catch((err) => console.error("Failed to copy text: ", err));
     } else {
-      console.error("Cannot copy non-string content");
+      console.error("No text content to copy");
     }
   };
 
   const handleCopyCodeClick = () => {
-    if (typeof message.content === "string") {
+    const textContent = extractTextContent(message.content);
+    if (textContent) {
       navigator.clipboard
-        .writeText(message.content) // Copy raw markdown/code
+        .writeText(textContent) // Copy raw markdown/code
         .then(() => console.log("Code/Markdown copied to clipboard"))
         .catch((err) => console.error("Failed to copy code/markdown: ", err));
     } else {
-      console.error("Cannot copy non-string content as code/markdown");
+      console.error("No text content to copy as code/markdown");
     }
   };
 
@@ -270,19 +298,57 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         ) : (
-          <Typography
-            // onDoubleClick={handleEditClick} // Allow double-click to edit
-            component="div"
-            variant="body1"
-            sx={{
-              fontSize: "inherit",
-              overflowWrap: "break-word",
-              width: "100%",
-            }}
-          >
-            {/* Ensure MarkdownRenderer is wrapped correctly */}
-            <MarkdownRenderer content={message.content} />
-          </Typography>
+          <Box sx={{ width: "100%" }}>
+            {/* Render images if present */}
+            {(() => {
+              const imageParts = getImageParts(message.content);
+              if (imageParts.length > 0) {
+                return (
+                  <Box sx={{ mb: imageParts.length > 0 ? 2 : 0 }}>
+                    {imageParts.map((imagePart, index) => (
+                      <CardMedia
+                        key={index}
+                        component="img"
+                        image={imagePart.image_url.url}
+                        alt={`Attached image ${index + 1}`}
+                        sx={{
+                          maxWidth: "100%",
+                          maxHeight: 300,
+                          objectFit: "contain",
+                          borderRadius: 1,
+                          mb: index < imageParts.length - 1 ? 1 : 0,
+                          cursor: "pointer",
+                          '&:hover': {
+                            opacity: 0.8,
+                          },
+                        }}
+                        onClick={() => {
+                          // Open image in new tab
+                          window.open(imagePart.image_url.url, '_blank');
+                        }}
+                      />
+                    ))}
+                  </Box>
+                );
+              }
+              return null;
+            })()}
+            
+            {/* Render text content */}
+            <Typography
+              // onDoubleClick={handleEditClick} // Allow double-click to edit
+              component="div"
+              variant="body1"
+              sx={{
+                fontSize: "inherit",
+                overflowWrap: "break-word",
+                width: "100%",
+              }}
+            >
+              {/* Ensure MarkdownRenderer is wrapped correctly */}
+              <MarkdownRenderer content={extractTextContent(message.content)} />
+            </Typography>
+          </Box>
         )}
         {/* Loading spinner during retry or for placeholder */}
         {(isRetryingThisMessage || message.isLoading) && (

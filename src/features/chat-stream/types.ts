@@ -113,6 +113,22 @@ export interface StreamAbortPayload {
   streamId: string;
 }
 
+// Multimodal content types for OpenAI-compatible API
+export interface StreamTextContentPart {
+  type: "text";
+  text: string;
+}
+
+export interface StreamImageContentPart {
+  type: "image_url";
+  image_url: {
+    url: string;
+    detail?: "low" | "high" | "auto";
+  };
+}
+
+export type StreamMessageContentPart = StreamTextContentPart | StreamImageContentPart;
+
 /**
  * Parameters required to initiate a chat stream request via streamChatFx.
  */
@@ -124,7 +140,7 @@ export interface StreamChatParams {
   model: string;
   messages: ReadonlyArray<{
     role: "system" | "user" | "assistant";
-    content: string;
+    content: string | StreamMessageContentPart[]; // Support multimodal content
   }>;
   apiKey: string;
 

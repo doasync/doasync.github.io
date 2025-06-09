@@ -1,7 +1,11 @@
 import { sample, createDomain, createEvent } from "effector"; // Removed split
 import { debug } from "patronum/debug";
 import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
-import { $selectedModelId } from "@/features/models-select";
+import { 
+  $selectedModelId, 
+  $currentModelSupportsVision,
+  autoSelectModelForCapabilities 
+} from "@/features/models-select";
 // Import chat-stream feature
 import {
   streamChatFx,
@@ -15,6 +19,10 @@ import {
 
 import {
   Message,
+  Attachment,
+  MessageContentPart,
+  TextContentPart,
+  ImageContentPart,
   RetryUpdatePayload, // Keep for now, might become obsolete
   MessageRetryInitiatedPayload, // Keep for spinner logic potentially
   RequestContext, // Import the new context type
@@ -68,6 +76,11 @@ export const assistantResponseCompleted = chatDomain.event<void>(
   "assistantResponseCompleted"
 );
 
+// File attachment events
+export const fileSelected = chatDomain.event<File>("fileSelected");
+export const attachmentRemoved = chatDomain.event<string>("attachmentRemoved"); // Attachment ID
+export const attachmentCleared = chatDomain.event<void>("attachmentCleared");
+
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
   "messageRetryInitiated"
@@ -118,6 +131,15 @@ export const $isGenerating = chatDomain
   .on(streamInitiatedWithTarget, () => true) // Set true when *this* chat's stream starts
   .on(chatStreamFinished, () => false); // Set false when *this* chat's stream finishes (complete/error/abort)
 
+// File attachment stores
+export const $pendingAttachments = chatDomain.store<Attachment[]>([], {
+  name: "$pendingAttachments",
+});
+
+export const $isProcessingFile = chatDomain.store<boolean>(false, {
+  name: "$isProcessingFile",
+});
+
 export const $currentChatTokens = chatDomain.store<number>(0, {
   name: "$currentChatTokens",
 });
@@ -149,6 +171,49 @@ export const $isMainInputFocused = chatDomain
   .store<boolean>(false, { name: "$isMainInputFocused" })
   .on(mainInputFocused, (_, isFocused) => isFocused); // Corrected payload destructuring
 
+// --- Effects ---
+
+// File processing effect
+const processFileFx = chatDomain.effect<File, Attachment>({
+  name: "processFileFx",
+  handler: async (file: File): Promise<Attachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        
+        // Create attachment object
+        const attachment: Attachment = {
+          id: crypto.randomUUID(),
+          type: file.type.startsWith('image/') ? 'image' : 
+                file.type.startsWith('audio/') ? 'audio' : 'document',
+          fileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl,
+          metadata: file.type.startsWith('image/') ? {
+            // For images, we'll get dimensions later if needed
+          } : undefined,
+        };
+        
+        resolve(attachment);
+      };
+      
+      reader.onerror = () => {
+        reject(new Error(`Failed to read file: ${file.name}`));
+      };
+      
+      // Read as data URL for images, as text for documents
+      if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsDataURL(file); // For now, read everything as data URL
+      }
+    });
+  },
+});
+
 // --- Helper Functions / Type Guards ---
 const isRetryableMessage = (
   message: Message | undefined
@@ -159,6 +224,34 @@ const isRetryableMessage = (
 // --- Store Updates (.on/.reset) ---
 
 $messageText.on(messageTextChanged, (_, text) => text);
+
+// File attachment state management
+$isProcessingFile
+  .on(processFileFx, () => true)
+  .reset(processFileFx.finally);
+
+$pendingAttachments
+  .on(processFileFx.doneData, (attachments, newAttachment) => [...attachments, newAttachment])
+  .on(attachmentRemoved, (attachments, attachmentId) => 
+    attachments.filter(a => a.id !== attachmentId)
+  )
+  .reset(attachmentCleared, messageSent); // Clear on manual clear or message sent
+
+// Trigger file processing when file is selected
+sample({
+  clock: fileSelected,
+  target: processFileFx,
+});
+
+// Auto-select vision model when image is attached
+sample({
+  clock: processFileFx.doneData,
+  source: $currentModelSupportsVision,
+  filter: (modelSupportsVision, attachment) => 
+    attachment.type === 'image' && !modelSupportsVision,
+  fn: () => ({ vision: true, preferFree: false }),
+  target: autoSelectModelForCapabilities,
+});
 
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
@@ -298,17 +391,57 @@ $apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // --- Samples (Flow Logic) ---
 
+// Helper function to create multimodal content
+const createMultimodalContent = (text: string, attachments: Attachment[]): string | MessageContentPart[] => {
+  // If no attachments, return simple text
+  if (attachments.length === 0) {
+    return text.trim();
+  }
+  
+  // Create multimodal content array
+  const contentParts: MessageContentPart[] = [];
+  
+  // Add text part if present
+  if (text.trim()) {
+    contentParts.push({
+      type: "text",
+      text: text.trim(),
+    });
+  }
+  
+  // Add image parts
+  attachments.forEach(attachment => {
+    if (attachment.type === 'image' && attachment.dataUrl) {
+      contentParts.push({
+        type: "image_url",
+        image_url: {
+          url: attachment.dataUrl,
+          detail: "auto",
+        },
+      });
+    }
+    // TODO: Handle other attachment types (audio, document) in future phases
+  });
+  
+  return contentParts;
+};
+
 // Create a new user message object when message is sent
 sample({
   clock: messageSent,
-  source: $messageText,
-  filter: (text) => text.trim().length > 0,
-  fn: (text): Message => ({
-    id: crypto.randomUUID(),
-    role: "user",
-    content: text.trim(),
-    timestamp: Date.now(),
-  }),
+  source: { text: $messageText, attachments: $pendingAttachments },
+  filter: ({ text, attachments }) => text.trim().length > 0 || attachments.length > 0,
+  fn: ({ text, attachments }): Message => {
+    const content = createMultimodalContent(text, attachments);
+    
+    return {
+      id: crypto.randomUUID(),
+      role: "user",
+      content,
+      timestamp: Date.now(),
+      attachments: attachments.length > 0 ? [...attachments] : undefined,
+    };
+  },
   target: userMessageCreated,
 });
 
@@ -682,6 +815,8 @@ debug(
   // Stores
   $messageText,
   $messages,
+  $pendingAttachments,
+  $isProcessingFile,
   $isGenerating,
   $apiError,
   $currentChatTokens,
@@ -704,6 +839,9 @@ debug(
   initialChatSaveNeeded,
   normalResponseProcessed,
   mainInputFocused,
+  fileSelected,
+  attachmentRemoved,
+  attachmentCleared,
 
   // Internal events
   userMessageCreated,
@@ -718,5 +856,6 @@ debug(
   scrollToLastMessageNeeded,
 
   // Effects
-  streamChatFx
+  streamChatFx,
+  processFileFx
 );

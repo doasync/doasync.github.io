@@ -2,15 +2,48 @@
 
 export type Role = "user" | "assistant" | "system";
 
+// Multimodal content parts for OpenAI-compatible format
+export interface TextContentPart {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: "image_url";
+  image_url: {
+    url: string; // Base64 data URL or public HTTPS URL
+    detail?: "low" | "high" | "auto";
+  };
+}
+
+export type MessageContentPart = TextContentPart | ImageContentPart;
+
+// Attachment metadata for UI handling
+export interface Attachment {
+  id: string;
+  type: "image" | "audio" | "document";
+  fileName: string;
+  mimeType: string;
+  size: number;
+  dataUrl?: string; // Base64 data URL for preview/sending
+  previewUrl?: string; // Object URL for efficient preview
+  extractedText?: string; // For documents
+  metadata?: {
+    dimensions?: { width: number; height: number };
+    duration?: number; // For audio files
+  };
+}
+
 export interface Message {
   id: string;
   role: Role;
-  content: string | any; // Consider refining 'any' if possible
+  content: string | MessageContentPart[]; // Support multimodal content
   timestamp: number;
   isEdited?: boolean;
-  originalContent?: string | any; // Consider refining 'any' if possible
+  originalContent?: string | MessageContentPart[];
   isLoading?: boolean; // Added for placeholder/retry state
   isRetryOf?: string; // Optional: ID of the message this is a retry for
+  attachments?: Attachment[]; // For UI rendering and management
 }
 
 // Define the types of request contexts

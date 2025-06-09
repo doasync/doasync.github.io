@@ -50,6 +50,7 @@ import { generateResponseClicked } from "@/features/chat";
 // Import components
 import MessageItem from "@/components/MessageItem";
 import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
+import ImageAttachmentInput from "@/components/ImageAttachmentInput";
 import Drawer from "@mui/material/Drawer";
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
@@ -64,6 +65,7 @@ import {
 import {
   $messages,
   $messageText,
+  $pendingAttachments,
   messageSent,
   messageTextChanged,
   $isGenerating, // Import loading state
@@ -124,7 +126,11 @@ export default function HomePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [messages, messageText] = useUnit([$messages, $messageText]);
+  const [messages, messageText, pendingAttachments] = useUnit([
+    $messages, 
+    $messageText, 
+    $pendingAttachments
+  ]);
   const lastMessage =
     messages.length > 0 ? messages[messages.length - 1] : null;
 
@@ -261,15 +267,16 @@ export default function HomePage() {
     }
 
     const isInputEmpty = messageText.trim().length === 0;
+    const hasAttachments = pendingAttachments.length > 0;
     const isLastMessageUser = lastMessage?.role === "user";
 
-    if (!isInputEmpty) {
-      // Case 3 & 4: Input has text, send it as a new message
+    if (!isInputEmpty || hasAttachments) {
+      // Case 3 & 4: Input has text or attachments, send it as a new message
       if (!isGenerating) {
         messageSent();
       }
     } else {
-      // Input is empty
+      // Input is empty and no attachments
       // Case 2: Input empty, last message was user -> Generate new response
       if (isLastMessageUser && !isGenerating) {
         generateResponseClicked(); // Trigger the new event
@@ -629,34 +636,35 @@ export default function HomePage() {
             maxWidth="md"
             sx={{
               display: "flex",
-              alignItems: "center",
-              gap: 1,
+              flexDirection: "column",
               width: "100%", // Ensure paper takes full width of container
             }}
           >
-            <IconButton
-              sx={{ mx: -0.5 }}
-              color="primary"
-              aria-label="attach file"
-              disabled
+            {/* Image Attachment Previews */}
+            <ImageAttachmentInput disabled={isGenerating} />
+            
+            {/* Input Row */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                width: "100%",
+              }}
             >
-              {" "}
-              {/* Disabled Attach for now */}
-              <AttachFileIcon />
-            </IconButton>
-            <TextField
-              fullWidth
-              multiline
-              maxRows={5}
-              variant="outlined"
-              placeholder="Type your message..."
-              sx={{ flexGrow: 1 }}
-              slotProps={{ input: { sx: { fontSize: 22, py: 1 } } }}
-              value={messageText}
-              onChange={changeMessage}
-              onFocus={() => mainInputFocused(true)} // Trigger event on focus
-              onBlur={() => mainInputFocused(false)} // Trigger event on blur
-            />
+              <TextField
+                fullWidth
+                multiline
+                maxRows={5}
+                variant="outlined"
+                placeholder="Type your message..."
+                sx={{ flexGrow: 1 }}
+                slotProps={{ input: { sx: { fontSize: 22, py: 1 } } }}
+                value={messageText}
+                onChange={changeMessage}
+                onFocus={() => mainInputFocused(true)} // Trigger event on focus
+                onBlur={() => mainInputFocused(false)} // Trigger event on blur
+              />
             <Box sx={{ position: "relative" }}>
               {" "}
               {/* Keep relative positioning */}
@@ -675,11 +683,12 @@ export default function HomePage() {
                 // Calculate disabled state based on new logic only when not generating
                 (() => {
                   const isInputEmpty = messageText.trim().length === 0;
+                  const hasAttachments = pendingAttachments.length > 0;
                   const lastMessage =
                     messages.length > 0 ? messages[messages.length - 1] : null;
                   const isLastMessageUser = lastMessage?.role === "user";
-                  // Disable if (input is empty AND last message was NOT user)
-                  const isDisabled = isInputEmpty && !isLastMessageUser;
+                  // Disable if (input is empty AND no attachments AND last message was NOT user)
+                  const isDisabled = isInputEmpty && !hasAttachments && !isLastMessageUser;
 
                   return (
                     <IconButton
@@ -697,8 +706,9 @@ export default function HomePage() {
                 })()
               )}
             </Box>
+            </Box>{" "}
+            {/* End Input Row */}
           </Box>{" "}
-          {/* End Input Paper */}
           {/* End Input Centering Container */}
         </Paper>{" "}
         {/* End Input Area Wrapper Box */}

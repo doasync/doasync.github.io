@@ -6,6 +6,26 @@ const modelsDomain = createDomain("models");
 
 // --- Types ---
 
+// Enhanced ModelInfo interface with capability detection
+export interface ModelCapabilities {
+  vision: boolean;
+  audio: boolean;
+  audioGeneration: boolean;
+  streaming: boolean;
+  functionCalling: boolean;
+  imageGeneration: boolean;
+  moderation: boolean;
+}
+
+export interface ModelLimits {
+  maxImageSize?: number; // in bytes
+  supportedImageFormats?: string[]; // MIME types
+  maxTokens: number;
+  contextWindow: number;
+  maxImages?: number; // max images per message
+  maxAudioDuration?: number; // max audio length in seconds
+}
+
 // Structure based on docs/essentials.md (VoidAI /models response)
 export interface ModelInfo {
   id: string; // Model ID (e.g., "openai/gpt-4o") - USE THIS
@@ -23,6 +43,13 @@ export interface ModelInfo {
     completion?: string;
     [key: string]: string | undefined;
   };
+
+  // Enhanced metadata for VoidAI integration
+  capabilities?: ModelCapabilities;
+  limits?: ModelLimits;
+  provider?: string; // Normalized provider name (openai, anthropic, google, etc.)
+  category?: "chat" | "vision" | "audio" | "image-gen" | "moderation";
+  isFree?: boolean;
 }
 
 // The raw response from the API, before transformation
@@ -67,6 +94,15 @@ export const $isModelSelectorActive = modelsDomain.store<boolean>(false, {
  */
 export const setShowFreeOnly = modelsDomain.event<boolean>("setShowFreeOnly");
 
+/**
+ * Auto-select best model for given capabilities
+ */
+export const autoSelectModelForCapabilities = modelsDomain.event<{
+  vision?: boolean;
+  audio?: boolean;
+  preferFree?: boolean;
+}>("autoSelectModelForCapabilities");
+
 // Set the "show only free models" filter.
 $showFreeOnly.on(setShowFreeOnly, (_, payload) => payload);
 
@@ -101,6 +137,123 @@ export const modelSelectorFocused = modelsDomain.event<boolean>( // Ensure this 
   "modelSelectorFocused"
 ); // true for focus/open, false for blur/close
 
+// Model capability detection based on VoidAI documentation
+const detectCapabilities = (
+  modelId: string,
+  ownedBy: string
+): ModelCapabilities => {
+  const id = modelId.toLowerCase();
+
+  return {
+    vision:
+      id.includes("vision") ||
+      id.includes("gpt-4o") ||
+      id.includes("grok-2-vision") ||
+      id.includes("pixtral") ||
+      id.includes("qwen2.5-vl") ||
+      id.includes("gemini") ||
+      id.includes("claude-3"),
+
+    audio:
+      id.includes("gpt-4o-audio") ||
+      id.includes("whisper") ||
+      id.includes("transcribe"),
+
+    audioGeneration: id.includes("tts") || id.includes("gpt-4o-audio"),
+
+    streaming: true, // Most chat models support streaming
+
+    functionCalling:
+      ownedBy === "openai" ||
+      id.includes("gpt-4") ||
+      id.includes("claude") ||
+      id.includes("gemini"),
+
+    imageGeneration: false, // Only specific image generation models
+    moderation: id.includes("moderation"),
+  };
+};
+
+const detectLimits = (
+  modelId: string,
+  ownedBy: string,
+  contextLength?: number
+): ModelLimits => {
+  const id = modelId.toLowerCase();
+
+  // Default limits based on common patterns
+  let maxTokens = 4096;
+  let contextWindow = contextLength || 4096;
+  let maxImageSize = 20 * 1024 * 1024; // 20MB default
+
+  // Provider-specific adjustments
+  if (ownedBy === "openai") {
+    if (id.includes("gpt-4o")) {
+      maxTokens = 16384;
+      contextWindow = 128000;
+    } else if (id.includes("gpt-4")) {
+      maxTokens = 8192;
+      contextWindow = 8192;
+    }
+  } else if (ownedBy === "anthropic") {
+    maxTokens = 8192;
+    contextWindow = 200000; // Claude has large context
+    maxImageSize = 5 * 1024 * 1024; // 5MB for Claude
+  } else if (ownedBy === "google") {
+    maxTokens = 8192;
+    contextWindow = 2000000; // Gemini has very large context
+  }
+
+  return {
+    maxTokens,
+    contextWindow,
+    maxImageSize,
+    supportedImageFormats: [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ],
+    maxImages: 10, // Default
+    maxAudioDuration: 25 * 60, // 25 minutes for audio
+  };
+};
+
+const categorizeModel = (
+  modelId: string
+): "chat" | "vision" | "audio" | "image-gen" | "moderation" => {
+  const id = modelId.toLowerCase();
+
+  if (id.includes("moderation")) return "moderation";
+  if (
+    id.includes("vision") ||
+    id.includes("pixtral") ||
+    id.includes("qwen2.5-vl")
+  )
+    return "vision";
+  if (id.includes("whisper") || id.includes("transcribe") || id.includes("tts"))
+    return "audio";
+  if (id.includes("dall-e") || id.includes("imagen") || id.includes("flux"))
+    return "image-gen";
+
+  return "chat";
+};
+
+// Free models based on VoidAI documentation patterns
+const FREE_MODEL_PATTERNS = [
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
+  "gpt-4o-mini",
+  "claude-3-haiku",
+  "mistral-small",
+  "llama",
+];
+
+const isFreeModel = (modelId: string): boolean => {
+  const id = modelId.toLowerCase();
+  return FREE_MODEL_PATTERNS.some((pattern) => id.includes(pattern));
+};
+
 // --- Effects ---
 const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
   name: "fetchModelsFx",
@@ -114,26 +267,51 @@ const fetchModelsFx = modelsDomain.effect<void, ModelInfo[], Error>({
     // Filter for chat completion models and transform to ModelInfo
     const chatModels: ModelInfo[] = rawData.data
       .filter((model) => model.type === "/v1/chat/completions")
-      .map((model) => ({
-        id: model.id,
-        object: model.object,
-        owned_by: model.owned_by,
-        type: model.type,
-        // Derive a 'name' for display since it's not directly provided
-        name: `${model.owned_by}: ${model.id}`,
-        // Other fields are optional and will be undefined if not present in rawData
-        description: model.description, // Will be undefined
-        context_length: model.context_length, // Will be undefined
-        created: model.created, // Will be undefined
-        pricing: model.pricing, // Will be undefined
-      }));
+      .map((model) => {
+        const capabilities = detectCapabilities(model.id, model.owned_by);
+        const limits = detectLimits(
+          model.id,
+          model.owned_by,
+          model.context_length
+        );
+        const category = categorizeModel(model.id);
+        const isFree = isFreeModel(model.id);
 
-    // Sort models descending by created timestamp (if available) or by ID
+        return {
+          id: model.id,
+          object: model.object,
+          owned_by: model.owned_by,
+          type: model.type,
+          // Derive a 'name' for display since it's not directly provided
+          name: `${model.owned_by}: ${model.id}`,
+          // Other fields are optional and will be undefined if not present in rawData
+          description: model.description, // Will be undefined
+          context_length: model.context_length, // Will be undefined
+          created: model.created, // Will be undefined
+          pricing: model.pricing, // Will be undefined
+
+          // Enhanced metadata
+          capabilities,
+          limits,
+          provider: model.owned_by,
+          category,
+          isFree,
+        };
+      });
+
+    // Sort models: vision models first, then by created timestamp or ID
     return chatModels.sort((a, b) => {
+      // Prioritize vision models
+      if (a.capabilities?.vision && !b.capabilities?.vision) return -1;
+      if (!a.capabilities?.vision && b.capabilities?.vision) return 1;
+
+      // Then by created timestamp if available
       if (a.created && b.created) {
         return b.created - a.created;
       }
-      return a.id.localeCompare(b.id); // Fallback to alphabetical by ID
+
+      // Fallback to alphabetical by ID
+      return a.id.localeCompare(b.id);
     });
   },
 });
@@ -184,18 +362,99 @@ $modelsError.reset(fetchModelsFx.done);
 // Update focus state store when event is triggered
 $isModelSelectorActive.on(modelSelectorFocused, (_, isFocused) => isFocused);
 
+// Smart model selection based on required capabilities
+sample({
+  clock: autoSelectModelForCapabilities,
+  source: $availableModels,
+  fn: (models, requirements) => {
+    // Filter models that meet the requirements
+    const suitableModels = models.filter((model) => {
+      const caps = model.capabilities;
+      if (!caps) return false;
+
+      // Check vision requirement
+      if (requirements.vision && !caps.vision) return false;
+
+      // Check audio requirement
+      if (requirements.audio && !caps.audio) return false;
+
+      // Check free preference
+      if (requirements.preferFree && !model.isFree) return false;
+
+      return true;
+    });
+
+    if (suitableModels.length === 0) {
+      // No suitable models found, return current selection
+      return null;
+    }
+
+    // Rank models by preference
+    const rankedModels = suitableModels.sort((a, b) => {
+      // Prefer free models if requested
+      if (requirements.preferFree) {
+        if (a.isFree && !b.isFree) return -1;
+        if (!a.isFree && b.isFree) return 1;
+      }
+
+      // Prefer newer models (higher created timestamp)
+      if (a.created && b.created) {
+        return b.created - a.created;
+      }
+
+      // Prefer specific high-quality models
+      const preferredModels = ["gpt-4o", "claude-3-opus", "gemini-2.0-flash"];
+      for (const preferred of preferredModels) {
+        if (a.id.includes(preferred) && !b.id.includes(preferred)) return -1;
+        if (!a.id.includes(preferred) && b.id.includes(preferred)) return 1;
+      }
+
+      return 0;
+    });
+
+    return rankedModels[0].id;
+  },
+  filter: (modelId): modelId is string => modelId !== null,
+  target: $selectedModelId,
+});
+
+// Computed store for vision-capable models
+export const $visionModels = $availableModels.map((models) =>
+  models.filter((model) => model.capabilities?.vision)
+);
+
+// Computed store for current model info
+export const $selectedModelInfo = sample({
+  source: [$availableModels, $selectedModelId],
+  fn: ([models, selectedId]) =>
+    models.find((model) => model.id === selectedId) || null,
+});
+
+// Helper to check if current model supports capability
+export const $currentModelSupportsVision = $selectedModelInfo.map(
+  (modelInfo) => modelInfo?.capabilities?.vision || false
+);
+
+export const $currentModelSupportsAudio = $selectedModelInfo.map(
+  (modelInfo) => modelInfo?.capabilities?.audio || false
+);
+
 // --- Debugging ---
 
 debug(
   // Stores
   $availableModels,
   $selectedModelId,
+  $selectedModelInfo,
+  $currentModelSupportsVision,
+  $currentModelSupportsAudio,
   $isLoadingModels,
   $modelsError,
 
   // Events
   fetchModels,
   modelSelected,
+  autoSelectModelForCapabilities,
 
   // Effects
   fetchModelsFx
