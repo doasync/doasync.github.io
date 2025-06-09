@@ -14,7 +14,7 @@ import {
 } from '@/features/chat';
 import { $currentModelSupportsVision } from '@/features/models-select';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 interface ImageAttachmentInputProps {
@@ -76,7 +76,7 @@ export const ImageAttachmentInput: React.FC<ImageAttachmentInputProps> = ({
   const showVisionWarning = !modelSupportsVision;
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
       {/* File Input Button */}
       <Tooltip title={disabled ? "Attach images" : "Attach images (JPG, PNG, GIF, WebP) - multiple selection supported"}>
         <span>
@@ -102,19 +102,34 @@ export const ImageAttachmentInput: React.FC<ImageAttachmentInputProps> = ({
         multiple={true}
       />
 
-      {/* Model Vision Warning */}
+      {/* Model Vision Warning - positioned above the input row */}
       {showVisionWarning && (
         <Alert 
           severity="info" 
-          sx={{ mb: 1, fontSize: '0.875rem' }}
+          sx={{ 
+            position: 'absolute',
+            top: -60, // Position above the input area
+            left: 0,
+            right: 0,
+            fontSize: '0.875rem',
+            zIndex: 1,
+          }}
         >
           Current model doesn't support vision. Images will be uploaded but switch to a vision model for analysis.
         </Alert>
       )}
 
-      {/* Processing Indicator */}
+      {/* Processing Indicator - positioned above the input row */}
       {isProcessingFile && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ 
+          position: 'absolute',
+          top: -30, // Position above the input area
+          left: 0,
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          zIndex: 1,
+        }}>
           <Typography variant="caption" color="text.secondary">
             Processing images...
           </Typography>

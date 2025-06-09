@@ -265,16 +265,18 @@ export default function HomePage() {
     }
 
     const isInputEmpty = messageText.trim().length === 0;
-    const hasAttachments = false; // Images are now messages, not attachments
+    // Check for pending images
+    const pendingImages = messages.filter(m => m.status === 'pending' && m.role === 'user');
+    const hasPendingImages = pendingImages.length > 0;
     const isLastMessageUser = lastMessage?.role === "user";
 
-    if (!isInputEmpty || hasAttachments) {
-      // Case 3 & 4: Input has text or attachments, send it as a new message
+    if (!isInputEmpty || hasPendingImages) {
+      // Case 3 & 4: Input has text or pending images, send it as a new message
       if (!isGenerating) {
         messageSent();
       }
     } else {
-      // Input is empty and no attachments
+      // Input is empty and no pending images
       // Case 2: Input empty, last message was user -> Generate new response
       if (isLastMessageUser && !isGenerating) {
         generateResponseClicked(); // Trigger the new event
@@ -636,12 +638,10 @@ export default function HomePage() {
               display: "flex",
               flexDirection: "column",
               width: "100%", // Ensure paper takes full width of container
+              position: "relative", // Enable absolute positioning for child elements
             }}
           >
-            {/* Image Attachment Previews */}
-            <ImageAttachmentInput disabled={isGenerating} />
-            
-            {/* Input Row */}
+            {/* Input Row - Single horizontal row with attach, text field, and send button */}
             <Box
               sx={{
                 display: "flex",
@@ -650,6 +650,10 @@ export default function HomePage() {
                 width: "100%",
               }}
             >
+              {/* Attach File Button - positioned on the far left */}
+              <ImageAttachmentInput disabled={isGenerating} />
+              
+              {/* Text Input Field - flexible width between buttons */}
               <TextField
                 fullWidth
                 multiline
@@ -663,47 +667,48 @@ export default function HomePage() {
                 onFocus={() => mainInputFocused(true)} // Trigger event on focus
                 onBlur={() => mainInputFocused(false)} // Trigger event on blur
               />
-            <Box sx={{ position: "relative" }}>
-              {" "}
-              {/* Keep relative positioning */}
-              {isGenerating ? (
-                <IconButton
-                  aria-label="Stop Generation"
-                  onClick={() => stopGenerationClicked()} // Ensure event is called correctly
-                  sx={{
-                    mx: -0.5,
-                    color: "warning.main", // Keep warning color for stop
-                  }}
-                >
-                  <StopIcon /> {/* Use correct icon */}
-                </IconButton>
-              ) : (
-                // Calculate disabled state based on new logic only when not generating
-                (() => {
-                  const isInputEmpty = messageText.trim().length === 0;
-                  const hasAttachments = false; // Images are now messages, not attachments
-                  const lastMessage =
-                    messages.length > 0 ? messages[messages.length - 1] : null;
-                  const isLastMessageUser = lastMessage?.role === "user";
-                  // Disable if (input is empty AND no attachments AND last message was NOT user)
-                  const isDisabled = isInputEmpty && !hasAttachments && !isLastMessageUser;
+              
+              {/* Send/Stop Button - positioned on the far right */}
+              <Box sx={{ position: "relative" }}>
+                {isGenerating ? (
+                  <IconButton
+                    aria-label="Stop Generation"
+                    onClick={() => stopGenerationClicked()} // Ensure event is called correctly
+                    sx={{
+                      mx: -0.5,
+                      color: "warning.main", // Keep warning color for stop
+                    }}
+                  >
+                    <StopIcon /> {/* Use correct icon */}
+                  </IconButton>
+                ) : (
+                  // Calculate disabled state based on new logic only when not generating
+                  (() => {
+                    const isInputEmpty = messageText.trim().length === 0;
+                    const pendingImages = messages.filter(m => m.status === 'pending' && m.role === 'user');
+                    const hasPendingImages = pendingImages.length > 0;
+                    const lastMessage =
+                      messages.length > 0 ? messages[messages.length - 1] : null;
+                    const isLastMessageUser = lastMessage?.role === "user";
+                    // Disable if (input is empty AND no pending images AND last message was NOT user)
+                    const isDisabled = isInputEmpty && !hasPendingImages && !isLastMessageUser;
 
-                  return (
-                    <IconButton
-                      aria-label="Send / Generate"
-                      onClick={handleSendButtonClick}
-                      disabled={isDisabled}
-                      sx={{
-                        mx: -0.5,
-                        color: "primary.light",
-                      }}
-                    >
-                      <AutoAwesomeIcon />
-                    </IconButton>
-                  );
-                })()
-              )}
-            </Box>
+                    return (
+                      <IconButton
+                        aria-label="Send / Generate"
+                        onClick={handleSendButtonClick}
+                        disabled={isDisabled}
+                        sx={{
+                          mx: -0.5,
+                          color: "primary.light",
+                        }}
+                      >
+                        <AutoAwesomeIcon />
+                      </IconButton>
+                    );
+                  })()
+                )}
+              </Box>
             </Box>{" "}
             {/* End Input Row */}
           </Box>{" "}

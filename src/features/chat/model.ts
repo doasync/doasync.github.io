@@ -202,6 +202,18 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         reader.readAsDataURL(file);
       });
       
+      // Get image dimensions
+      const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height });
+        };
+        img.onerror = () => {
+          resolve({ width: 0, height: 0 }); // Fallback if dimensions can't be determined
+        };
+        img.src = dataUrl;
+      });
+      
       // Create image message with multimodal content
       const imageContent: MessageContentPart[] = [
         {
@@ -226,6 +238,9 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
           mimeType: file.type,
           size: file.size,
           dataUrl,
+          metadata: {
+            dimensions: dimensions.width > 0 ? dimensions : undefined
+          }
         }]
       };
       
@@ -412,27 +427,54 @@ $apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // New internal event to handle bundled message creation
 const bundledMessageCreated = chatDomain.event<{ 
-  bundledMessage: Message, 
-  pendingImageIds: string[] 
+  bundledMessage: Message | null, 
+  pendingImageIds: string[],
+  markAsSent: boolean 
 }>("bundledMessageCreated");
 
 // Update messages when bundled message is created
-$messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingImageIds }) => {
-  // Mark pending images as sent and add the bundled message
-  const updatedMessages = messages.map(msg => 
-    pendingImageIds.includes(msg.id) 
-      ? { ...msg, status: "sent" as const }
-      : msg
-  );
-  return [...updatedMessages, bundledMessage];
+$messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingImageIds, markAsSent }) => {
+  if (markAsSent) {
+    // Scenario 1: Just mark pending images as sent, don't add new message
+    return messages.map(msg => 
+      pendingImageIds.includes(msg.id) 
+        ? { ...msg, status: "sent" as const }
+        : msg
+    );
+  } else if (bundledMessage) {
+    // Scenario 2: Remove pending images and add bundled message
+    const filteredMessages = messages.filter(msg => !pendingImageIds.includes(msg.id));
+    return [...filteredMessages, bundledMessage];
+  }
+  return messages;
 });
+
+// Type for message bundling result
+type BundleResultNonNull = {
+  bundledMessage: Message | null;
+  pendingImageIds: string[];
+  markAsSent: boolean;
+};
+
+type BundleResult = BundleResultNonNull | null;
 
 // Create a new user message object when message is sent
 sample({
   clock: messageSent,
   source: { text: $messageText, messages: $messages },
-  filter: ({ text }) => text.trim().length > 0,
+  filter: ({ text, messages }) => {
+    const hasText = text.trim().length > 0;
+    const pendingImages = messages.filter(m => 
+      m.status === 'pending' && 
+      m.role === 'user' &&
+      Array.isArray(m.content) && 
+      m.content.every(part => part.type === 'image_url')
+    );
+    return hasText || pendingImages.length > 0;
+  },
   fn: ({ text, messages }) => {
+    const hasText = text.trim().length > 0;
+    
     // Find consecutive pending image messages at the end
     const pendingImages: Message[] = [];
     let i = messages.length - 1;
@@ -448,45 +490,118 @@ sample({
       }
     }
     
-    // Create content parts
-    const contentParts: MessageContentPart[] = [];
-    
-    // Add images from pending messages
-    pendingImages.forEach(imgMsg => {
-      if (Array.isArray(imgMsg.content)) {
-        contentParts.push(...imgMsg.content);
-      }
-    });
-    
-    // Add text part
-    if (text.trim()) {
+    if (!hasText && pendingImages.length > 0) {
+      // Scenario 1: No text, only pending images - bundle them into a single message
+      const contentParts: MessageContentPart[] = [];
+      const allAttachments: Attachment[] = [];
+      
+      // Add images from pending messages and collect attachments
+      pendingImages.forEach(imgMsg => {
+        if (Array.isArray(imgMsg.content)) {
+          contentParts.push(...imgMsg.content);
+        }
+        if (imgMsg.attachments) {
+          allAttachments.push(...imgMsg.attachments);
+        }
+      });
+      
+      // Create bundled message with only images
+      const bundledMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: contentParts,
+        timestamp: Date.now(),
+        status: "sent",
+        attachments: allAttachments.length > 0 ? allAttachments : undefined,
+      };
+      
+      return {
+        bundledMessage: bundledMessage as Message | null,
+        pendingImageIds: pendingImages.map(img => img.id),
+        markAsSent: false
+      };
+    } else if (hasText && pendingImages.length > 0) {
+      // Scenario 2: Text with pending images - bundle them
+      const contentParts: MessageContentPart[] = [];
+      const allAttachments: Attachment[] = [];
+      
+      // Add images from pending messages and collect attachments
+      pendingImages.forEach(imgMsg => {
+        if (Array.isArray(imgMsg.content)) {
+          contentParts.push(...imgMsg.content);
+        }
+        if (imgMsg.attachments) {
+          allAttachments.push(...imgMsg.attachments);
+        }
+      });
+      
+      // Add text part
       contentParts.push({
         type: "text",
         text: text.trim(),
       });
+      
+      // Create bundled message
+      const bundledMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: contentParts,
+        timestamp: Date.now(),
+        status: "sent",
+        attachments: allAttachments.length > 0 ? allAttachments : undefined,
+      };
+      
+      return {
+        bundledMessage: bundledMessage as Message | null,
+        pendingImageIds: pendingImages.map(img => img.id),
+        markAsSent: false
+      };
+    } else {
+      // Just text, no images
+      const bundledMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: text.trim(),
+        timestamp: Date.now(),
+        status: "sent",
+      };
+      
+      return {
+        bundledMessage: bundledMessage as Message | null,
+        pendingImageIds: [],
+        markAsSent: false
+      };
     }
-    
-    // Create bundled message
-    const bundledMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: contentParts.length === 1 && contentParts[0].type === 'text' ? contentParts[0].text : contentParts,
-      timestamp: Date.now(),
-      status: "sent", // Mark as sent since we're sending it now
-    };
-    
-    const pendingImageIds = pendingImages.map(img => img.id);
-    
-    return { bundledMessage, pendingImageIds };
   },
   target: bundledMessageCreated,
 });
 
-// Forward bundled message to userMessageCreated
+// Forward bundled message to userMessageCreated (only if it exists)
 sample({
   clock: bundledMessageCreated,
-  fn: ({ bundledMessage }) => bundledMessage,
+  filter: ({ bundledMessage }) => bundledMessage !== null,
+  fn: ({ bundledMessage }) => bundledMessage!,
   target: userMessageCreated,
+});
+
+// Create event for individual image messages sent
+const individualImagesSent = chatDomain.event<Message[]>("individualImagesSent");
+
+// When pending images are marked as sent individually, trigger response for each
+sample({
+  clock: bundledMessageCreated,
+  source: $messages,
+  filter: (_, { markAsSent }) => markAsSent === true,
+  fn: (messages, { pendingImageIds }) => {
+    // Find the sent image messages
+    return messages.filter(msg => pendingImageIds.includes(msg.id));
+  },
+  target: individualImagesSent,
+});
+
+// Trigger userMessageCreated for each individual image
+individualImagesSent.watch((images) => {
+  images.forEach(img => userMessageCreated(img));
 });
 
 // Clear message input after sending

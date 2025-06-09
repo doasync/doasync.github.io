@@ -80,6 +80,33 @@ const getImageParts = (content: string | MessageContentPart[]): ImageContentPart
   );
 };
 
+// Helper function to format file size
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Helper function to get file type description
+const getFileTypeDescription = (mimeType: string): string => {
+  const typeMap: Record<string, string> = {
+    'image/jpeg': 'JPEG Image',
+    'image/jpg': 'JPEG Image', 
+    'image/png': 'PNG Image',
+    'image/gif': 'GIF Image',
+    'image/webp': 'WebP Image',
+    'image/svg+xml': 'SVG Image',
+    'application/pdf': 'PDF Document',
+    'application/msword': 'Word Document',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word Document',
+    'text/plain': 'Text File',
+    'text/markdown': 'Markdown File',
+  };
+  return typeMap[mimeType] || mimeType.split('/')[1]?.toUpperCase() || 'File';
+};
+
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   // Hooks
   const theme = useTheme(); // Get theme for palette access
@@ -312,29 +339,51 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               if (imageParts.length > 0) {
                 return (
                   <Box sx={{ mb: imageParts.length > 0 ? 2 : 0 }}>
-                    {imageParts.map((imagePart, index) => (
-                      <CardMedia
-                        key={index}
-                        component="img"
-                        image={imagePart.image_url.url}
-                        alt={`Attached image ${index + 1}`}
-                        sx={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                          borderRadius: 1,
-                          mb: index < imageParts.length - 1 ? 1 : 0,
-                          cursor: "pointer",
-                          '&:hover': {
-                            opacity: 0.8,
-                          },
-                        }}
-                        onClick={() => {
-                          // Open image in new tab
-                          window.open(imagePart.image_url.url, '_blank');
-                        }}
-                      />
-                    ))}
+                    {imageParts.map((imagePart, index) => {
+                      // Try to find corresponding attachment metadata
+                      const attachment = message.attachments?.[index];
+                      
+                      return (
+                        <Box key={index} sx={{ mb: index < imageParts.length - 1 ? 2 : 0 }}>
+                          <CardMedia
+                            component="img"
+                            image={imagePart.image_url.url}
+                            alt={`Attached image ${index + 1}`}
+                            sx={{
+                              maxWidth: "100%",
+                              maxHeight: 300,
+                              objectFit: "contain",
+                              borderRadius: 1,
+                              cursor: "pointer",
+                              '&:hover': {
+                                opacity: 0.8,
+                              },
+                            }}
+                            onClick={() => {
+                              // Open image in new tab
+                              window.open(imagePart.image_url.url, '_blank');
+                            }}
+                          />
+                          {/* File metadata */}
+                          {attachment && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                display: 'block', 
+                                mt: 0.5,
+                                color: 'text.secondary',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
+                              {attachment.metadata?.dimensions && (
+                                <> • {attachment.metadata.dimensions.width}×{attachment.metadata.dimensions.height}</>
+                              )}
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </Box>
                 );
               }
@@ -476,18 +525,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
-            {/* Retry Button */}
-            <IconButton
-              aria-label="retry"
-              size="small"
-              onClick={handleRetryClick}
-              title="Retry Generation"
-              disabled={isGenerating}
-              color={isGoingToRetry ? "success" : "inherit"}
-              {...retryLongPressProps}
-            >
-              <AutoModeIcon fontSize="small" />
-            </IconButton>
+            {/* Retry Button - Hide for pending messages */}
+            {!isPending && (
+              <IconButton
+                aria-label="retry"
+                size="small"
+                onClick={handleRetryClick}
+                title="Retry Generation"
+                disabled={isGenerating}
+                color={isGoingToRetry ? "success" : "inherit"}
+                {...retryLongPressProps}
+              >
+                <AutoModeIcon fontSize="small" />
+              </IconButton>
+            )}
           </>
         )}
       </Paper>
