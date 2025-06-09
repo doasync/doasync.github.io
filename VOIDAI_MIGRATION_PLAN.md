@@ -1,4 +1,4 @@
-# VoidAI API Integration Plan
+# VoidAI API Migration Plan
 
 **Version:** 1.0
 **Date:** 2025-06-08
