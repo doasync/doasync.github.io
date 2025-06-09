@@ -365,10 +365,15 @@ $isModelSelectorActive.on(modelSelectorFocused, (_, isFocused) => isFocused);
 // Smart model selection based on required capabilities
 sample({
   clock: autoSelectModelForCapabilities,
-  source: $availableModels,
-  fn: (models, requirements) => {
+  source: [$availableModels, $selectedModelId],
+  fn: ([models, currentSelection], requirements): string => {
+    // Type guard - ensure models is an array
+    if (typeof models === 'string') {
+      return currentSelection as string;
+    }
+    
     // Filter models that meet the requirements
-    const suitableModels = models.filter((model) => {
+    const suitableModels = models.filter((model: ModelInfo) => {
       const caps = model.capabilities;
       if (!caps) return false;
 
@@ -386,11 +391,11 @@ sample({
 
     if (suitableModels.length === 0) {
       // No suitable models found, return current selection
-      return null;
+      return currentSelection as string;
     }
 
     // Rank models by preference
-    const rankedModels = suitableModels.sort((a, b) => {
+    const rankedModels = suitableModels.sort((a: ModelInfo, b: ModelInfo) => {
       // Prefer free models if requested
       if (requirements.preferFree) {
         if (a.isFree && !b.isFree) return -1;
@@ -414,7 +419,6 @@ sample({
 
     return rankedModels[0].id;
   },
-  filter: (modelId): modelId is string => modelId !== null,
   target: $selectedModelId,
 });
 
@@ -426,8 +430,10 @@ export const $visionModels = $availableModels.map((models) =>
 // Computed store for current model info
 export const $selectedModelInfo = sample({
   source: [$availableModels, $selectedModelId],
-  fn: ([models, selectedId]) =>
-    models.find((model) => model.id === selectedId) || null,
+  fn: ([models, selectedId]) => {
+    if (typeof models === 'string') return null;
+    return models.find((model: ModelInfo) => model.id === selectedId) || null;
+  },
 });
 
 // Helper to check if current model supports capability

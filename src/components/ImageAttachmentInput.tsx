@@ -142,7 +142,7 @@ export const ImageAttachmentInput: React.FC<ImageAttachmentInputProps> = ({
       {pendingAttachments.length > 0 && (
         <Box sx={{ mb: 1 }}>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {pendingAttachments.map((attachment) => (
+            {pendingAttachments.map((attachment: Attachment) => (
               <AttachmentPreview
                 key={attachment.id}
                 attachment={attachment}

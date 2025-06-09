@@ -81,7 +81,7 @@ export const saveChatHandler = async (
     messages: chatSession.messages.map((message) => ({
       ...message,
       isEdited: message.isEdited || false, // Ensure isEdited is saved
-      originalContent: message.originalContent || null, // Ensure originalContent is saved
+      originalContent: message.originalContent || undefined, // Ensure originalContent is saved
     })),
   };
   await db.put(STORE_NAME, chatSessionToSave);

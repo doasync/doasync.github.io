@@ -15,7 +15,7 @@ import {
   startEditingMessage,
   stopEditingMessage,
 } from "@/features/ui-state"; // Import global editing state
-import { Message, MessageContentPart } from "@/features/chat";
+import { Message, MessageContentPart, TextContentPart, ImageContentPart } from "@/features/chat";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -59,6 +59,27 @@ const createFrameHandler =
     );
   };
 
+// Helper function to extract text content from multimodal content
+const extractTextContent = (content: string | MessageContentPart[]): string => {
+  if (typeof content === 'string') {
+    return content;
+  }
+  return content
+    .filter((part): part is TextContentPart => part.type === 'text')
+    .map(part => part.text)
+    .join(' ');
+};
+
+// Helper function to get image parts from content
+const getImageParts = (content: string | MessageContentPart[]): ImageContentPart[] => {
+  if (typeof content === 'string') {
+    return [];
+  }
+  return content.filter((part): part is ImageContentPart => 
+    part.type === 'image_url'
+  );
+};
+
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   // Hooks
   const theme = useTheme(); // Get theme for palette access
@@ -73,27 +94,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     typeof message.content === 'string' ? message.content : extractTextContent(message.content)
   ); // Initialize with prop
   const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
-
-  // Helper function to extract text content from multimodal content
-  const extractTextContent = (content: string | MessageContentPart[]): string => {
-    if (typeof content === 'string') {
-      return content;
-    }
-    return content
-      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-      .map(part => part.text)
-      .join(' ');
-  };
-
-  // Helper function to get image parts from content
-  const getImageParts = (content: string | MessageContentPart[]) => {
-    if (typeof content === 'string') {
-      return [];
-    }
-    return content.filter((part): part is { type: 'image_url'; image_url: { url: string; detail?: string } } => 
-      part.type === 'image_url'
-    );
-  };
   const messageItemRef = useRef<HTMLDivElement>(null);
 
   // Derived State
