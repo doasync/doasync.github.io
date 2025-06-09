@@ -34,6 +34,7 @@ import {
 import {
   prepareRetryRequestParamsFn, // Keep for retry param prep
   determineRetryingMessageIdFn, // Keep for spinner logic
+  formatMessagesForAPI, // New function for message formatting
 } from "./lib"; // Only keep necessary imports
 
 // --- Domain ---
@@ -532,15 +533,18 @@ sample({
     const messagesForApi = [...messages]; // This list already includes the new user message.
     
     // Prepend system prompt if present
-    const messagesWithSystem = systemPrompt.trim() 
+    const messagesBeforeFormatting = systemPrompt.trim() 
       ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
       : messagesForApi;
+      
+    // Format messages for API consumption with model-specific validation
+    const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
 
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
     // Define Callbacks (Target internal events)
     const onChunk = ({ chunk }: StreamChunkPayload) => {
-      const content = chunk.choices[0]?.delta?.content;
+      const content = chunk.choices?.[0]?.delta?.content;
       if (content) {
         _messageChunkReceived({
           targetMessageId,
@@ -659,15 +663,18 @@ sample({
     }
     
     // Prepend system prompt if present
-    const messagesWithSystem = systemPrompt.trim() 
+    const messagesBeforeFormatting = systemPrompt.trim() 
       ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
       : messagesForApi;
+      
+    // Format messages for API consumption with model-specific validation
+    const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
 
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
     // Define Callbacks
     const onChunk = ({ chunk }: StreamChunkPayload) => {
-      const content = chunk.choices[0]?.delta?.content;
+      const content = chunk.choices?.[0]?.delta?.content;
       if (content) {
         _messageChunkReceived({
           targetMessageId,
@@ -759,9 +766,12 @@ sample({
     );
     
     // Prepend system prompt if present
-    const messagesWithSystem = systemPrompt.trim() 
+    const messagesBeforeFormatting = systemPrompt.trim() 
       ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
       : messagesForApi;
+      
+    // Format messages for API consumption with model-specific validation
+    const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
 
     const originalMessageIndex = messages.findIndex(
       (m) => m.id === messageToRetry.id
@@ -801,7 +811,7 @@ sample({
       apiKey,
       temperature,
       onChunk: ({ chunk }: StreamChunkPayload) => {
-        const content = chunk.choices[0]?.delta?.content;
+        const content = chunk.choices?.[0]?.delta?.content;
         if (content) {
           _messageChunkReceived({
             targetMessageId,

@@ -103,6 +103,24 @@ export async function fetchChatStream(
         try {
           const jsonData: VoidAIParsedChunkData = JSON.parse(event.data);
           // console.log(`[Stream ${streamId}] Data chunk received:`, jsonData);
+          
+          // Check if this is an error response
+          if ('error' in jsonData) {
+            const errorData = jsonData as any;
+            console.error(`[Stream ${streamId}] API Error:`, errorData.error);
+            onError({
+              streamId,
+              error: new Error(`API Error: ${errorData.error.message || 'Unknown error'}`),
+            });
+            return;
+          }
+          
+          // Validate chunk structure before passing to callback
+          if (!jsonData.choices || !Array.isArray(jsonData.choices)) {
+            console.warn(`[Stream ${streamId}] Chunk missing choices array:`, jsonData);
+            return; // Skip this chunk but continue stream
+          }
+          
           onChunk({ streamId, chunk: jsonData });
         } catch (parseError) {
           console.error(

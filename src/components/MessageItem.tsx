@@ -386,116 +386,111 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             Pending
           </Typography>
         )}
-        {/* Action Buttons Popover */}
-        <Paper
-          elevation={0}
-          sx={{
-            position: "absolute",
-            borderRadius: 20,
-            top: -18, // Position above the card
-            right: 4,
-            bgcolor: "background.default", // Give it a background
-            p: 0.25, // Small padding around buttons
-            gap: 0.5, // Reduced gap
-            // Show if editing this OR (hovered and nothing else is being edited)
-            display:
-              isGloballyEditingThis || (isHovered && canHover)
-                ? "flex"
-                : "none",
-            opacity: isGloballyEditingThis || (isHovered && canHover) ? 1 : 0, // Fade in/out
-            transition: theme.transitions.create("opacity"),
-            zIndex: 2, // Ensure buttons are above card content
-          }}
-        >
-          {isEditing ? ( // Show Confirm/Cancel when editing
-            <>
+      </Card>
+      
+      {/* Action Buttons Popover - Moved outside Card to prevent clipping */}
+      <Paper
+        elevation={4}
+        sx={{
+          position: "absolute",
+          borderRadius: 20,
+          top: -6, // Position above the card, adjusted for new positioning
+          right: message.role === "user" ? 16 : 16, // Align with card positioning
+          bgcolor: "background.paper",
+          border: `1px solid ${theme.palette.divider}`,
+          p: 0.25, // Small padding around buttons
+          gap: 0.5, // Reduced gap
+          // Show if editing this OR (hovered and nothing else is being edited)
+          display:
+            isGloballyEditingThis || (isHovered && canHover)
+              ? "flex"
+              : "none",
+          opacity: isGloballyEditingThis || (isHovered && canHover) ? 1 : 0, // Fade in/out
+          transition: theme.transitions.create(["opacity", "transform"], {
+            duration: theme.transitions.duration.short,
+          }),
+          transform: isGloballyEditingThis || (isHovered && canHover) 
+            ? "translateY(0)" 
+            : "translateY(-4px)",
+          zIndex: 10, // Ensure buttons are above everything
+        }}
+      >
+        {isEditing ? ( // Show Confirm/Cancel when editing
+          <>
+            <IconButton
+              aria-label="confirm"
+              color="success"
+              size="small"
+              onClick={handleEditConfirm}
+              title="Confirm Edit (Enter)"
+            >
+              <CheckIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              aria-label="cancel"
+              color="inherit"
+              size="small"
+              onClick={handleEditCancel}
+              title="Cancel Edit (Escape)"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </>
+        ) : (
+          // Show standard actions when not editing
+          <>
+            {/* Copy Code/Markdown Button - only show for non-image-only messages */}
+            {!isImageOnlyMessage && (
               <IconButton
-                aria-label="confirm"
-                color="success"
+                aria-label="copy"
                 size="small"
-                onClick={handleEditConfirm}
-                title="Confirm Edit (Enter)"
-              >
-                <CheckIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                aria-label="cancel"
                 color="inherit"
-                size="small"
-                onClick={handleEditCancel}
-                title="Cancel Edit (Escape)"
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </>
-          ) : (
-            // Show standard actions when not editing
-            <>
-              {/* Copy Text Button
-              <IconButton
-                aria-label="copy text"
-                size="small"
-                color="inherit"
-                onClick={handleCopyTextClick}
-                title="Copy Text"
+                onClick={handleCopyCodeClick}
+                title="Copy Markdown"
               >
                 <ContentCopyIcon fontSize="small" />
-                <CodeIcon fontSize="small" />
               </IconButton>
-               */}
-              {/* Copy Code/Markdown Button - only show for non-image-only messages */}
-              {!isImageOnlyMessage && (
-                <IconButton
-                  aria-label="copy"
-                  size="small"
-                  color="inherit"
-                  onClick={handleCopyCodeClick}
-                  title="Copy Markdown"
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-              )}
-              {/* Edit Button - only show for non-image-only messages */}
-              {!isImageOnlyMessage && (
-                <IconButton
-                  aria-label="edit"
-                  size="small"
-                  onClick={handleEditClick}
-                  color="inherit"
-                  title="Edit Message (Double-Click)"
-                  disabled={isRetryingThisMessage}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              )}
-              {/* Delete Button */}
+            )}
+            {/* Edit Button - only show for non-image-only messages */}
+            {!isImageOnlyMessage && (
               <IconButton
-                aria-label="delete"
+                aria-label="edit"
                 size="small"
-                onClick={handleDeleteClick}
-                title="Long press to delete"
-                color={isGoingToDelete ? "error" : "inherit"}
-                {...deleteLongPressProps}
+                onClick={handleEditClick}
+                color="inherit"
+                title="Edit Message (Double-Click)"
                 disabled={isRetryingThisMessage}
               >
-                <DeleteIcon fontSize="small" />
+                <EditIcon fontSize="small" />
               </IconButton>
-              {/* Retry Button */}
-              <IconButton
-                aria-label="retry"
-                size="small"
-                onClick={handleRetryClick}
-                title="Retry Generation"
-                disabled={isGenerating}
-                color={isGoingToRetry ? "success" : "inherit"}
-                {...retryLongPressProps}
-              >
-                <AutoModeIcon fontSize="small" />
-              </IconButton>
-            </>
-          )}
-        </Paper>
-      </Card>
+            )}
+            {/* Delete Button */}
+            <IconButton
+              aria-label="delete"
+              size="small"
+              onClick={handleDeleteClick}
+              title="Long press to delete"
+              color={isGoingToDelete ? "error" : "inherit"}
+              {...deleteLongPressProps}
+              disabled={isRetryingThisMessage}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+            {/* Retry Button */}
+            <IconButton
+              aria-label="retry"
+              size="small"
+              onClick={handleRetryClick}
+              title="Retry Generation"
+              disabled={isGenerating}
+              color={isGoingToRetry ? "success" : "inherit"}
+              {...retryLongPressProps}
+            >
+              <AutoModeIcon fontSize="small" />
+            </IconButton>
+          </>
+        )}
+      </Paper>
     </Paper>
   );
 };
