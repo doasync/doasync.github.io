@@ -1,6 +1,148 @@
-## Available Models
+# **Available Models**
 
 VoidAI provides access to a wide range of AI models from various providers. This page lists all currently available models organized by provider and type.
+
+## **OpenAI Models[ ](https://docs.voidai.app/docs/models#openai-models)**
+
+### **Chat Completion Models[ ](https://docs.voidai.app/docs/models#chat-completion-models)**
+
+- **O Series**
+  - o4-mini, o4-mini-high, o4-mini-medium, o4-mini-low
+  - o3-high, o3-medium, o3-low, o3, o3-mini, o3-mini-high, o3-mini-low
+  - o1, o1-preview, o1-mini
+- **GPT-4o Series**
+  - gpt-4o (latest stable)
+  - gpt-4o-2024-08-06, gpt-4o-2024-11-20 (dated versions)
+  - gpt-4o-mini, gpt-4o-mini-2024-07-18 (mini variants)
+  - chatgpt-4o-latest (alias for the latest version)
+  - gpt-4o-search-preview-2025-03-11, gpt-4o-mini-search-preview-2025-03-11 (search preview)
+- **GPT-4 Series**
+  - gpt-4.5-preview
+  - gpt-4.1, gpt-4.1-mini, gpt-4.1-nano
+  - gpt-4-turbo, gpt-4-turbo-preview
+  - gpt-4-0125-preview, gpt-4-1106-preview, gpt-4-1106-vision-preview
+  - gpt-4, gpt-4-32k, gpt-4-32k-0314, gpt-4-32k-0613
+- **GPT-3.5 Series**
+  - gpt-3.5-turbo, gpt-3.5-turbo-16k-0613
+
+### **Audio Models[ ](https://docs.voidai.app/docs/models#audio-models)**
+
+- **Audio Chat Models**
+  - gpt-4o-audio-preview, gpt-4o-audio-preview-2024-12-17
+- **Text-to-Speech Models**
+  - tts-1, tts-1-hd, gpt-4o-mini-tts
+- **Speech-to-Text Models**
+  - whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe
+
+### **Image Generation Models[ ](https://docs.voidai.app/docs/models#image-generation-models)**
+
+- gpt-image-1, dall-e-3, dall-e-2
+
+### **Moderation Models[ ](https://docs.voidai.app/docs/models#moderation-models)**
+
+- omni-moderation-latest \- Advanced moderation model supporting both text and image inputs
+- text-moderation-latest \- Legacy text-only moderation model
+- text-moderation-stable \- Stable version of the legacy text-only moderation model
+
+## **Anthropic Models[ ](https://docs.voidai.app/docs/models#anthropic-models)**
+
+### **Claude Models[ ](https://docs.voidai.app/docs/models#claude-models)**
+
+- **Claude 3.7 Series**
+  - claude-3-7-sonnet-20250219, claude-3-7-sonnet-20250219-thinking
+- **Claude 3.5 Series**
+  - claude-3-5-sonnet-20241022, claude-3-5-sonnet-20240620, claude-3-5-haiku-20241022
+- **Claude 3 Series**
+  - claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
+- **Legacy Models**
+  - claude-2
+
+## **Google Models[ ](https://docs.voidai.app/docs/models#google-models)**
+
+### **Gemini Models[ ](https://docs.voidai.app/docs/models#gemini-models)**
+
+- **Gemini 2.5 Series**
+  - gemini-2.5-pro-preview-03-25, gemini-2.5-pro-preview-05-06
+  - gemini-2.5-flash-preview-04-17
+- **Gemini 2.0 Series**
+  - gemini-2.0-flash, gemini-2.0-flash-lite-preview-02-05
+  - gemini-2.0-pro-exp-02-05, gemini-2.0-flash-thinking-exp-01-21
+  - gemini-2.0-flash-exp
+- **Gemini 1.5 Series**
+  - gemini-1.5-pro, gemini-1.5-pro-latest
+  - gemini-1.5-flash, gemini-1.5-flash-latest
+  - gemini-1.5-flash-8b, gemini-1.5-flash-8b-latest
+- **Experimental Models**
+  - gemini-exp-1114, gemini-exp-1121, gemini-exp-1206
+  - learnlm-1.5-pro-experimental
+  - gemini-pro-latest
+
+### **Image Generation Models[ ](https://docs.voidai.app/docs/models#image-generation-models-1)**
+
+- imagen-3.0-generate-001, imagen-3.0-fast-generate-001
+
+## **Mistral AI Models[ ](https://docs.voidai.app/docs/models#mistral-ai-models)**
+
+### **Large Models[ ](https://docs.voidai.app/docs/models#large-models)**
+
+- mistral-large-latest, mistral-large-2411
+- pixtral-large-latest, pixtral-large-2411
+
+### **Medium and Small Models[ ](https://docs.voidai.app/docs/models#medium-and-small-models)**
+
+- mistral-small-latest, mistral-small-2501
+- ministral-8b-latest, ministral-8b-2410
+- ministral-3b-latest, ministral-3b-2410
+
+### **Moderation Models[ ](https://docs.voidai.app/docs/models#moderation-models-1)**
+
+- mistral-moderation-latest \- Mistral's latest moderation model for content filtering
+- mistral-moderation-2411 \- Date-stamped version of Mistral's moderation model (November 2024 release)
+
+### **Other Models[ ](https://docs.voidai.app/docs/models#other-models)**
+
+- open-mistral-nemo, open-mistral-nemo-2407
+
+## **xAI (Grok) Models[ ](https://docs.voidai.app/docs/models#xai-grok-models)**
+
+### **Grok 3 Series[ ](https://docs.voidai.app/docs/models#grok-3-series)**
+
+- grok-3, grok-3-latest
+- grok-3-beta, grok-3-fast-beta
+- grok-3-mini-beta, grok-3-mini-fast-beta
+
+### **Grok 2 Series[ ](https://docs.voidai.app/docs/models#grok-2-series)**
+
+- grok-2-1212, grok-2-vision-1212
+- grok-beta, grok-vision-beta
+
+## **DeepSeek Models[ ](https://docs.voidai.app/docs/models#deepseek-models)**
+
+- deepseek-v3, deepseek-v3-0324
+- deepseek-r1
+
+## **Black Forest Labs Models[ ](https://docs.voidai.app/docs/models#black-forest-labs-models)**
+
+- FLUX.1 \[dev\], FLUX.1 \[schnell\], FLUX.1 \[pro\]
+- FLUX 1.1 \[pro\] ultra raw
+
+## **ElevenLabs Models[ ](https://docs.voidai.app/docs/models#elevenlabs-models)**
+
+- elevenlabs
+
+## **Llama Models[ ](https://docs.voidai.app/docs/models#llama-models)**
+
+- llama-3.3-70b
+- llama-4-scout-17b-16e-instruct
+- llama-4-maverick
+- llama-3.1-8b
+
+## **Qwen Models[ ](https://docs.voidai.app/docs/models#qwen-models)**
+
+- Qwen/Qwen3-235B-A22B
+- Qwen/QwQ-32B
+- Qwen/Qwen2.5-VL-72B-Instruct
+- Qwen/Qwen3-30B-A3B
 
 ## **API Access[ ](https://docs.voidai.app/docs/models#api-access)**
 
