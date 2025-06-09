@@ -101,6 +101,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     isGenerating && retryingMessageId === message.id;
   const isGloballyEditingThis = globalEditingMessageId === message.id;
   const canHover = globalEditingMessageId === null;
+  const isImageOnlyMessage = Array.isArray(message.content) && 
+    message.content.every(part => part.type === 'image_url');
+  const isPending = message.status === 'pending';
 
   // Event Handlers
   const handleEditClick = () => {
@@ -263,12 +266,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor:
             message.role === "user"
-              ? "primary.dark"
+              ? isPending 
+                ? theme.palette.action.hover // Lighter background for pending
+                : "primary.dark"
               : theme.palette.background.paper, // Use paper background for assistant
           // Adjust width for alignment
           width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
           maxWidth: "100%",
           wordWrap: "break-word",
+          opacity: isPending ? 0.8 : 1, // Slightly transparent for pending
+          position: "relative", // For pending indicator
         }}
       >
         {/* Use local isEditing state to render InputBase or Markdown */}
@@ -364,6 +371,21 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
             }}
           />
         )}
+        {/* Pending indicator */}
+        {isPending && (
+          <Typography
+            variant="caption"
+            sx={{
+              position: "absolute",
+              bottom: 4,
+              right: 8,
+              color: "text.secondary",
+              fontSize: "0.7rem",
+            }}
+          >
+            Pending
+          </Typography>
+        )}
         {/* Action Buttons Popover */}
         <Paper
           elevation={0}
@@ -421,27 +443,31 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 <CodeIcon fontSize="small" />
               </IconButton>
                */}
-              {/* Copy Code/Markdown Button */}
-              <IconButton
-                aria-label="copy"
-                size="small"
-                color="inherit"
-                onClick={handleCopyCodeClick}
-                title="Copy Markdown"
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-              {/* Edit Button */}
-              <IconButton
-                aria-label="edit"
-                size="small"
-                onClick={handleEditClick}
-                color="inherit"
-                title="Edit Message (Double-Click)"
-                disabled={isRetryingThisMessage}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
+              {/* Copy Code/Markdown Button - only show for non-image-only messages */}
+              {!isImageOnlyMessage && (
+                <IconButton
+                  aria-label="copy"
+                  size="small"
+                  color="inherit"
+                  onClick={handleCopyCodeClick}
+                  title="Copy Markdown"
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              )}
+              {/* Edit Button - only show for non-image-only messages */}
+              {!isImageOnlyMessage && (
+                <IconButton
+                  aria-label="edit"
+                  size="small"
+                  onClick={handleEditClick}
+                  color="inherit"
+                  title="Edit Message (Double-Click)"
+                  disabled={isRetryingThisMessage}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
               {/* Delete Button */}
               <IconButton
                 aria-label="delete"

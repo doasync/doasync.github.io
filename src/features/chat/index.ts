@@ -3,16 +3,15 @@
 // by other features or UI components.
 
 // Import types separately
-import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart } from "./types";
+import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type MessageStatus } from "./types";
 
 // Export types
-export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart };
+export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, MessageStatus };
 
 export {
   // Stores - Likely needed by UI
   $messageText,
   $messages,
-  $pendingAttachments,
   $isProcessingFile,
   $isGenerating,
   $currentChatTokens, // Needed by settings display
@@ -31,9 +30,7 @@ export {
   generateResponseClicked, // <-- Export the new event for the UI
   
   // File attachment events
-  fileSelected,
-  attachmentRemoved,
-  attachmentCleared,
+  filesSelected,
 
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,

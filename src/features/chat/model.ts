@@ -77,9 +77,7 @@ export const assistantResponseCompleted = chatDomain.event<void>(
 );
 
 // File attachment events
-export const fileSelected = chatDomain.event<File>("fileSelected");
-export const attachmentRemoved = chatDomain.event<string>("attachmentRemoved"); // Attachment ID
-export const attachmentCleared = chatDomain.event<void>("attachmentCleared");
+export const filesSelected = chatDomain.event<File[]>("filesSelected");
 
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
@@ -131,11 +129,7 @@ export const $isGenerating = chatDomain
   .on(streamInitiatedWithTarget, () => true) // Set true when *this* chat's stream starts
   .on(chatStreamFinished, () => false); // Set false when *this* chat's stream finishes (complete/error/abort)
 
-// File attachment stores
-export const $pendingAttachments = chatDomain.store<Attachment[]>([], {
-  name: "$pendingAttachments",
-});
-
+// File processing store
 export const $isProcessingFile = chatDomain.store<boolean>(false, {
   name: "$isProcessingFile",
 });
@@ -173,44 +167,71 @@ export const $isMainInputFocused = chatDomain
 
 // --- Effects ---
 
-// File processing effect
-const processFileFx = chatDomain.effect<File, Attachment>({
-  name: "processFileFx",
-  handler: async (file: File): Promise<Attachment> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+// File processing effect - now creates messages directly
+const processFilesFx = chatDomain.effect<File[], Message[]>({
+  name: "processFilesFx",
+  handler: async (files: File[]) => {
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    const messages: Message[] = [];
+    
+    for (const file of files) {
+      // Validate file
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File "${file.name}" too large. Maximum size is 20MB.`);
+      }
       
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        throw new Error(`File "${file.name}" has unsupported type. Supported types: JPEG, PNG, GIF, WebP`);
+      }
+      
+      // Read file and create message
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
         
-        // Create attachment object
-        const attachment: Attachment = {
+        reader.onload = () => {
+          resolve(reader.result as string);
+        };
+        
+        reader.onerror = () => {
+          reject(new Error(`Failed to read file: ${file.name}`));
+        };
+        
+        reader.readAsDataURL(file);
+      });
+      
+      // Create image message with multimodal content
+      const imageContent: MessageContentPart[] = [
+        {
+          type: "image_url",
+          image_url: {
+            url: dataUrl,
+            detail: "auto"
+          }
+        }
+      ];
+      
+      const message: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: imageContent,
+        timestamp: Date.now(),
+        status: "pending", // Mark as pending until sent with text
+        attachments: [{
           id: crypto.randomUUID(),
-          type: file.type.startsWith('image/') ? 'image' : 
-                file.type.startsWith('audio/') ? 'audio' : 'document',
+          type: 'image',
           fileName: file.name,
           mimeType: file.type,
           size: file.size,
           dataUrl,
-          metadata: file.type.startsWith('image/') ? {
-            // For images, we'll get dimensions later if needed
-          } : undefined,
-        };
-        
-        resolve(attachment);
+        }]
       };
       
-      reader.onerror = () => {
-        reject(new Error(`Failed to read file: ${file.name}`));
-      };
-      
-      // Read as data URL for images, as text for documents
-      if (file.type.startsWith('image/')) {
-        reader.readAsDataURL(file);
-      } else {
-        reader.readAsDataURL(file); // For now, read everything as data URL
-      }
-    });
+      messages.push(message);
+    }
+    
+    return messages;
   },
 });
 
@@ -227,31 +248,28 @@ $messageText.on(messageTextChanged, (_, text) => text);
 
 // File attachment state management
 $isProcessingFile
-  .on(processFileFx, () => true)
-  .reset(processFileFx.finally);
+  .on(processFilesFx, () => true)
+  .reset(processFilesFx.finally);
 
-$pendingAttachments
-  .on(processFileFx.doneData, (attachments, newAttachment) => [...attachments, newAttachment])
-  .on(attachmentRemoved, (attachments, attachmentId) => 
-    attachments.filter(a => a.id !== attachmentId)
-  )
-  .reset(attachmentCleared, messageSent); // Clear on manual clear or message sent
+// Add image messages directly to messages store
+$messages.on(processFilesFx.doneData, (messages, newImageMessages) => [...messages, ...newImageMessages]);
 
-// Trigger file processing when file is selected
+// Trigger file processing when files are selected
 sample({
-  clock: fileSelected,
-  target: processFileFx,
+  clock: filesSelected,
+  target: processFilesFx,
 });
 
 // Auto-select vision model when image is attached
 sample({
-  clock: processFileFx.doneData,
+  clock: processFilesFx.doneData,
   source: $currentModelSupportsVision,
-  filter: (modelSupportsVision, attachment) => 
-    attachment.type === 'image' && !modelSupportsVision,
+  filter: (modelSupportsVision, imageMessages) => 
+    imageMessages.length > 0 && !modelSupportsVision,
   fn: () => ({ vision: true, preferFree: false }),
   target: autoSelectModelForCapabilities,
 });
+
 
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
@@ -267,7 +285,6 @@ $messages
     )
   )
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
-  .on(userMessageCreated, (messages, newMsg) => [...messages, newMsg])
   .on(
     streamInitiatedWithTarget,
     (messages, { targetMessageId, shouldAddNewMessage }) => {
@@ -391,57 +408,83 @@ $apiError.on(_messageErrored, (_, { error }) => error.message);
 
 // --- Samples (Flow Logic) ---
 
-// Helper function to create multimodal content
-const createMultimodalContent = (text: string, attachments: Attachment[]): string | MessageContentPart[] => {
-  // If no attachments, return simple text
-  if (attachments.length === 0) {
-    return text.trim();
-  }
-  
-  // Create multimodal content array
-  const contentParts: MessageContentPart[] = [];
-  
-  // Add text part if present
-  if (text.trim()) {
-    contentParts.push({
-      type: "text",
-      text: text.trim(),
-    });
-  }
-  
-  // Add image parts
-  attachments.forEach(attachment => {
-    if (attachment.type === 'image' && attachment.dataUrl) {
-      contentParts.push({
-        type: "image_url",
-        image_url: {
-          url: attachment.dataUrl,
-          detail: "auto",
-        },
-      });
-    }
-    // TODO: Handle other attachment types (audio, document) in future phases
-  });
-  
-  return contentParts;
-};
+
+// New internal event to handle bundled message creation
+const bundledMessageCreated = chatDomain.event<{ 
+  bundledMessage: Message, 
+  pendingImageIds: string[] 
+}>("bundledMessageCreated");
+
+// Update messages when bundled message is created
+$messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingImageIds }) => {
+  // Mark pending images as sent and add the bundled message
+  const updatedMessages = messages.map(msg => 
+    pendingImageIds.includes(msg.id) 
+      ? { ...msg, status: "sent" as const }
+      : msg
+  );
+  return [...updatedMessages, bundledMessage];
+});
 
 // Create a new user message object when message is sent
 sample({
   clock: messageSent,
-  source: { text: $messageText, attachments: $pendingAttachments },
-  filter: ({ text, attachments }) => text.trim().length > 0 || attachments.length > 0,
-  fn: ({ text, attachments }): Message => {
-    const content = createMultimodalContent(text, attachments);
+  source: { text: $messageText, messages: $messages },
+  filter: ({ text }) => text.trim().length > 0,
+  fn: ({ text, messages }) => {
+    // Find consecutive pending image messages at the end
+    const pendingImages: Message[] = [];
+    let i = messages.length - 1;
     
-    return {
+    while (i >= 0 && messages[i].status === 'pending' && messages[i].role === 'user') {
+      const msg = messages[i];
+      // Check if it's an image-only message
+      if (Array.isArray(msg.content) && msg.content.every(part => part.type === 'image_url')) {
+        pendingImages.unshift(msg);
+        i--;
+      } else {
+        break;
+      }
+    }
+    
+    // Create content parts
+    const contentParts: MessageContentPart[] = [];
+    
+    // Add images from pending messages
+    pendingImages.forEach(imgMsg => {
+      if (Array.isArray(imgMsg.content)) {
+        contentParts.push(...imgMsg.content);
+      }
+    });
+    
+    // Add text part
+    if (text.trim()) {
+      contentParts.push({
+        type: "text",
+        text: text.trim(),
+      });
+    }
+    
+    // Create bundled message
+    const bundledMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      content,
+      content: contentParts.length === 1 && contentParts[0].type === 'text' ? contentParts[0].text : contentParts,
       timestamp: Date.now(),
-      attachments: attachments.length > 0 ? [...attachments] : undefined,
+      status: "sent", // Mark as sent since we're sending it now
     };
+    
+    const pendingImageIds = pendingImages.map(img => img.id);
+    
+    return { bundledMessage, pendingImageIds };
   },
+  target: bundledMessageCreated,
+});
+
+// Forward bundled message to userMessageCreated
+sample({
+  clock: bundledMessageCreated,
+  fn: ({ bundledMessage }) => bundledMessage,
   target: userMessageCreated,
 });
 
@@ -487,6 +530,11 @@ sample({
 
     // Prepare message history (use current state which includes the new user message)
     const messagesForApi = [...messages]; // This list already includes the new user message.
+    
+    // Prepend system prompt if present
+    const messagesWithSystem = systemPrompt.trim() 
+      ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
+      : messagesForApi;
 
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
@@ -527,7 +575,7 @@ sample({
     const streamParams: StreamChatParams = {
       streamId,
       model: selectedModelId,
-      messages: messagesForApi, // Send history including the user message that triggered this
+      messages: messagesWithSystem, // Send history with system prompt and user message
       apiKey,
       temperature,
       onChunk,
@@ -609,6 +657,11 @@ sample({
         messagesForApi = [...messages]; // Fallback, should not happen if logic is correct
       }
     }
+    
+    // Prepend system prompt if present
+    const messagesWithSystem = systemPrompt.trim() 
+      ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
+      : messagesForApi;
 
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
@@ -643,7 +696,7 @@ sample({
     const streamParams: StreamChatParams = {
       streamId,
       model: selectedModelId,
-      messages: messagesForApi,
+      messages: messagesWithSystem,
       apiKey,
       temperature,
       onChunk,
@@ -704,6 +757,11 @@ sample({
       { messages, apiKey, temperature, systemPrompt, selectedModelId },
       messageToRetry
     );
+    
+    // Prepend system prompt if present
+    const messagesWithSystem = systemPrompt.trim() 
+      ? [{ role: "system" as const, content: systemPrompt }, ...messagesForApi]
+      : messagesForApi;
 
     const originalMessageIndex = messages.findIndex(
       (m) => m.id === messageToRetry.id
@@ -739,7 +797,7 @@ sample({
     const streamParams: StreamChatParams = {
       streamId,
       model: modelId, // Use modelId from prepareRetryRequestParamsFn
-      messages: messagesForApi, // Use sliced history from prepareRetryRequestParamsFn
+      messages: messagesWithSystem, // Use sliced history with system prompt
       apiKey,
       temperature,
       onChunk: ({ chunk }: StreamChunkPayload) => {
@@ -815,7 +873,6 @@ debug(
   // Stores
   $messageText,
   $messages,
-  $pendingAttachments,
   $isProcessingFile,
   $isGenerating,
   $apiError,
@@ -839,9 +896,7 @@ debug(
   initialChatSaveNeeded,
   normalResponseProcessed,
   mainInputFocused,
-  fileSelected,
-  attachmentRemoved,
-  attachmentCleared,
+  filesSelected,
 
   // Internal events
   userMessageCreated,
@@ -857,5 +912,5 @@ debug(
 
   // Effects
   streamChatFx,
-  processFileFx
+  processFilesFx
 );

@@ -65,7 +65,6 @@ import {
 import {
   $messages,
   $messageText,
-  $pendingAttachments,
   messageSent,
   messageTextChanged,
   $isGenerating, // Import loading state
@@ -126,10 +125,9 @@ export default function HomePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [messages, messageText, pendingAttachments] = useUnit([
+  const [messages, messageText] = useUnit([
     $messages, 
-    $messageText, 
-    $pendingAttachments
+    $messageText,
   ]);
   const lastMessage =
     messages.length > 0 ? messages[messages.length - 1] : null;
@@ -267,7 +265,7 @@ export default function HomePage() {
     }
 
     const isInputEmpty = messageText.trim().length === 0;
-    const hasAttachments = pendingAttachments.length > 0;
+    const hasAttachments = false; // Images are now messages, not attachments
     const isLastMessageUser = lastMessage?.role === "user";
 
     if (!isInputEmpty || hasAttachments) {
@@ -683,7 +681,7 @@ export default function HomePage() {
                 // Calculate disabled state based on new logic only when not generating
                 (() => {
                   const isInputEmpty = messageText.trim().length === 0;
-                  const hasAttachments = pendingAttachments.length > 0;
+                  const hasAttachments = false; // Images are now messages, not attachments
                   const lastMessage =
                     messages.length > 0 ? messages[messages.length - 1] : null;
                   const isLastMessageUser = lastMessage?.role === "user";

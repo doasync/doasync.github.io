@@ -34,6 +34,8 @@ export interface Attachment {
   };
 }
 
+export type MessageStatus = "pending" | "sent" | "failed";
+
 export interface Message {
   id: string;
   role: Role;
@@ -44,6 +46,7 @@ export interface Message {
   isLoading?: boolean; // Added for placeholder/retry state
   isRetryOf?: string; // Optional: ID of the message this is a retry for
   attachments?: Attachment[]; // For UI rendering and management
+  status?: MessageStatus; // Track if message has been sent to API
 }
 
 // Define the types of request contexts
