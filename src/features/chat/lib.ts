@@ -102,7 +102,7 @@ export const determineRetryingMessageIdFn = (
 
 /**
  * Formats and validates messages for API consumption.
- * Different models may have different requirements for multimodal content.
+ * VoidAI expects OpenAI-compatible format for all models and handles provider-specific conversion internally.
  */
 export const formatMessagesForAPI = (
   messages: (Message | { role: "system" | "user" | "assistant"; content: string | MessageContentPart[] })[],
@@ -111,6 +111,8 @@ export const formatMessagesForAPI = (
   role: "system" | "user" | "assistant";
   content: string | MessageContentPart[];
 }> => {
+  const isGPTModel = modelId.includes("gpt") || modelId.includes("chatgpt");
+
   return messages.map((message) => {
     // If content is a string, pass it through as-is
     if (typeof message.content === "string") {
@@ -122,7 +124,7 @@ export const formatMessagesForAPI = (
 
     // If content is an array (multimodal), validate and format it
     if (Array.isArray(message.content)) {
-      // Filter out any invalid content parts
+      // Filter out any invalid content parts - keep OpenAI format for all models
       const validContentParts = message.content.filter((part): part is MessageContentPart => {
         if (part.type === "text") {
           return typeof part.text === "string" && part.text.trim().length > 0;
@@ -134,6 +136,13 @@ export const formatMessagesForAPI = (
             part.image_url.url.length > 0 &&
             (part.image_url.url.startsWith("data:image/") ||
               part.image_url.url.startsWith("https://"))
+          );
+        }
+        if (part.type === "input_audio") {
+          return (
+            part.input_audio &&
+            typeof part.input_audio.data === "string" &&
+            part.input_audio.data.length > 0
           );
         }
         return false;
@@ -149,16 +158,26 @@ export const formatMessagesForAPI = (
         };
       }
 
-      // For GPT models, ensure at least one text part exists if there are images
-      if (modelId.includes("gpt") || modelId.includes("chatgpt")) {
+      // For GPT models, ensure at least one text part exists if there are media attachments
+      if (isGPTModel) {
         const hasText = validContentParts.some(part => part.type === "text");
         const hasImages = validContentParts.some(part => part.type === "image_url");
+        const hasAudio = validContentParts.some(part => part.type === "input_audio");
         
-        if (hasImages && !hasText) {
-          // Add a text part for GPT models that require text with images
+        if ((hasImages || hasAudio) && !hasText) {
+          // Add a text part for GPT models that require text with media
+          let defaultText = "Please analyze this content.";
+          if (hasImages && hasAudio) {
+            defaultText = "Please analyze this image and audio content.";
+          } else if (hasImages) {
+            defaultText = "What do you see in this image?";
+          } else if (hasAudio) {
+            defaultText = "Please transcribe or analyze this audio.";
+          }
+          
           validContentParts.push({
             type: "text",
-            text: "What do you see in this image?",
+            text: defaultText,
           });
         }
       }

@@ -127,7 +127,15 @@ export interface StreamImageContentPart {
   };
 }
 
-export type StreamMessageContentPart = StreamTextContentPart | StreamImageContentPart;
+export interface StreamAudioContentPart {
+  type: "input_audio";
+  input_audio: {
+    data: string; // Base64 encoded audio data
+    format?: "wav" | "mp3" | "flac" | "opus"; // Audio format hint
+  };
+}
+
+export type StreamMessageContentPart = StreamTextContentPart | StreamImageContentPart | StreamAudioContentPart;
 
 /**
  * Parameters required to initiate a chat stream request via streamChatFx.

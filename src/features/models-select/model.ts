@@ -24,6 +24,8 @@ export interface ModelLimits {
   contextWindow: number;
   maxImages?: number; // max images per message
   maxAudioDuration?: number; // max audio length in seconds
+  maxAudioSize?: number; // in bytes
+  supportedAudioFormats?: string[]; // MIME types
 }
 
 // Structure based on docs/essentials.md (VoidAI /models response)
@@ -184,6 +186,31 @@ const VISION_MODELS = [
   'Qwen/Qwen2.5-VL-72B-Instruct'
 ];
 
+// Comprehensive audio models list (based on OpenAI and Gemini docs)
+const AUDIO_MODELS = [
+  // OpenAI models with audio input support
+  'gpt-4o-audio-preview', 'gpt-4o-audio-preview-2024-12-17',
+  
+  // Gemini models with audio input support
+  'gemini-2.5-flash-preview-05-20',
+  'gemini-2.5-flash-preview-native-audio-dialog',
+  'gemini-2.5-flash-exp-native-audio-thinking-dialog',
+  'gemini-2.5-pro-preview-06-05',
+  'gemini-2.5-pro-preview-tts',
+  'gemini-2.0-flash', 'gemini-2.0-flash-exp',
+  'gemini-2.0-flash-preview-image-generation',
+  'gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-2.0-pro-exp-02-05',
+  'gemini-1.5-flash', 'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-8b', 'gemini-1.5-flash-8b-latest',
+  'gemini-1.5-pro', 'gemini-1.5-pro-latest',
+  'gemini-exp-1206',
+  'learnlm-1.5-pro-experimental', 'learnlm-2.0-flash-experimental',
+  'gemini-2.0-flash-live-001',
+  
+  // Note: Most Gemini models support audio, but we list the confirmed ones
+];
+
 // Model capability detection based on comprehensive real VoidAI testing
 const detectCapabilities = (
   modelId: string,
@@ -195,11 +222,13 @@ const detectCapabilities = (
     // Use comprehensive tested vision models list
     vision: VISION_MODELS.includes(modelId),
 
-    audio:
+    // Use comprehensive audio models list and pattern matching
+    audio: AUDIO_MODELS.includes(modelId) ||
       id.includes("gpt-4o-audio") ||
       id.includes("whisper") ||
       id.includes("transcribe") ||
-      id.includes("native-audio"),
+      id.includes("native-audio") ||
+      (ownedBy === "google" && id.includes("gemini")), // Most Gemini models support audio
 
     audioGeneration: 
       id.includes("tts") || 
@@ -265,6 +294,20 @@ const detectLimits = (
     ],
     maxImages: 10, // Default
     maxAudioDuration: 25 * 60, // 25 minutes for audio
+    maxAudioSize: 25 * 1024 * 1024, // 25MB limit from OpenAI/Gemini docs
+    supportedAudioFormats: [
+      "audio/wav",
+      "audio/mp3",
+      "audio/aiff",
+      "audio/aac",
+      "audio/ogg",
+      "audio/flac",
+      "audio/mp4",
+      "audio/mpeg",
+      "audio/mpga",
+      "audio/m4a",
+      "audio/webm",
+    ],
   };
 };
 

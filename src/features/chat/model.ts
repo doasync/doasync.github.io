@@ -4,6 +4,7 @@ import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { 
   $selectedModelId, 
   $currentModelSupportsVision,
+  $currentModelSupportsAudio,
   autoSelectModelForCapabilities 
 } from "@/features/models-select";
 // Import chat-stream feature
@@ -23,6 +24,7 @@ import {
   MessageContentPart,
   TextContentPart,
   ImageContentPart,
+  AudioContentPart,
   RetryUpdatePayload, // Keep for now, might become obsolete
   MessageRetryInitiatedPayload, // Keep for spinner logic potentially
   RequestContext, // Import the new context type
@@ -172,19 +174,31 @@ export const $isMainInputFocused = chatDomain
 const processFilesFx = chatDomain.effect<File[], Message[]>({
   name: "processFilesFx",
   handler: async (files: File[]) => {
-    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB for audio, 20MB for images
     const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const SUPPORTED_AUDIO_TYPES = [
+      'audio/wav', 'audio/mp3', 'audio/aiff', 'audio/aac', 
+      'audio/ogg', 'audio/flac', 'audio/mp4', 'audio/mpeg', 
+      'audio/mpga', 'audio/m4a', 'audio/webm'
+    ];
     
     const messages: Message[] = [];
     
     for (const file of files) {
+      const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
+      const isAudio = SUPPORTED_AUDIO_TYPES.includes(file.type);
+      
       // Validate file
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`File "${file.name}" too large. Maximum size is 20MB.`);
+      if (!isImage && !isAudio) {
+        throw new Error(`File "${file.name}" has unsupported type. Supported types: Images (JPEG, PNG, GIF, WebP) or Audio (WAV, MP3, AIFF, AAC, OGG, FLAC, MP4, MPEG, MPGA, M4A, WEBM)`);
       }
       
-      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
-        throw new Error(`File "${file.name}" has unsupported type. Supported types: JPEG, PNG, GIF, WebP`);
+      if (isImage && file.size > 20 * 1024 * 1024) {
+        throw new Error(`Image file "${file.name}" too large. Maximum size is 20MB.`);
+      }
+      
+      if (isAudio && file.size > MAX_FILE_SIZE) {
+        throw new Error(`Audio file "${file.name}" too large. Maximum size is 25MB.`);
       }
       
       // Read file and create message
@@ -202,36 +216,32 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         reader.readAsDataURL(file);
       });
       
-      // Get image dimensions
-      const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          resolve({ width: img.width, height: img.height });
-        };
-        img.onerror = () => {
-          resolve({ width: 0, height: 0 }); // Fallback if dimensions can't be determined
-        };
-        img.src = dataUrl;
-      });
+      let content: MessageContentPart[];
+      let attachment: Attachment;
       
-      // Create image message with multimodal content
-      const imageContent: MessageContentPart[] = [
-        {
+      if (isImage) {
+        // Get image dimensions
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            resolve({ width: img.width, height: img.height });
+          };
+          img.onerror = () => {
+            resolve({ width: 0, height: 0 }); // Fallback if dimensions can't be determined
+          };
+          img.src = dataUrl;
+        });
+        
+        // Create image content
+        content = [{
           type: "image_url",
           image_url: {
             url: dataUrl,
             detail: "auto"
           }
-        }
-      ];
-      
-      const message: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: imageContent,
-        timestamp: Date.now(),
-        status: "pending", // Mark as pending until sent with text
-        attachments: [{
+        }];
+        
+        attachment = {
           id: crypto.randomUUID(),
           type: 'image',
           fileName: file.name,
@@ -241,7 +251,60 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
           metadata: {
             dimensions: dimensions.width > 0 ? dimensions : undefined
           }
-        }]
+        };
+      } else {
+        // Audio file
+        // Get audio duration if possible
+        const duration = await new Promise<number | undefined>((resolve) => {
+          const audio = new Audio();
+          audio.onloadedmetadata = () => {
+            resolve(audio.duration);
+          };
+          audio.onerror = () => {
+            resolve(undefined); // Fallback if duration can't be determined
+          };
+          audio.src = dataUrl;
+        });
+        
+        // Extract format from MIME type
+        const formatMap: Record<string, string> = {
+          'audio/wav': 'wav',
+          'audio/mp3': 'mp3',
+          'audio/flac': 'flac',
+          'audio/ogg': 'opus',
+          'audio/webm': 'opus'
+        };
+        const format = formatMap[file.type] || 'mp3';
+        
+        // Create audio content
+        content = [{
+          type: "input_audio",
+          input_audio: {
+            data: dataUrl.split(',')[1], // Remove data URL prefix
+            format: format as any
+          }
+        }];
+        
+        attachment = {
+          id: crypto.randomUUID(),
+          type: 'audio',
+          fileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl,
+          metadata: {
+            duration
+          }
+        };
+      }
+      
+      const message: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content,
+        timestamp: Date.now(),
+        status: "pending", // Mark as pending until sent with text
+        attachments: [attachment]
       };
       
       messages.push(message);
@@ -276,13 +339,39 @@ sample({
   target: processFilesFx,
 });
 
-// Auto-select vision model when image is attached
+// Auto-select appropriate model based on file attachments
 sample({
   clock: processFilesFx.doneData,
-  source: $currentModelSupportsVision,
-  filter: (modelSupportsVision, imageMessages) => 
-    imageMessages.length > 0 && !modelSupportsVision,
-  fn: () => ({ vision: true, preferFree: false }),
+  source: {
+    supportsVision: $currentModelSupportsVision,
+    supportsAudio: $currentModelSupportsAudio
+  },
+  filter: ({ supportsVision, supportsAudio }, messages) => {
+    if (messages.length === 0) return false;
+    
+    const hasImages = messages.some(msg => 
+      msg.attachments?.some(att => att.type === 'image')
+    );
+    const hasAudio = messages.some(msg => 
+      msg.attachments?.some(att => att.type === 'audio')
+    );
+    
+    return (hasImages && !supportsVision) || (hasAudio && !supportsAudio);
+  },
+  fn: (_, messages) => {
+    const hasImages = messages.some(msg => 
+      msg.attachments?.some(att => att.type === 'image')
+    );
+    const hasAudio = messages.some(msg => 
+      msg.attachments?.some(att => att.type === 'audio')
+    );
+    
+    return { 
+      vision: hasImages, 
+      audio: hasAudio,
+      preferFree: false 
+    };
+  },
   target: autoSelectModelForCapabilities,
 });
 
@@ -428,22 +517,22 @@ $apiError.on(_messageErrored, (_, { error }) => error.message);
 // New internal event to handle bundled message creation
 const bundledMessageCreated = chatDomain.event<{ 
   bundledMessage: Message | null, 
-  pendingImageIds: string[],
+  pendingMediaIds: string[],
   markAsSent: boolean 
 }>("bundledMessageCreated");
 
 // Update messages when bundled message is created
-$messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingImageIds, markAsSent }) => {
+$messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingMediaIds, markAsSent }) => {
   if (markAsSent) {
-    // Scenario 1: Just mark pending images as sent, don't add new message
+    // Scenario 1: Just mark pending media as sent, don't add new message
     return messages.map(msg => 
-      pendingImageIds.includes(msg.id) 
+      pendingMediaIds.includes(msg.id) 
         ? { ...msg, status: "sent" as const }
         : msg
     );
   } else if (bundledMessage) {
-    // Scenario 2: Remove pending images and add bundled message
-    const filteredMessages = messages.filter(msg => !pendingImageIds.includes(msg.id));
+    // Scenario 2: Remove pending media and add bundled message
+    const filteredMessages = messages.filter(msg => !pendingMediaIds.includes(msg.id));
     return [...filteredMessages, bundledMessage];
   }
   return messages;
@@ -452,7 +541,7 @@ $messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingImageIds
 // Type for message bundling result
 type BundleResultNonNull = {
   bundledMessage: Message | null;
-  pendingImageIds: string[];
+  pendingMediaIds: string[];
   markAsSent: boolean;
 };
 
@@ -464,48 +553,50 @@ sample({
   source: { text: $messageText, messages: $messages },
   filter: ({ text, messages }) => {
     const hasText = text.trim().length > 0;
-    const pendingImages = messages.filter(m => 
+    const pendingMedia = messages.filter(m => 
       m.status === 'pending' && 
       m.role === 'user' &&
       Array.isArray(m.content) && 
-      m.content.every(part => part.type === 'image_url')
+      m.content.every(part => part.type === 'image_url' || part.type === 'input_audio')
     );
-    return hasText || pendingImages.length > 0;
+    return hasText || pendingMedia.length > 0;
   },
   fn: ({ text, messages }) => {
     const hasText = text.trim().length > 0;
     
-    // Find consecutive pending image messages at the end
-    const pendingImages: Message[] = [];
+    // Find consecutive pending media messages at the end
+    const pendingMedia: Message[] = [];
     let i = messages.length - 1;
     
     while (i >= 0 && messages[i].status === 'pending' && messages[i].role === 'user') {
       const msg = messages[i];
-      // Check if it's an image-only message
-      if (Array.isArray(msg.content) && msg.content.every(part => part.type === 'image_url')) {
-        pendingImages.unshift(msg);
+      // Check if it's a media-only message (images or audio)
+      if (Array.isArray(msg.content) && msg.content.every(part => 
+        part.type === 'image_url' || part.type === 'input_audio'
+      )) {
+        pendingMedia.unshift(msg);
         i--;
       } else {
         break;
       }
     }
     
-    if (!hasText && pendingImages.length > 0) {
-      // Scenario 1: No text, only pending images - bundle them into a single message
+    if (!hasText && pendingMedia.length > 0) {
+      // Scenario 1: No text, only pending media - bundle them into a single message
       const contentParts: MessageContentPart[] = [];
       const allAttachments: Attachment[] = [];
       
-      // Add images from pending messages and collect attachments
-      pendingImages.forEach(imgMsg => {
-        if (Array.isArray(imgMsg.content)) {
-          contentParts.push(...imgMsg.content);
+      // Add media from pending messages and collect attachments
+      pendingMedia.forEach(mediaMsg => {
+        if (Array.isArray(mediaMsg.content)) {
+          contentParts.push(...mediaMsg.content);
         }
-        if (imgMsg.attachments) {
-          allAttachments.push(...imgMsg.attachments);
+        if (mediaMsg.attachments) {
+          allAttachments.push(...mediaMsg.attachments);
         }
       });
       
-      // Create bundled message with only images
+      // Create bundled message with only media
       const bundledMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -517,21 +608,21 @@ sample({
       
       return {
         bundledMessage: bundledMessage as Message | null,
-        pendingImageIds: pendingImages.map(img => img.id),
+        pendingMediaIds: pendingMedia.map(media => media.id),
         markAsSent: false
       };
-    } else if (hasText && pendingImages.length > 0) {
-      // Scenario 2: Text with pending images - bundle them
+    } else if (hasText && pendingMedia.length > 0) {
+      // Scenario 2: Text with pending media - bundle them
       const contentParts: MessageContentPart[] = [];
       const allAttachments: Attachment[] = [];
       
-      // Add images from pending messages and collect attachments
-      pendingImages.forEach(imgMsg => {
-        if (Array.isArray(imgMsg.content)) {
-          contentParts.push(...imgMsg.content);
+      // Add media from pending messages and collect attachments
+      pendingMedia.forEach(mediaMsg => {
+        if (Array.isArray(mediaMsg.content)) {
+          contentParts.push(...mediaMsg.content);
         }
-        if (imgMsg.attachments) {
-          allAttachments.push(...imgMsg.attachments);
+        if (mediaMsg.attachments) {
+          allAttachments.push(...mediaMsg.attachments);
         }
       });
       
@@ -553,11 +644,11 @@ sample({
       
       return {
         bundledMessage: bundledMessage as Message | null,
-        pendingImageIds: pendingImages.map(img => img.id),
+        pendingMediaIds: pendingMedia.map(media => media.id),
         markAsSent: false
       };
     } else {
-      // Just text, no images
+      // Just text, no media
       const bundledMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -568,7 +659,7 @@ sample({
       
       return {
         bundledMessage: bundledMessage as Message | null,
-        pendingImageIds: [],
+        pendingMediaIds: [],
         markAsSent: false
       };
     }
@@ -584,24 +675,24 @@ sample({
   target: userMessageCreated,
 });
 
-// Create event for individual image messages sent
-const individualImagesSent = chatDomain.event<Message[]>("individualImagesSent");
+// Create event for individual media messages sent
+const individualMediaSent = chatDomain.event<Message[]>("individualMediaSent");
 
-// When pending images are marked as sent individually, trigger response for each
+// When pending media are marked as sent individually, trigger response for each
 sample({
   clock: bundledMessageCreated,
   source: $messages,
   filter: (_, { markAsSent }) => markAsSent === true,
-  fn: (messages, { pendingImageIds }) => {
-    // Find the sent image messages
-    return messages.filter(msg => pendingImageIds.includes(msg.id));
+  fn: (messages, { pendingMediaIds }) => {
+    // Find the sent media messages
+    return messages.filter(msg => pendingMediaIds.includes(msg.id));
   },
-  target: individualImagesSent,
+  target: individualMediaSent,
 });
 
-// Trigger userMessageCreated for each individual image
-individualImagesSent.watch((images) => {
-  images.forEach(img => userMessageCreated(img));
+// Trigger userMessageCreated for each individual media message
+individualMediaSent.watch((mediaMessages) => {
+  mediaMessages.forEach(media => userMessageCreated(media));
 });
 
 // Clear message input after sending

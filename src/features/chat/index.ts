@@ -3,10 +3,10 @@
 // by other features or UI components.
 
 // Import types separately
-import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type MessageStatus } from "./types";
+import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type AudioContentPart, type MessageStatus } from "./types";
 
 // Export types
-export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, MessageStatus };
+export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, MessageStatus };
 
 export {
   // Stores - Likely needed by UI

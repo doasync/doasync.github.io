@@ -51,6 +51,7 @@ import { generateResponseClicked } from "@/features/chat";
 import MessageItem from "@/components/MessageItem";
 import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
 import ImageAttachmentInput from "@/components/ImageAttachmentInput";
+import AudioAttachmentInput from "@/components/AudioAttachmentInput";
 import Drawer from "@mui/material/Drawer";
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
@@ -650,8 +651,9 @@ export default function HomePage() {
                 width: "100%",
               }}
             >
-              {/* Attach File Button - positioned on the far left */}
+              {/* Attach File Buttons - positioned on the far left */}
               <ImageAttachmentInput disabled={isGenerating} />
+              <AudioAttachmentInput disabled={isGenerating} />
               
               {/* Text Input Field - flexible width between buttons */}
               <TextField

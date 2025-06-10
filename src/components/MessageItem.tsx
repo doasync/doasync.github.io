@@ -15,7 +15,7 @@ import {
   startEditingMessage,
   stopEditingMessage,
 } from "@/features/ui-state"; // Import global editing state
-import { Message, MessageContentPart, TextContentPart, ImageContentPart } from "@/features/chat";
+import { Message, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart } from "@/features/chat";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -80,6 +80,16 @@ const getImageParts = (content: string | MessageContentPart[]): ImageContentPart
   );
 };
 
+// Helper function to get audio parts from content
+const getAudioParts = (content: string | MessageContentPart[]): AudioContentPart[] => {
+  if (typeof content === 'string') {
+    return [];
+  }
+  return content.filter((part): part is AudioContentPart => 
+    part.type === 'input_audio'
+  );
+};
+
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
@@ -98,6 +108,17 @@ const getFileTypeDescription = (mimeType: string): string => {
     'image/gif': 'GIF Image',
     'image/webp': 'WebP Image',
     'image/svg+xml': 'SVG Image',
+    'audio/wav': 'WAV Audio',
+    'audio/mp3': 'MP3 Audio',
+    'audio/aiff': 'AIFF Audio',
+    'audio/aac': 'AAC Audio',
+    'audio/ogg': 'OGG Audio',
+    'audio/flac': 'FLAC Audio',
+    'audio/mp4': 'MP4 Audio',
+    'audio/mpeg': 'MPEG Audio',
+    'audio/mpga': 'MPGA Audio',
+    'audio/m4a': 'M4A Audio',
+    'audio/webm': 'WebM Audio',
     'application/pdf': 'PDF Document',
     'application/msword': 'Word Document',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word Document',
@@ -105,6 +126,13 @@ const getFileTypeDescription = (mimeType: string): string => {
     'text/markdown': 'Markdown File',
   };
   return typeMap[mimeType] || mimeType.split('/')[1]?.toUpperCase() || 'File';
+};
+
+// Helper function to format duration
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
@@ -130,6 +158,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const canHover = globalEditingMessageId === null;
   const isImageOnlyMessage = Array.isArray(message.content) && 
     message.content.every(part => part.type === 'image_url');
+  const isAudioOnlyMessage = Array.isArray(message.content) && 
+    message.content.every(part => part.type === 'input_audio');
+  const isMediaOnlyMessage = isImageOnlyMessage || isAudioOnlyMessage;
   const isPending = message.status === 'pending';
 
   // Event Handlers
@@ -378,6 +409,69 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
                               {attachment.metadata?.dimensions && (
                                 <> • {attachment.metadata.dimensions.width}×{attachment.metadata.dimensions.height}</>
+                              )}
+                            </Typography>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                );
+              }
+              return null;
+            })()}
+            
+            {/* Render audio attachments if present */}
+            {(() => {
+              const audioParts = getAudioParts(message.content);
+              if (audioParts.length > 0) {
+                return (
+                  <Box sx={{ mb: audioParts.length > 0 ? 2 : 0 }}>
+                    {audioParts.map((audioPart, index) => {
+                      // Try to find corresponding attachment metadata
+                      const attachment = message.attachments?.find(att => att.type === 'audio');
+                      
+                      // Reconstruct data URL from base64 data
+                      const audioSrc = `data:${attachment?.mimeType || 'audio/mp3'};base64,${audioPart.input_audio.data}`;
+                      
+                      return (
+                        <Box 
+                          key={index} 
+                          sx={{ 
+                            mb: index < audioParts.length - 1 ? 2 : 0,
+                            p: 2,
+                            borderRadius: 1,
+                            backgroundColor: theme.palette.action.hover,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                          }}
+                        >
+                          {/* Audio player */}
+                          <audio 
+                            controls
+                            style={{ 
+                              width: '100%',
+                              minWidth: '280px',
+                            }}
+                          >
+                            <source src={audioSrc} type={attachment?.mimeType || 'audio/mp3'} />
+                            Your browser does not support the audio element.
+                          </audio>
+                          
+                          {/* File metadata */}
+                          {attachment && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                display: 'block',
+                                color: 'text.secondary',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
+                              {attachment.metadata?.duration && (
+                                <> • Duration: {formatDuration(attachment.metadata.duration)}</>
                               )}
                             </Typography>
                           )}

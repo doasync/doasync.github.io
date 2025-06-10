@@ -16,7 +16,15 @@ export interface ImageContentPart {
   };
 }
 
-export type MessageContentPart = TextContentPart | ImageContentPart;
+export interface AudioContentPart {
+  type: "input_audio";
+  input_audio: {
+    data: string; // Base64 encoded audio data
+    format?: "wav" | "mp3" | "flac" | "opus"; // Audio format hint
+  };
+}
+
+export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart;
 
 // Attachment metadata for UI handling
 export interface Attachment {
