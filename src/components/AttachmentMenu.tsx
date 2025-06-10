@@ -18,6 +18,7 @@ import AudioFileIcon from "@mui/icons-material/Audiotrack";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import DocumentIcon from "@mui/icons-material/Description";
 import { $isProcessingFile, filesSelected } from "@/features/chat";
 import {
   $currentModelSupportsVision,
@@ -27,6 +28,7 @@ import { $selectedImageGenModel } from "@/features/image-generation";
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_DOCUMENT_SIZE = 50 * 1024 * 1024; // 50MB
 const SUPPORTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -45,6 +47,16 @@ const SUPPORTED_AUDIO_TYPES = [
   "audio/mpga",
   "audio/m4a",
   "audio/webm",
+];
+const SUPPORTED_DOCUMENT_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+  "text/plain",
+  "text/markdown",
+  "application/x-markdown",
+  "text/html",
+  "application/xhtml+xml"
 ];
 
 interface AttachmentMenuProps {
@@ -67,6 +79,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   const [
     isProcessingFile,
@@ -160,6 +173,42 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
 
     if (audioInputRef.current) {
       audioInputRef.current.value = "";
+    }
+  };
+
+  // Document upload handlers
+  const handleDocumentUpload = () => {
+    handleMenuClose();
+    documentInputRef.current?.click();
+  };
+
+  const handleDocumentFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const validFiles: File[] = [];
+
+    for (const file of fileArray) {
+      if (!SUPPORTED_DOCUMENT_TYPES.includes(file.type)) {
+        console.error("Unsupported document type:", file.type);
+        continue;
+      }
+      if (file.size > MAX_DOCUMENT_SIZE) {
+        console.error("Document file too large:", file.size);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+      filesSelected(validFiles);
+    }
+
+    if (documentInputRef.current) {
+      documentInputRef.current.value = "";
     }
   };
 
@@ -324,6 +373,19 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
           />
         </MenuItem>
 
+        <MenuItem
+          onClick={handleDocumentUpload}
+          disabled={disabled || isProcessingFile}
+        >
+          <ListItemIcon>
+            <DocumentIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Upload Document"
+            secondary="PDF, DOCX, TXT, MD, HTML"
+          />
+        </MenuItem>
+
         <Divider />
 
         <MenuItem
@@ -373,6 +435,15 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
         type="file"
         accept={SUPPORTED_AUDIO_TYPES.join(",")}
         onChange={handleAudioFileChange}
+        style={{ display: "none" }}
+        multiple={true}
+      />
+
+      <input
+        ref={documentInputRef}
+        type="file"
+        accept={SUPPORTED_DOCUMENT_TYPES.join(",")}
+        onChange={handleDocumentFileChange}
         style={{ display: "none" }}
         multiple={true}
       />

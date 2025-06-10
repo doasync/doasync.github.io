@@ -1,4 +1,5 @@
 // Type definitions for the chat feature
+import type { TextChunk } from "@/features/document-processing";
 
 export type Role = "user" | "assistant" | "system";
 
@@ -40,7 +41,24 @@ export interface GeneratedImageContentPart {
   };
 }
 
-export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart | GeneratedImageContentPart;
+export interface DocumentContentPart {
+  type: "document";
+  document: {
+    text: string;
+    previewHtml?: string; // HTML preview with preserved formatting
+    metadata: {
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+      wordCount: number;
+      pageCount?: number;
+      title?: string;
+      author?: string;
+    };
+  };
+}
+
+export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart | GeneratedImageContentPart | DocumentContentPart;
 
 // Attachment metadata for UI handling
 export interface Attachment {
@@ -52,9 +70,14 @@ export interface Attachment {
   dataUrl?: string; // Base64 data URL for preview/sending
   previewUrl?: string; // Object URL for efficient preview
   extractedText?: string; // For documents
+  chunks?: TextChunk[]; // For large documents
   metadata?: {
     dimensions?: { width: number; height: number };
     duration?: number; // For audio files
+    wordCount?: number; // For documents
+    pageCount?: number; // For documents
+    title?: string; // For documents
+    author?: string; // For documents
   };
 }
 

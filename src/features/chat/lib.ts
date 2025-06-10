@@ -126,8 +126,44 @@ export const formatMessagesForAPI = (
 
     // If content is an array (multimodal), validate and format it
     if (Array.isArray(message.content)) {
+      // Transform and filter content parts for API consumption
+      const transformedContentParts: StreamMessageContentPart[] = [];
+      
+      for (const part of message.content) {
+        // Convert document parts to text parts for API
+        if (part.type === "document") {
+          if (
+            part.document &&
+            typeof part.document.text === "string" &&
+            part.document.text.trim().length > 0 &&
+            part.document.metadata &&
+            typeof part.document.metadata.fileName === "string"
+          ) {
+            // Create a text part with document content and metadata
+            const documentHeader = `--- Document: ${part.document.metadata.fileName} ---\n` +
+              `Type: ${part.document.metadata.mimeType}\n` +
+              `Word Count: ${part.document.metadata.wordCount.toLocaleString()}\n` +
+              (part.document.metadata.pageCount ? `Pages: ${part.document.metadata.pageCount}\n` : '') +
+              (part.document.metadata.title ? `Title: ${part.document.metadata.title}\n` : '') +
+              (part.document.metadata.author ? `Author: ${part.document.metadata.author}\n` : '') +
+              `--- Content ---\n`;
+            
+            transformedContentParts.push({
+              type: "text",
+              text: documentHeader + part.document.text
+            });
+          }
+          continue;
+        }
+        
+        // Keep other valid parts as-is (excluding generated images which are UI-only)
+        if (part.type !== "generated_image") {
+          transformedContentParts.push(part as StreamMessageContentPart);
+        }
+      }
+      
       // Filter out any invalid content parts and generated images - keep OpenAI format for all models
-      const validContentParts = message.content.filter((part): part is StreamMessageContentPart => {
+      const validContentParts = transformedContentParts.filter((part): part is StreamMessageContentPart => {
         if (part.type === "text") {
           return typeof part.text === "string" && part.text.trim().length > 0;
         }
@@ -146,10 +182,6 @@ export const formatMessagesForAPI = (
             typeof part.input_audio.data === "string" &&
             part.input_audio.data.length > 0
           );
-        }
-        // Filter out generated images - they are for display only, not for API
-        if (part.type === "generated_image") {
-          return false;
         }
         return false;
       });

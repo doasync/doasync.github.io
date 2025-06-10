@@ -15,7 +15,15 @@ import {
   startEditingMessage,
   stopEditingMessage,
 } from "@/features/ui-state"; // Import global editing state
-import { Message, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, GeneratedImageContentPart } from "@/features/chat";
+import {
+  Message,
+  MessageContentPart,
+  TextContentPart,
+  ImageContentPart,
+  AudioContentPart,
+  GeneratedImageContentPart,
+  DocumentContentPart,
+} from "@/features/chat";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -37,6 +45,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
 import DownloadIcon from "@mui/icons-material/Download";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import DocumentIcon from "@mui/icons-material/Description";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface MessageItemProps {
@@ -63,81 +73,135 @@ const createFrameHandler =
 
 // Helper function to extract text content from multimodal content
 const extractTextContent = (content: string | MessageContentPart[]): string => {
-  if (typeof content === 'string') {
+  if (typeof content === "string") {
     return content;
   }
-  return content
-    .filter((part): part is TextContentPart => part.type === 'text')
-    .map(part => part.text)
-    .join(' ');
+
+  let result = "";
+
+  // Extract text from text parts
+  const textParts = content.filter(
+    (part): part is TextContentPart => part.type === "text"
+  );
+  result += textParts.map((part) => part.text).join(" ");
+
+  // Don't include document text here since documents have their own preview boxes
+
+  return result.trim();
+};
+
+// Helper function to extract HTML content from multimodal content
+const extractHtmlContent = (content: string | MessageContentPart[]): string => {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  let result = "";
+
+  // Extract text from text parts
+  const textParts = content.filter(
+    (part): part is TextContentPart => part.type === "text"
+  );
+  result += textParts.map((part) => part.text).join(" ");
+
+  // Extract HTML from document parts
+  const documentParts = content.filter(
+    (part): part is DocumentContentPart => part.type === "document"
+  );
+  if (documentParts.length > 0) {
+    result += documentParts
+      .map((part) => part.document.previewHtml || part.document.text)
+      .join("\n\n");
+  }
+
+  return result.trim();
 };
 
 // Helper function to get image parts from content
-const getImageParts = (content: string | MessageContentPart[]): ImageContentPart[] => {
-  if (typeof content === 'string') {
+const getImageParts = (
+  content: string | MessageContentPart[]
+): ImageContentPart[] => {
+  if (typeof content === "string") {
     return [];
   }
-  return content.filter((part): part is ImageContentPart => 
-    part.type === 'image_url'
+  return content.filter(
+    (part): part is ImageContentPart => part.type === "image_url"
   );
 };
 
 // Helper function to get audio parts from content
-const getAudioParts = (content: string | MessageContentPart[]): AudioContentPart[] => {
-  if (typeof content === 'string') {
+const getAudioParts = (
+  content: string | MessageContentPart[]
+): AudioContentPart[] => {
+  if (typeof content === "string") {
     return [];
   }
-  return content.filter((part): part is AudioContentPart => 
-    part.type === 'input_audio'
+  return content.filter(
+    (part): part is AudioContentPart => part.type === "input_audio"
   );
 };
 
 // Helper function to get generated image parts from content
-const getGeneratedImageParts = (content: string | MessageContentPart[]): GeneratedImageContentPart[] => {
-  if (typeof content === 'string') {
+const getGeneratedImageParts = (
+  content: string | MessageContentPart[]
+): GeneratedImageContentPart[] => {
+  if (typeof content === "string") {
     return [];
   }
-  return content.filter((part): part is GeneratedImageContentPart => 
-    part.type === 'generated_image'
+  return content.filter(
+    (part): part is GeneratedImageContentPart => part.type === "generated_image"
+  );
+};
+
+// Helper function to get document parts from content
+const getDocumentParts = (
+  content: string | MessageContentPart[]
+): DocumentContentPart[] => {
+  if (typeof content === "string") {
+    return [];
+  }
+  return content.filter(
+    (part): part is DocumentContentPart => part.type === "document"
   );
 };
 
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
 // Helper function to get file type description
 const getFileTypeDescription = (mimeType: string): string => {
   const typeMap: Record<string, string> = {
-    'image/jpeg': 'JPEG Image',
-    'image/jpg': 'JPEG Image', 
-    'image/png': 'PNG Image',
-    'image/gif': 'GIF Image',
-    'image/webp': 'WebP Image',
-    'image/svg+xml': 'SVG Image',
-    'audio/wav': 'WAV Audio',
-    'audio/mp3': 'MP3 Audio',
-    'audio/aiff': 'AIFF Audio',
-    'audio/aac': 'AAC Audio',
-    'audio/ogg': 'OGG Audio',
-    'audio/flac': 'FLAC Audio',
-    'audio/mp4': 'MP4 Audio',
-    'audio/mpeg': 'MPEG Audio',
-    'audio/mpga': 'MPGA Audio',
-    'audio/m4a': 'M4A Audio',
-    'audio/webm': 'WebM Audio',
-    'application/pdf': 'PDF Document',
-    'application/msword': 'Word Document',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word Document',
-    'text/plain': 'Text File',
-    'text/markdown': 'Markdown File',
+    "image/jpeg": "JPEG Image",
+    "image/jpg": "JPEG Image",
+    "image/png": "PNG Image",
+    "image/gif": "GIF Image",
+    "image/webp": "WebP Image",
+    "image/svg+xml": "SVG Image",
+    "audio/wav": "WAV Audio",
+    "audio/mp3": "MP3 Audio",
+    "audio/aiff": "AIFF Audio",
+    "audio/aac": "AAC Audio",
+    "audio/ogg": "OGG Audio",
+    "audio/flac": "FLAC Audio",
+    "audio/mp4": "MP4 Audio",
+    "audio/mpeg": "MPEG Audio",
+    "audio/mpga": "MPGA Audio",
+    "audio/m4a": "M4A Audio",
+    "audio/webm": "WebM Audio",
+    "application/pdf": "PDF Document",
+    "application/msword": "Word Document",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      "Word Document",
+    "text/plain": "Text File",
+    "text/markdown": "Markdown File",
   };
-  return typeMap[mimeType] || mimeType.split('/')[1]?.toUpperCase() || 'File';
+  return typeMap[mimeType] || mimeType.split("/")[1]?.toUpperCase() || "File";
 };
 
 // Helper function to format duration
@@ -147,7 +211,7 @@ const formatDuration = (seconds: number | undefined): string => {
   }
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
@@ -161,9 +225,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const [isGoingToRetry, setIsGoingToRetry] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(
-    typeof message.content === 'string' ? message.content : extractTextContent(message.content)
+    typeof message.content === "string"
+      ? message.content
+      : extractTextContent(message.content)
   ); // Initialize with prop
   const [originalContentOnEdit, setOriginalContentOnEdit] = useState("");
+  const [documentPreviewLengths, setDocumentPreviewLengths] = useState<
+    Record<string, number>
+  >({});
   const messageItemRef = useRef<HTMLDivElement>(null);
 
   // Derived State
@@ -171,14 +240,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     isGenerating && retryingMessageId === message.id;
   const isGloballyEditingThis = globalEditingMessageId === message.id;
   const canHover = globalEditingMessageId === null;
-  const isImageOnlyMessage = Array.isArray(message.content) && 
-    message.content.every(part => part.type === 'image_url');
-  const isAudioOnlyMessage = Array.isArray(message.content) && 
-    message.content.every(part => part.type === 'input_audio');
-  const isGeneratedImageOnlyMessage = Array.isArray(message.content) && 
-    message.content.every(part => part.type === 'generated_image');
-  const isMediaOnlyMessage = isImageOnlyMessage || isAudioOnlyMessage || isGeneratedImageOnlyMessage;
-  const isPending = message.status === 'pending';
+  const isImageOnlyMessage =
+    Array.isArray(message.content) &&
+    message.content.every((part) => part.type === "image_url");
+  const isAudioOnlyMessage =
+    Array.isArray(message.content) &&
+    message.content.every((part) => part.type === "input_audio");
+  const isGeneratedImageOnlyMessage =
+    Array.isArray(message.content) &&
+    message.content.every((part) => part.type === "generated_image");
+  const isMediaOnlyMessage =
+    isImageOnlyMessage || isAudioOnlyMessage || isGeneratedImageOnlyMessage;
+  const isPending = message.status === "pending";
 
   // Event Handlers
   const handleEditClick = () => {
@@ -270,11 +343,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   const handleCopyCodeClick = () => {
     const textContent = extractTextContent(message.content);
+
     if (textContent) {
       navigator.clipboard
-        .writeText(textContent) // Copy raw markdown/code
-        .then(() => console.log("Code/Markdown copied to clipboard"))
-        .catch((err) => console.error("Failed to copy code/markdown: ", err));
+        .writeText(textContent)
+        .then(() => {
+          console.log("Text content copied to clipboard");
+          showSnackbar({
+            message: "Text content copied to clipboard",
+            severity: "success",
+          });
+        })
+        .catch((err) => console.error("Failed to copy content: ", err));
     } else {
       console.error("No text content to copy as code/markdown");
     }
@@ -341,9 +421,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           alignSelf: message.role === "user" ? "flex-end" : "flex-start",
           backgroundColor:
             message.role === "user"
-              ? isPending 
+              ? isPending
                 ? theme.palette.action.hover // Lighter background for pending
-                : "primary.dark"
+                : "primary.dark" // Blue background for user messages including files
               : theme.palette.background.paper, // Use paper background for assistant
           // Adjust width for alignment
           width: isEditing ? "-webkit-fill-available" : "fit-content", // Let content determine width initially
@@ -390,9 +470,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                     {imageParts.map((imagePart, index) => {
                       // Try to find corresponding attachment metadata
                       const attachment = message.attachments?.[index];
-                      
+
                       return (
-                        <Box key={index} sx={{ mb: index < imageParts.length - 1 ? 2 : 0 }}>
+                        <Box
+                          key={index}
+                          sx={{ mb: index < imageParts.length - 1 ? 2 : 0 }}
+                        >
                           <CardMedia
                             component="img"
                             image={imagePart.image_url.url}
@@ -403,29 +486,35 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               objectFit: "contain",
                               borderRadius: 1,
                               cursor: "pointer",
-                              '&:hover': {
+                              "&:hover": {
                                 opacity: 0.8,
                               },
                             }}
                             onClick={() => {
                               // Open image in new tab
-                              window.open(imagePart.image_url.url, '_blank');
+                              window.open(imagePart.image_url.url, "_blank");
                             }}
                           />
                           {/* File metadata */}
                           {attachment && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                display: 'block', 
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
                                 mt: 0.5,
-                                color: 'text.secondary',
-                                fontSize: '0.75rem'
+                                color: "text.secondary",
+                                fontSize: "0.75rem",
                               }}
                             >
-                              {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
+                              {attachment.fileName} •{" "}
+                              {formatFileSize(attachment.size)} •{" "}
+                              {getFileTypeDescription(attachment.mimeType)}
                               {attachment.metadata?.dimensions && (
-                                <> • {attachment.metadata.dimensions.width}×{attachment.metadata.dimensions.height}</>
+                                <>
+                                  {" "}
+                                  • {attachment.metadata.dimensions.width}×
+                                  {attachment.metadata.dimensions.height}
+                                </>
                               )}
                             </Typography>
                           )}
@@ -437,7 +526,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               }
               return null;
             })()}
-            
+
             {/* Render audio attachments if present */}
             {(() => {
               const audioParts = getAudioParts(message.content);
@@ -446,49 +535,62 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                   <Box sx={{ mb: audioParts.length > 0 ? 2 : 0 }}>
                     {audioParts.map((audioPart, index) => {
                       // Try to find corresponding attachment metadata
-                      const attachment = message.attachments?.find(att => att.type === 'audio');
-                      
+                      const attachment = message.attachments?.find(
+                        (att) => att.type === "audio"
+                      );
+
                       // Reconstruct data URL from base64 data
-                      const audioSrc = `data:${attachment?.mimeType || 'audio/mp3'};base64,${audioPart.input_audio.data}`;
-                      
+                      const audioSrc = `data:${
+                        attachment?.mimeType || "audio/mp3"
+                      };base64,${audioPart.input_audio.data}`;
+
                       return (
-                        <Box 
-                          key={index} 
-                          sx={{ 
+                        <Box
+                          key={index}
+                          sx={{
                             mb: index < audioParts.length - 1 ? 2 : 0,
                             p: 2,
                             borderRadius: 1,
                             backgroundColor: theme.palette.action.hover,
-                            display: 'flex',
-                            flexDirection: 'column',
+                            display: "flex",
+                            flexDirection: "column",
                             gap: 1,
                           }}
                         >
                           {/* Audio player */}
-                          <audio 
+                          <audio
                             controls
-                            style={{ 
-                              width: '100%',
-                              minWidth: '280px',
+                            style={{
+                              width: "100%",
+                              minWidth: "280px",
                             }}
                           >
-                            <source src={audioSrc} type={attachment?.mimeType || 'audio/mp3'} />
+                            <source
+                              src={audioSrc}
+                              type={attachment?.mimeType || "audio/mp3"}
+                            />
                             Your browser does not support the audio element.
                           </audio>
-                          
+
                           {/* File metadata */}
                           {attachment && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                display: 'block',
-                                color: 'text.secondary',
-                                fontSize: '0.75rem'
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                color: "text.secondary",
+                                fontSize: "0.75rem",
                               }}
                             >
-                              {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
+                              {attachment.fileName} •{" "}
+                              {formatFileSize(attachment.size)} •{" "}
+                              {getFileTypeDescription(attachment.mimeType)}
                               {attachment.metadata?.duration !== undefined ? (
-                                <> • Duration: {formatDuration(attachment.metadata.duration)}</>
+                                <>
+                                  {" "}
+                                  • Duration:{" "}
+                                  {formatDuration(attachment.metadata.duration)}
+                                </>
                               ) : (
                                 <> • Duration: Unknown</>
                               )}
@@ -502,110 +604,136 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               }
               return null;
             })()}
-            
+
             {/* Render generated images if present */}
             {(() => {
-              const generatedImageParts = getGeneratedImageParts(message.content);
+              const generatedImageParts = getGeneratedImageParts(
+                message.content
+              );
               if (generatedImageParts.length > 0) {
                 return (
                   <Box sx={{ mb: generatedImageParts.length > 0 ? 2 : 0 }}>
                     {generatedImageParts.map((imagePart, index) => {
-                      const imageUrl = imagePart.generated_image.url || 
-                        (imagePart.generated_image.b64_json ? `data:image/png;base64,${imagePart.generated_image.b64_json}` : '');
-                      
+                      const imageUrl =
+                        imagePart.generated_image.url ||
+                        (imagePart.generated_image.b64_json
+                          ? `data:image/png;base64,${imagePart.generated_image.b64_json}`
+                          : "");
+
                       if (!imageUrl) return null;
-                      
+
                       return (
-                        <Box 
-                          key={index} 
-                          sx={{ 
+                        <Box
+                          key={index}
+                          sx={{
                             mb: index < generatedImageParts.length - 1 ? 2 : 0,
                             borderRadius: 1,
-                            overflow: 'hidden',
+                            overflow: "hidden",
                             backgroundColor: theme.palette.action.hover,
-                            display: 'flex',
-                            flexDirection: 'column',
+                            display: "flex",
+                            flexDirection: "column",
                           }}
                         >
                           {/* Generated Image */}
                           <CardMedia
                             component="img"
                             image={imageUrl}
-                            alt={`Generated: ${imagePart.generated_image.prompt.substring(0, 50)}...`}
+                            alt={`Generated: ${imagePart.generated_image.prompt.substring(
+                              0,
+                              50
+                            )}...`}
                             sx={{
-                              width: '100%',
+                              width: "100%",
                               maxWidth: 512,
-                              height: 'auto',
+                              height: "auto",
                               borderRadius: 1,
                               cursor: "pointer",
-                              '&:hover': {
+                              "&:hover": {
                                 opacity: 0.8,
                               },
                             }}
                             onClick={() => {
                               // Open image in new tab
-                              window.open(imageUrl, '_blank');
+                              window.open(imageUrl, "_blank");
                             }}
                           />
-                          
+
                           {/* Image metadata and actions */}
                           <Box sx={{ p: 1.5 }}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
+                            <Typography
+                              variant="body2"
+                              sx={{
                                 fontWeight: 500,
                                 mb: 0.5,
-                                color: 'text.primary',
+                                color: "text.primary",
                               }}
                             >
                               🎨 Generated Image
                             </Typography>
-                            
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                display: 'block',
+
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
                                 mb: 1,
-                                color: 'text.secondary',
-                                fontStyle: 'italic',
+                                color: "text.secondary",
+                                fontStyle: "italic",
                               }}
                             >
                               "{imagePart.generated_image.prompt}"
                             </Typography>
-                            
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  color: 'text.secondary',
-                                  fontSize: '0.75rem'
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontSize: "0.75rem",
                                 }}
                               >
                                 Model: {imagePart.generated_image.model}
                                 {imagePart.generated_image.parameters?.size && (
-                                  <> • Size: {imagePart.generated_image.parameters.size}</>
+                                  <>
+                                    {" "}
+                                    • Size:{" "}
+                                    {imagePart.generated_image.parameters.size}
+                                  </>
                                 )}
-                                {imagePart.generated_image.parameters?.quality && (
-                                  <> • Quality: {imagePart.generated_image.parameters.quality}</>
+                                {imagePart.generated_image.parameters
+                                  ?.quality && (
+                                  <>
+                                    {" "}
+                                    • Quality:{" "}
+                                    {
+                                      imagePart.generated_image.parameters
+                                        .quality
+                                    }
+                                  </>
                                 )}
                               </Typography>
-                              
-                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
                                 <IconButton
                                   size="small"
                                   onClick={() => {
-                                    window.open(imageUrl, '_blank');
+                                    window.open(imageUrl, "_blank");
                                   }}
                                   sx={{ p: 0.5 }}
                                 >
                                   <FullscreenIcon fontSize="small" />
                                 </IconButton>
-                                
+
                                 <IconButton
                                   size="small"
                                   onClick={() => {
                                     // Download image
-                                    const link = document.createElement('a');
+                                    const link = document.createElement("a");
                                     link.href = imageUrl;
                                     link.download = `generated-image-${Date.now()}.png`;
                                     document.body.appendChild(link);
@@ -627,7 +755,192 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               }
               return null;
             })()}
-            
+
+            {/* Render documents if present */}
+            {(() => {
+              const documentParts = getDocumentParts(message.content);
+              if (documentParts.length > 0) {
+                return (
+                  <Box sx={{ mb: documentParts.length > 0 ? 2 : 0 }}>
+                    {documentParts.map((documentPart, index) => {
+                      const documentId = `${message.id}-doc-${index}`;
+                      const DEFAULT_PREVIEW_LENGTH = 1000; // Start with reasonable truncation
+                      const EXPAND_INCREMENT = 1000; // Add 1000 chars each time
+
+                      const currentPreviewLength =
+                        documentPreviewLengths[documentId] ||
+                        DEFAULT_PREVIEW_LENGTH;
+                      const contentToShow = documentPart.document.text; // Always use text for consistent behavior
+                      const hasMoreContent = contentToShow && contentToShow.length > currentPreviewLength;
+
+                      const handleShowMore = () => {
+                        setDocumentPreviewLengths((prev) => ({
+                          ...prev,
+                          [documentId]: currentPreviewLength + EXPAND_INCREMENT,
+                        }));
+                      };
+
+                      return (
+                        <Box
+                          key={index}
+                          sx={{
+                            mb: index < documentParts.length - 1 ? 2 : 0,
+                            borderRadius: 1,
+                            backgroundColor: theme.palette.action.hover,
+                            border: `1px solid ${theme.palette.divider}`,
+                            p: 2,
+                          }}
+                        >
+                          {/* Document Header */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              mb: 1,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <DocumentIcon color="primary" />
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 600 }}
+                              >
+                                {documentPart.document.metadata.fileName}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: "flex", gap: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    documentPart.document.text
+                                  );
+                                  showSnackbar({
+                                    message: "Document text copied to clipboard",
+                                    severity: "success",
+                                  });
+                                }}
+                                sx={{ p: 0.5 }}
+                                title="Copy text content"
+                              >
+                                <ContentCopyIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  // For PDFs, copy the full HTML; for text files, copy the full text as code
+                                  const contentToCopy = documentPart.document.previewHtml || documentPart.document.text;
+                                  navigator.clipboard.writeText(contentToCopy);
+                                  showSnackbar({
+                                    message: documentPart.document.previewHtml 
+                                      ? "Document HTML code copied to clipboard"
+                                      : "Document content copied as code",
+                                    severity: "success",
+                                  });
+                                }}
+                                sx={{ p: 0.5 }}
+                                title="Copy full content as code"
+                              >
+                                <CodeIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={handleShowMore}
+                                sx={{ p: 0.5 }}
+                                title="Show more content"
+                                disabled={!hasMoreContent}
+                              >
+                                <ExpandMoreIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </Box>
+
+                          {/* Document Metadata */}
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              mb: 1,
+                              color: "text.secondary",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            {formatFileSize(
+                              documentPart.document.metadata.fileSize
+                            )}
+                            {" • "}
+                            {documentPart.document.metadata.wordCount.toLocaleString()}{" "}
+                            words
+                            {documentPart.document.metadata.pageCount && (
+                              <>
+                                {" • "}
+                                {documentPart.document.metadata.pageCount} pages
+                              </>
+                            )}
+                            {documentPart.document.metadata.title && (
+                              <>
+                                {" • "}
+                                {documentPart.document.metadata.title}
+                              </>
+                            )}
+                          </Typography>
+
+                          {/* Document Preview */}
+                          <Box
+                            sx={{
+                              maxHeight: 150,
+                              overflow: "auto",
+                              backgroundColor: theme.palette.background.paper,
+                              borderRadius: 1,
+                              p: 1,
+                              border: `1px solid ${theme.palette.divider}`,
+                              fontSize: "0.875rem",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {documentPart.document.previewHtml ? (
+                              <Box
+                                component="pre"
+                                sx={{
+                                  fontFamily: "monospace",
+                                  whiteSpace: "pre-wrap",
+                                  fontSize: "0.75rem",
+                                  overflow: "auto",
+                                  margin: 0,
+                                }}
+                              >
+                                {/* Use the original text content instead of previewHtml for better control */}
+                                {documentPart.document.text.length > currentPreviewLength
+                                  ? `${documentPart.document.text.substring(0, currentPreviewLength)}...`
+                                  : documentPart.document.text}
+                              </Box>
+                            ) : (
+                              <Box
+                                sx={{
+                                  fontFamily: "monospace",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {documentPart.document.text}
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                );
+              }
+              return null;
+            })()}
+
             {/* Render text content */}
             <Typography
               // onDoubleClick={handleEditClick} // Allow double-click to edit
@@ -674,7 +987,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           </Typography>
         )}
       </Card>
-      
+
       {/* Action Buttons Popover - Moved outside Card to prevent clipping */}
       <Paper
         elevation={4}
@@ -689,16 +1002,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           gap: 0.5, // Reduced gap
           // Show if editing this OR (hovered and nothing else is being edited)
           display:
-            isGloballyEditingThis || (isHovered && canHover)
-              ? "flex"
-              : "none",
+            isGloballyEditingThis || (isHovered && canHover) ? "flex" : "none",
           opacity: isGloballyEditingThis || (isHovered && canHover) ? 1 : 0, // Fade in/out
           transition: theme.transitions.create(["opacity", "transform"], {
             duration: theme.transitions.duration.short,
           }),
-          transform: isGloballyEditingThis || (isHovered && canHover) 
-            ? "translateY(0)" 
-            : "translateY(-4px)",
+          transform:
+            isGloballyEditingThis || (isHovered && canHover)
+              ? "translateY(0)"
+              : "translateY(-4px)",
           zIndex: 10, // Ensure buttons are above everything
         }}
       >

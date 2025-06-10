@@ -50,6 +50,13 @@ import {
   type ImageGenerationParams
 } from "@/features/image-generation";
 
+// Import document processing feature
+import { 
+  processDocumentsFx, 
+  $processingResults, 
+  $processingError
+} from "@/features/document-processing";
+
 // --- Domain ---
 const chatDomain = createDomain("chat");
 
@@ -195,16 +202,96 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
       'audio/ogg', 'audio/flac', 'audio/mp4', 'audio/mpeg', 
       'audio/mpga', 'audio/m4a', 'audio/webm'
     ];
+    const SUPPORTED_DOCUMENT_TYPES = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain',
+      'text/markdown',
+      'application/x-markdown',
+      'text/html',
+      'application/xhtml+xml'
+    ];
     
     const messages: Message[] = [];
     
-    for (const file of files) {
+    // Separate files by type
+    const imageFiles = files.filter(f => SUPPORTED_IMAGE_TYPES.includes(f.type));
+    const audioFiles = files.filter(f => SUPPORTED_AUDIO_TYPES.includes(f.type));
+    const documentFiles = files.filter(f => SUPPORTED_DOCUMENT_TYPES.includes(f.type));
+    
+    // Process document files first using document processing feature
+    if (documentFiles.length > 0) {
+      try {
+        const documentResults = await processDocumentsFx(documentFiles);
+        
+        for (let i = 0; i < documentFiles.length; i++) {
+          const file = documentFiles[i];
+          const result = documentResults[i];
+          
+          if (!result) continue;
+          
+          // Create document content part
+          
+          const content: MessageContentPart[] = [{
+            type: "document",
+            document: {
+              text: result.extractedText,
+              previewHtml: result.previewHtml,
+              metadata: {
+                fileName: result.metadata.fileName,
+                fileSize: result.metadata.fileSize,
+                mimeType: result.metadata.mimeType,
+                wordCount: result.metadata.wordCount,
+                pageCount: result.metadata.pageCount,
+                title: result.metadata.title,
+                author: result.metadata.author,
+              }
+            }
+          }];
+          
+          const attachment: Attachment = {
+            id: crypto.randomUUID(),
+            type: 'document',
+            fileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+            extractedText: result.extractedText,
+            chunks: result.chunks,
+            metadata: {
+              wordCount: result.metadata.wordCount,
+              pageCount: result.metadata.pageCount,
+              title: result.metadata.title,
+              author: result.metadata.author,
+            }
+          };
+          
+          const message: Message = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content,
+            timestamp: Date.now(),
+            status: "pending",
+            attachments: [attachment]
+          };
+          
+          messages.push(message);
+        }
+      } catch (error) {
+        console.error('Document processing failed:', error);
+        throw new Error(`Document processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    // Process media files (images and audio)
+    const mediaFiles = [...imageFiles, ...audioFiles];
+    for (const file of mediaFiles) {
       const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
       const isAudio = SUPPORTED_AUDIO_TYPES.includes(file.type);
       
       // Validate file
       if (!isImage && !isAudio) {
-        throw new Error(`File "${file.name}" has unsupported type. Supported types: Images (JPEG, PNG, GIF, WebP) or Audio (WAV, MP3, AIFF, AAC, OGG, FLAC, MP4, MPEG, MPGA, M4A, WEBM)`);
+        throw new Error(`File "${file.name}" has unsupported type. Supported types: Images (JPEG, PNG, GIF, WebP), Audio (WAV, MP3, AIFF, AAC, OGG, FLAC, MP4, MPEG, MPGA, M4A, WEBM), or Documents (PDF, DOCX, TXT, MD, HTML)`);
       }
       
       if (isImage && file.size > 20 * 1024 * 1024) {
@@ -672,7 +759,7 @@ sample({
       m.status === 'pending' && 
       m.role === 'user' &&
       Array.isArray(m.content) && 
-      m.content.every(part => part.type === 'image_url' || part.type === 'input_audio')
+      m.content.every(part => part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document')
     );
     return hasText || pendingMedia.length > 0;
   },
@@ -685,9 +772,9 @@ sample({
     
     while (i >= 0 && messages[i].status === 'pending' && messages[i].role === 'user') {
       const msg = messages[i];
-      // Check if it's a media-only message (images or audio)
+      // Check if it's a media-only message (images, audio, or documents)
       if (Array.isArray(msg.content) && msg.content.every(part => 
-        part.type === 'image_url' || part.type === 'input_audio'
+        part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document'
       )) {
         pendingMedia.unshift(msg);
         i--;

@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs 2>/dev/null || true && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs 2>/dev/null || true"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -16,15 +17,21 @@
     "@mui/icons-material": "^7.0.1",
     "@mui/material": "^7.0.1",
     "@tanstack/react-query": "^5.71.10",
+    "dompurify": "^3.2.6",
     "effector": "^23.3.0",
     "effector-react": "^23.3.0",
     "effector-storage": "^7.1.0",
     "eventsource-parser": "^3.0.1",
     "idb": "^8.0.2",
+    "jszip": "^3.10.1",
     "katex": "^0.16.21",
+    "localforage": "^1.10.0",
+    "mammoth": "^1.9.1",
     "mermaid": "^11.6.0",
     "next": "15.2.4",
     "patronum": "^2.3.0",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.3.31",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -33,15 +40,18 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "turndown": "^7.2.0",
     "use-long-press": "^3.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/dompurify": "^3.0.5",
     "@types/katex": "^0.16.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/turndown": "^5.0.5",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
     "typescript": "^5"
