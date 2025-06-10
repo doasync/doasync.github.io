@@ -4,18 +4,17 @@ import {
   EventSourceParserEvent,
   isParsedDataEvent,
   isCompletionEvent,
-  VoidAIParsedChunkData,
+  APIParsedChunkData,
 } from "./types";
-
-const VOIDAI_API_URL = "https://api.voidai.app/v1/chat/completions";
+import { buildChatCompletionsUrl } from "@/features/api-config";
 
 /**
  * Performs the actual fetch request and processes the SSE stream.
  * This function is intended to be used as the handler for an Effector effect.
  * It communicates progress, data, completion, errors, and abortion via callbacks.
  *
- * @param params Parameters including VoidAI request details, API key, and callbacks.
- * @param params Parameters including VoidAI request details, API key, callbacks, and the consumer-generated streamId.
+ * @param params Parameters including API request details, API key, and callbacks.
+ * @param params Parameters including API request details, API key, callbacks, and the consumer-generated streamId.
  * @param signal An AbortSignal to allow cancellation of the fetch request.
  * @throws An error if a non-abort related issue occurs (e.g., initial fetch failure, critical stream error).
  *         AbortError is caught and handled via the onAbort callback, allowing the promise to resolve.
@@ -27,6 +26,7 @@ export async function fetchChatStream(
   const {
     streamId, // Destructure streamId from params
     apiKey,
+    providerApiUrl, // Add providerApiUrl parameter
     model,
     messages,
     temperature,
@@ -52,7 +52,8 @@ export async function fetchChatStream(
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 
   try {
-    const response = await fetch(VOIDAI_API_URL, {
+    const chatCompletionsUrl = buildChatCompletionsUrl(providerApiUrl);
+    const response = await fetch(chatCompletionsUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -72,7 +73,7 @@ export async function fetchChatStream(
         // Ignore JSON parsing error if body is not valid JSON
       }
       throw new Error(
-        `VoidAI API Error (${response.status}): ${
+        `API Error (${response.status}): ${
           errorPayload?.error?.message || response.statusText
         }`
       );
@@ -101,7 +102,7 @@ export async function fetchChatStream(
 
       if (isParsedDataEvent(event)) {
         try {
-          const jsonData: VoidAIParsedChunkData = JSON.parse(event.data);
+          const jsonData: APIParsedChunkData = JSON.parse(event.data);
           // console.log(`[Stream ${streamId}] Data chunk received:`, jsonData);
           
           // Check if this is an error response
@@ -165,7 +166,7 @@ export async function fetchChatStream(
         // This requires managing state, which we aim to avoid here.
         // Relying on [DONE] event is safer. If the stream ends without
         // [DONE], it might indicate an issue. We could call onError here instead.
-        // For now, assume VoidAI sends [DONE] reliably.
+        // For now, assume API provider sends [DONE] reliably.
         break;
       }
 

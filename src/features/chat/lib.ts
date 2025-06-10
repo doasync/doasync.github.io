@@ -104,10 +104,15 @@ export const determineRetryingMessageIdFn = (
 
 /**
  * Formats and validates messages for API consumption.
- * VoidAI expects OpenAI-compatible format for all models and handles provider-specific conversion internally.
  */
 export const formatMessagesForAPI = (
-  messages: (Message | { role: "system" | "user" | "assistant"; content: string | MessageContentPart[] })[],
+  messages: (
+    | Message
+    | {
+        role: "system" | "user" | "assistant";
+        content: string | MessageContentPart[];
+      }
+  )[],
   modelId: string
 ): Array<{
   role: "system" | "user" | "assistant";
@@ -128,7 +133,7 @@ export const formatMessagesForAPI = (
     if (Array.isArray(message.content)) {
       // Transform and filter content parts for API consumption
       const transformedContentParts: StreamMessageContentPart[] = [];
-      
+
       for (const part of message.content) {
         // Convert document parts to text parts for API
         if (part.type === "document") {
@@ -141,17 +146,24 @@ export const formatMessagesForAPI = (
             typeof part.document.metadata.fileName === "string"
           ) {
             // Create a text part with document content and metadata
-            const documentHeader = `--- Document: ${part.document.metadata.fileName} ---\n` +
+            const documentHeader =
+              `--- Document: ${part.document.metadata.fileName} ---\n` +
               `Type: ${part.document.metadata.mimeType}\n` +
               `Word Count: ${part.document.metadata.wordCount.toLocaleString()}\n` +
-              (part.document.metadata.pageCount ? `Pages: ${part.document.metadata.pageCount}\n` : '') +
-              (part.document.metadata.title ? `Title: ${part.document.metadata.title}\n` : '') +
-              (part.document.metadata.author ? `Author: ${part.document.metadata.author}\n` : '') +
+              (part.document.metadata.pageCount
+                ? `Pages: ${part.document.metadata.pageCount}\n`
+                : "") +
+              (part.document.metadata.title
+                ? `Title: ${part.document.metadata.title}\n`
+                : "") +
+              (part.document.metadata.author
+                ? `Author: ${part.document.metadata.author}\n`
+                : "") +
               `--- Content ---\n`;
-            
+
             const convertedTextPart = {
               type: "text" as const,
-              text: documentHeader + part.document.text
+              text: documentHeader + part.document.text,
             };
             console.log("Converted document to text part:", convertedTextPart);
             transformedContentParts.push(convertedTextPart);
@@ -160,41 +172,45 @@ export const formatMessagesForAPI = (
           }
           continue;
         }
-        
+
         // Keep other valid parts as-is (excluding generated images which are UI-only)
         if (part.type !== "generated_image") {
           transformedContentParts.push(part as StreamMessageContentPart);
         }
       }
-      
+
       // Filter out any invalid content parts and generated images - keep OpenAI format for all models
-      const validContentParts = transformedContentParts.filter((part): part is StreamMessageContentPart => {
-        if (part.type === "text") {
-          return typeof part.text === "string" && part.text.trim().length > 0;
+      const validContentParts = transformedContentParts.filter(
+        (part): part is StreamMessageContentPart => {
+          if (part.type === "text") {
+            return typeof part.text === "string" && part.text.trim().length > 0;
+          }
+          if (part.type === "image_url") {
+            return (
+              part.image_url &&
+              typeof part.image_url.url === "string" &&
+              part.image_url.url.length > 0 &&
+              (part.image_url.url.startsWith("data:image/") ||
+                part.image_url.url.startsWith("https://"))
+            );
+          }
+          if (part.type === "input_audio") {
+            return (
+              part.input_audio &&
+              typeof part.input_audio.data === "string" &&
+              part.input_audio.data.length > 0
+            );
+          }
+          return false;
         }
-        if (part.type === "image_url") {
-          return (
-            part.image_url &&
-            typeof part.image_url.url === "string" &&
-            part.image_url.url.length > 0 &&
-            (part.image_url.url.startsWith("data:image/") ||
-              part.image_url.url.startsWith("https://"))
-          );
-        }
-        if (part.type === "input_audio") {
-          return (
-            part.input_audio &&
-            typeof part.input_audio.data === "string" &&
-            part.input_audio.data.length > 0
-          );
-        }
-        return false;
-      });
+      );
 
       // If no valid content parts, fallback to empty text
       if (validContentParts.length === 0) {
-        const messageId = 'id' in message ? message.id : 'system';
-        console.warn(`Message ${messageId} has no valid content parts, using empty string`);
+        const messageId = "id" in message ? message.id : "system";
+        console.warn(
+          `Message ${messageId} has no valid content parts, using empty string`
+        );
         return {
           role: message.role,
           content: "",
@@ -203,10 +219,14 @@ export const formatMessagesForAPI = (
 
       // For GPT models, ensure at least one text part exists if there are media attachments
       if (isGPTModel) {
-        const hasText = validContentParts.some(part => part.type === "text");
-        const hasImages = validContentParts.some(part => part.type === "image_url");
-        const hasAudio = validContentParts.some(part => part.type === "input_audio");
-        
+        const hasText = validContentParts.some((part) => part.type === "text");
+        const hasImages = validContentParts.some(
+          (part) => part.type === "image_url"
+        );
+        const hasAudio = validContentParts.some(
+          (part) => part.type === "input_audio"
+        );
+
         if ((hasImages || hasAudio) && !hasText) {
           // Add a text part for GPT models that require text with media
           let defaultText = "Please analyze this content.";
@@ -217,7 +237,7 @@ export const formatMessagesForAPI = (
           } else if (hasAudio) {
             defaultText = "Please transcribe or analyze this audio.";
           }
-          
+
           validContentParts.push({
             type: "text",
             text: defaultText,
@@ -232,14 +252,20 @@ export const formatMessagesForAPI = (
     }
 
     // Fallback for unexpected content types
-    const messageId = 'id' in message ? message.id : 'system';
-    console.warn(`Unexpected content type for message ${messageId}:`, typeof message.content);
+    const messageId = "id" in message ? message.id : "system";
+    console.warn(
+      `Unexpected content type for message ${messageId}:`,
+      typeof message.content
+    );
     return {
       role: message.role,
       content: "",
     };
   });
-  
-  console.log("Final formatted messages for API:", JSON.stringify(result, null, 2));
+
+  console.log(
+    "Final formatted messages for API:",
+    JSON.stringify(result, null, 2)
+  );
   return result;
 };

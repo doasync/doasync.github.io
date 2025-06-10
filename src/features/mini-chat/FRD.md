@@ -230,7 +230,7 @@ Facilitate micro-dialogues _without leaving_ the reading domain, fostering multi
 - **Technology Stack:** Built with React, TypeScript, and Effector for state management, within the `/src/features/mini-chat/` directory.
   - UI components are built using Material UI (MUI), including `Paper`, `TextField`, `IconButton`, `LinearProgress`, etc.
   - Drag functionality provided by `react-draggable`.
-- **Streaming Backend:** Utilizes the `chat-stream` feature (`src/features/chat-stream/`) for handling Server-Sent Events (SSE) from the VoidAI API.
+- **Streaming Backend:** Utilizes the `chat-stream` feature (`src/features/chat-stream/`) for handling Server-Sent Events (SSE) from the API provider.
   - `mini-chat/model.ts` acts as a consumer of `chat-stream`'s `streamChatFx` effect and `abortStream` event.
   - Relies on `eventsource-parser` (via `chat-stream`) for parsing SSE streams.
   - Refer to [`src/features/chat-stream/FRD.md`](../chat-stream/FRD.md:1) for detailed specifications of the streaming mechanism.
@@ -279,7 +279,7 @@ Facilitate micro-dialogues _without leaving_ the reading domain, fostering multi
 - The toolbar activation relies on text selection within designated `.chat-message` elements.
 - Must avoid interfering with other UI elements, main chat input, or scrolling.
 - API key (`$apiKey`) must be present and valid for streaming to function.
-- API latency or failures from VoidAI must be handled gracefully by the `chat-stream` layer and reflected in the mini chat UI (e.g., error message, loading state reset).
+- API latency or failures from the API provider must be handled gracefully by the `chat-stream` layer and reflected in the mini chat UI (e.g., error message, loading state reset).
 - Dragging functionality must not interfere with main chat scrolling or text selection.
 - The `chat-stream` module is stateless regarding chat content. The `mini-chat` module is responsible for:
   - Generating unique `streamId`s for each request to `chat-stream`.

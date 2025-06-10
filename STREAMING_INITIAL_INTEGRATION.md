@@ -1,11 +1,11 @@
 ## Plan: Integrating `chat-stream` Feature
 
-**Objective:** Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling VoidAI API communication, enabling real-time streaming responses and cancellation.
+**Objective:** Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling API provider communication, enabling real-time streaming responses and cancellation.
 
 **1. Refactor `src/features/chat/model.ts` (Main Chat):**
 
 - **Imports:**
-  - Remove imports related to the old `sendApiRequestFx` and `VoidAIResponseBody` if no longer needed elsewhere.
+  - Remove imports related to the old `sendApiRequestFx` and `APIResponseBody` if no longer needed elsewhere.
   - Import `streamChatFx`, `abortStream`, and relevant types (e.g., `StreamChatParams`, `StreamChunkPayload`, `StreamCompletePayload`, `StreamErrorPayload`, `StreamAbortPayload`) from `@/features/chat-stream`.
 - **State:**
   - Introduce a new store to hold the ID of the currently active stream: `$activeChatStreamId = chatDomain.store<string | null>(null)`.
@@ -13,7 +13,7 @@
   - Locate the `sample` blocks that currently target `sendApiRequestFx` (for new messages, retries, and generations).
   - Change the `target` of these `sample` blocks to `streamChatFx`.
   - Modify the `fn` within these `sample` blocks to construct the `StreamChatParams` object required by `streamChatFx`. This includes:
-    - Passing the necessary VoidAI parameters (`model`, `messages`, `temperature`, `apiKey`, etc.).
+    - Passing the necessary API provider parameters (`model`, `messages`, `temperature`, `apiKey`, etc.).
     - **Crucially, defining the callback functions (`onChunk`, `onComplete`, `onError`, `onAbort`)**. These callbacks will contain the logic to update the chat state.
 - **Callback Implementation:**
   - **`onChunk(payload: StreamChunkPayload)`:**

@@ -1,7 +1,7 @@
 import React from "react";
 import { MiniChatModelSelector } from "@/features/mini-chat/MiniChatModelSelector"; // Import the new component
-import ImageGenerationModelSelector from "./ImageGenerationModelSelector";
 import { $isMobileDrawerOpen, closeSettingsDrawer } from "@/features/ui-state"; // Import close event
+import { ProviderUrlTest } from "./ProviderUrlTest";
 import {
   Box,
   Typography,
@@ -31,11 +31,13 @@ import Autocomplete from "@mui/material/Autocomplete";
 
 interface ChatSettingsPanelProps {
   apiKey: string;
+  providerApiUrl: string;
   showApiKey: boolean;
   temperature: number;
   systemPrompt: string;
   currentChatTokens: number;
   handleApiKeyChange: (v: string) => void;
+  handleProviderApiUrlChange: (v: string) => void;
   handleSystemPromptChange: (v: string) => void;
   handleTemperatureChange: (v: number) => void;
   handleClickShowApiKey: () => void;
@@ -45,11 +47,13 @@ interface ChatSettingsPanelProps {
 
 const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   apiKey,
+  providerApiUrl,
   showApiKey,
   temperature,
   systemPrompt,
   currentChatTokens,
   handleApiKeyChange,
+  handleProviderApiUrlChange,
   handleSystemPromptChange,
   handleTemperatureChange,
   handleClickShowApiKey,
@@ -139,13 +143,28 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
 
       <Box sx={{ p: 2, pb: 1 }}>
         <Tooltip
-          title="Your VoidAI API Key. Stored locally in your browser."
-          placement="left" // Change tooltip placement to avoid overlap
+          title="API base URL for your OpenAI-compatible provider."
+          placement="left"
         >
           <TextField
             size="small"
             fullWidth
-            label="VoidAI API Key"
+            label="Provider API URL"
+            variant="outlined"
+            value={providerApiUrl}
+            onChange={(e) => handleProviderApiUrlChange(e.target.value)}
+            placeholder="https://api.voidai.app/v1"
+            sx={{ mb: 2 }}
+          />
+        </Tooltip>
+        <Tooltip
+          title="Your Provider API Key. Stored locally in your browser."
+          placement="left"
+        >
+          <TextField
+            size="small"
+            fullWidth
+            label="Provider API Key"
             variant="outlined"
             type={showApiKey ? "text" : "password"}
             value={apiKey}
@@ -167,6 +186,11 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
             }}
           />
         </Tooltip>
+
+        {/* Add Provider URL Test component */}
+        <Box sx={{ mt: 1 }}>
+          <ProviderUrlTest />
+        </Box>
       </Box>
 
       {/* 
@@ -191,11 +215,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       {/* Add Mini Chat Model Selector Here */}
       <Box sx={{ px: 2, py: 1 }}>
         <MiniChatModelSelector />
-      </Box>
-
-      {/* Add Image Generation Model Selector */}
-      <Box sx={{ px: 2, py: 1 }}>
-        <ImageGenerationModelSelector />
       </Box>
 
       <Box sx={{ px: 2, pb: 2, pt: 1 }}>

@@ -1,7 +1,8 @@
 import { createDomain, sample } from "effector";
 import { debug } from "patronum/debug";
 import { persist } from "effector-storage/local";
-import { $apiKey } from "@/features/chat-settings";
+import { $apiKey, $providerApiUrl } from "@/features/chat-settings";
+import { buildImageGenerationsUrl } from "@/features/api-config";
 import { 
   ImageGenerationParams, 
   ImageGenerationResponse, 
@@ -131,12 +132,12 @@ export const removeGeneratedImage = imageGenerationDomain.event<string>("removeG
 
 // Image generation effect
 export const generateImageFx = imageGenerationDomain.effect<
-  ImageGenerationParams & { apiKey: string },
+  ImageGenerationParams & { apiKey: string; providerApiUrl: string },
   ImageGenerationResponse,
   Error
 >({
   name: "generateImageFx",
-  handler: async ({ apiKey, ...params }) => {
+  handler: async ({ apiKey, providerApiUrl, ...params }) => {
     if (!apiKey) {
       throw new Error("API key is required for image generation");
     }
@@ -191,7 +192,8 @@ export const generateImageFx = imageGenerationDomain.effect<
       requestBody.style = params.style;
     }
 
-    const response = await fetch("https://api.voidai.app/v1/images/generations", {
+    const imageGenerationsUrl = buildImageGenerationsUrl(providerApiUrl);
+    const response = await fetch(imageGenerationsUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -330,12 +332,12 @@ $imageGenerationError.reset(generateImage);
 
 // --- Sample Connections ---
 
-// Connect generateImage event to generateImageFx effect with API key
+// Connect generateImage event to generateImageFx effect with API key and provider URL
 sample({
   clock: generateImage,
-  source: $apiKey,
-  filter: (apiKey) => !!apiKey,
-  fn: (apiKey, params) => ({ ...params, apiKey }),
+  source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl },
+  filter: ({ apiKey }) => !!apiKey,
+  fn: ({ apiKey, providerApiUrl }, params) => ({ ...params, apiKey, providerApiUrl }),
   target: generateImageFx,
 });
 

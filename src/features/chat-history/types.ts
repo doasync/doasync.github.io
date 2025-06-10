@@ -52,6 +52,7 @@ export interface GenerateTitleParams {
   chatId: string;
   messages: Message[];
   apiKey: string;
+  providerApiUrl: string;
   modelId: string;
 }
 

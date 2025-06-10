@@ -123,9 +123,10 @@ export const editChatTitleHandler = async ({
 };
 
 /**
- * Generates a chat title using the VoidAI API.
+ * Generates a chat title using the configured API provider.
  */
 import { $autoTitleModelId } from "@/features/models-select/model";
+import { buildChatCompletionsUrl } from "@/features/api-config";
 const TITLE_PROMPT = `Summarize this chat conversation
   in 1-5 words (maximum conciseness). Use title case. Focus on user's intent.
   It will be used as a title. Do not mention yourself (assistant) or the user.
@@ -135,6 +136,7 @@ export const generateTitleHandler = async ({
   chatId,
   messages,
   apiKey,
+  providerApiUrl,
 }: GenerateTitleParams): Promise<GenerateTitleResult> => {
   if (!apiKey) {
     throw new Error("API key is required for title generation.");
@@ -160,7 +162,8 @@ export const generateTitleHandler = async ({
     max_tokens: 10, // Limit response length
   };
 
-  const response = await fetch("https://api.voidai.app/v1/chat/completions", {
+  const chatCompletionsUrl = buildChatCompletionsUrl(providerApiUrl);
+  const response = await fetch(chatCompletionsUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -173,7 +176,7 @@ export const generateTitleHandler = async ({
     let errorMsg = `Title generation failed! status: ${response.status}`;
     try {
       const errorBody = await response.json();
-      errorMsg = `VoidAI Title Generation API Error (${response.status}): ${errorBody.error.message}`;
+      errorMsg = `Title Generation API Error (${response.status}): ${errorBody.error.message}`;
     } catch (e) {
       /* Ignore JSON parsing error */
     }

@@ -17,6 +17,7 @@ import {
 } from "@/features/chat-stream";
 import {
   $apiKey,
+  $providerApiUrl,
   $temperature,
   $systemPrompt,
 } from "@/features/chat-settings/model";
@@ -350,12 +351,13 @@ sample({
   clock: sendMiniChatMessage,
   source: {
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     model: $miniChatModelId,
     currentMessages: $miniChat.map((s) => s.messages),
   },
   filter: ({ apiKey }) => !!apiKey,
   fn: (
-    { apiKey, model, currentMessages },
+    { apiKey, providerApiUrl, model, currentMessages },
     messageText
   ): PrepareStreamPayload => {
     const streamId = crypto.randomUUID();
@@ -395,6 +397,7 @@ sample({
       model,
       messages: messagesForApi,
       apiKey,
+      providerApiUrl,
       onChunk,
       onComplete,
       onError,

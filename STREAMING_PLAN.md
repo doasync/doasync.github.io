@@ -2,7 +2,7 @@ Okay, the analysis of `src/features/mini-chat/api.ts` confirms that it, too, use
 
 **Information Gathering Summary:**
 
-- **Objective:** Create a unified, DRY, and robust streaming architecture for VoidAI API calls using Effector and `eventsource-parser`, located in `src/features/chat-stream/`.
+- **Objective:** Create a unified, DRY, and robust streaming architecture for API provider calls using Effector and `eventsource-parser`, located in `src/features/chat-stream/`.
 - **Current State:** Both the main chat (`src/features/chat/`) and MiniChat (`src/features/mini-chat/`) features currently use standard, non-streaming `fetch` requests handled within their respective `lib.ts` and `api.ts` files via Effector effects.
 - **Key Requirements:** The new architecture must handle SSE parsing reliably, provide seamless stream abortion without cancellation messages, be stateless in its core logic (consumers handle state via callbacks), and expose a clean API via Effector.
 
@@ -10,13 +10,13 @@ Now that I have a clear picture of the existing setup and the requirements, I ca
 
 ---
 
-## Plan: Unified VoidAI Streaming Architecture
+## Plan: Unified API Provider Streaming Architecture
 
-This plan outlines the design and implementation steps for the `src/features/chat-stream/` feature, providing a unified and maintainable solution for VoidAI API streaming.
+This plan outlines the design and implementation steps for the `src/features/chat-stream/` feature, providing a unified and maintainable solution for API provider streaming.
 
 **1. Goal Recap:**
 
-Develop a reusable Effector-based feature (`chat-stream`) that encapsulates VoidAI SSE streaming logic using `eventsource-parser`. This feature will provide robust streaming, cancellation, and error handling capabilities for consumers like the main chat and MiniChat features.
+Develop a reusable Effector-based feature (`chat-stream`) that encapsulates API provider SSE streaming logic using `eventsource-parser`. This feature will provide robust streaming, cancellation, and error handling capabilities for consumers like the main chat and MiniChat features.
 
 **2. Proposed Architecture & Design:**
 
@@ -36,8 +36,8 @@ src/features/chat-stream/
 - **`types.ts`**:
 
   - Define interfaces for SSE chunks (e.g., `ParsedEvent` from `eventsource-parser`).
-  - Define types for the data payload within SSE events (e.g., `VoidAIStreamChoice`, `VoidAIStreamChunk`).
-  - Define the parameter type for the main streaming effect (`StreamChatParams`), including VoidAI API parameters (`model`, `messages`, `temperature`, etc., _ensuring `stream: true` is always set_), API key, and mandatory callback functions (`onChunk`, `onComplete`, `onError`, potentially `onStart`, `onAbort`).
+  - Define types for the data payload within SSE events (e.g., `APIStreamChoice`, `APIStreamChunk`).
+  - Define the parameter type for the main streaming effect (`StreamChatParams`), including API provider parameters (`model`, `messages`, `temperature`, etc., _ensuring `stream: true` is always set_), API key, and mandatory callback functions (`onChunk`, `onComplete`, `onError`, potentially `onStart`, `onAbort`).
   - Define the type for the `abortStream` event payload (e.g., `{ streamId: string }`).
   - Define potential structured error types for the effect's rejection.
 
@@ -45,7 +45,7 @@ src/features/chat-stream/
 
   - Implement the core asynchronous function (`fetchChatStream`) that will serve as the Effector effect's handler.
   - **Parameters:** This function will accept `StreamChatParams` (including callbacks and an `AbortSignal`).
-  - **Fetch:** Initiate the `fetch` request to VoidAI with `stream: true` and the provided `AbortSignal`.
+  - **Fetch:** Initiate the `fetch` request to API provider with `stream: true` and the provided `AbortSignal`.
   - **Error Handling:** Handle initial fetch errors (network issues, non-2xx status codes before streaming starts).
   - **Stream Reading:** Obtain the `ReadableStream` reader.
   - **Decoding:** Use `TextDecoder` to decode `Uint8Array` chunks.
@@ -110,15 +110,15 @@ src/features/chat-stream/
       participant ChatStream (chat-stream/model.ts)
       participant ChatStreamAPI (chat-stream/api.ts)
       participant EventsourceParser
-      participant VoidAIAPI
+      participant APIProvider
 
       UI->>FeatureModel: User sends message / Clicks Generate
       FeatureModel->>ChatStream: Call streamChatFx(params including callbacks, generates streamId)
       ChatStream->>ChatStreamAPI: Execute effect handler (creates AbortController, stores [streamId, controller])
-      ChatStreamAPI->>VoidAIAPI: fetch(..., stream: true, signal)
-      activate VoidAIAPI
-      VoidAIAPI-->>ChatStreamAPI: Streaming Response (ReadableStream)
-      deactivate VoidAIAPI
+      ChatStreamAPI->>APIProvider: fetch(..., stream: true, signal)
+      activate APIProvider
+      APIProvider-->>ChatStreamAPI: Streaming Response (ReadableStream)
+      deactivate APIProvider
       ChatStreamAPI->>EventsourceParser: parser.feed(chunk)
       loop Parse Chunks
           EventsourceParser->>ChatStreamAPI: onParse(event)
@@ -137,7 +137,7 @@ src/features/chat-stream/
       UI->>FeatureModel: User clicks Stop button
       FeatureModel->>ChatStream: Call abortStream({ streamId })
       ChatStream->>ChatStreamAPI: Look up AbortController, call controller.abort()
-      ChatStreamAPI->>VoidAIAPI: Abort signal received
+      ChatStreamAPI->>APIProvider: Abort signal received
       ChatStreamAPI-->>ChatStream: Reject effect promise (AbortError)
       ChatStream->>FeatureModel: Effect fails (AbortError) - handled silently or via onAbort callback
       FeatureModel->>UI: Update UI (hide Stop button, etc.)

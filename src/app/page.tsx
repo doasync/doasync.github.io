@@ -105,9 +105,11 @@ import {
 import { appStarted } from "@/app"; // Correct import path
 import {
   $apiKey,
+  $providerApiUrl,
   $temperature,
   $systemPrompt,
   apiKeyChanged,
+  providerApiUrlChanged,
   temperatureChanged,
   systemPromptChanged,
 } from "@/features/chat-settings";
@@ -159,11 +161,13 @@ export default function HomePage() {
 
   const {
     apiKey: settingsApiKey,
+    providerApiUrl,
     temperature,
     systemPrompt,
     currentChatTokens,
   } = useUnit({
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     currentChatTokens: $currentChatTokens,
@@ -305,11 +309,13 @@ export default function HomePage() {
 
   const settingsPanelProps = {
     apiKey: settingsApiKey,
+    providerApiUrl,
     showApiKey,
     temperature,
     systemPrompt,
     currentChatTokens,
     handleApiKeyChange: apiKeyChanged,
+    handleProviderApiUrlChange: providerApiUrlChanged,
     handleTemperatureChange: temperatureChanged,
     handleSystemPromptChange: systemPromptChanged,
     handleClickShowApiKey,

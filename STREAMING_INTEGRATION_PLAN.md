@@ -6,7 +6,7 @@
 
 ## 1. Objective
 
-Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling VoidAI API communication. This enables real-time streaming responses and user-triggered cancellation, while avoiding modifications to core message types by having the consumer generate and manage the stream identifier.
+Refactor the `chat` and `mini-chat` features to utilize the new `chat-stream` feature for handling API provider communication. This enables real-time streaming responses and user-triggered cancellation, while avoiding modifications to core message types by having the consumer generate and manage the stream identifier.
 
 ## 2. Pre-requisite: `chat-stream` Feature Modifications
 
@@ -30,7 +30,7 @@ Before integrating, the `chat-stream` feature needs the following adjustments:
 ### 3.1. Refactor `src/features/chat` (Main Chat)
 
 1.  **Imports:**
-    - Remove imports related to the old `sendApiRequestFx`, `sendApiRequestFn`, and `VoidAIResponseBody` if no longer used.
+    - Remove imports related to the old `sendApiRequestFx`, `sendApiRequestFn`, and `APIResponseBody` if no longer used.
     - Import `streamChatFx`, `abortStream`, and types (`StreamChatParams`, `StreamChunkPayload`, etc.) from `@/features/chat-stream`.
 2.  **State Management (`model.ts`):**
     - Define a store to hold the ID of the currently active stream for cancellation purposes:
@@ -98,7 +98,7 @@ Before integrating, the `chat-stream` feature needs the following adjustments:
 7.  **Cleanup:**
     - Remove the old `sendApiRequestFx` definition from `model.ts`.
     - Remove `sendApiRequestFn` and related helpers from `lib.ts`.
-    - Remove unused types (`VoidAIResponseBody`, etc.) from `types.ts`.
+    - Remove unused types (`APIResponseBody`, etc.) from `types.ts`.
 
 ### 3.2. Refactor `src/features/mini-chat`
 

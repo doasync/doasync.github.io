@@ -1,0 +1,1160 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "chatgpt-4o-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-haiku",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-haiku-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-haiku-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-opus",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-opus-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-opus-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3-sonnet",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-haiku",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-haiku-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-haiku-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-sonnet",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-sonnet-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-sonnet-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-sonnet-v3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.5-sonnet-v4",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.7-sonnet",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.7-sonnet-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.7-sonnet-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-3.7-sonnet-reasoning",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-opus",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-opus-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-opus-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-sonnet",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-sonnet-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-4-sonnet-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-sonnet-4",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "claude-thinking",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "anthropic",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "codestral",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "codestral-2501",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "codestral-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "codestral-mamba",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cognitivecomputations",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "cognitivecomputations/dolphin-2.9.1-llama-3-70b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cognitivecomputations",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "command-a",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cohere",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "command-r",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cohere",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "command-r-plus",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cohere",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-v3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "fireworks",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-V3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek-ai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-R1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek-ai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-R1-0528",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek-ai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-R1-Turbo",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek-ai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-ai/DeepSeek-V3-0324",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek-ai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-chat",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1-0528",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1-distill-llama-70b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cerebras",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1-distill-llama-70b-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "deepseek-r1-zero",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepseek",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "devious-uncensored",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "phoenixai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "dolphin",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "unknown",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "flux",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "flux.1-dev",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "flux.1-kontext-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "flux.1-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "flux.1-schnell",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "flux.1.1-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "blackforest-ai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "gemini-1.5-flash",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gemini-1.5-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gemini-2.0-flash",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gemini-2.0-flash-lite",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gemini-2.5-flash-preview-05-20",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gemma2-9b-it",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4-turbo",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4.1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4.1-mini",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4.1-nano",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4.5-preview",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4o",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4o-mini",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4o-mini-search-preview",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-4o-search-preview",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-image-1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "gpt-ratse",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-ratse-ger",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "gpt-search",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-2-1212",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-2-vision-1212",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-3-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-3-fast-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-3-mini",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-3-mini-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-3-mini-fast-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "grok-vision-beta",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "xai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "imagen-3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "imagen-4",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "imagen-3-5",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "google",
+      "endpoint": "/v1/images/generations"
+    },
+    {
+      "id": "llama",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "meta",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3-70b-instruct",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3-8b-instruct",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.1-70b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.1-8b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cerebras",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.1-8b-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.1-8b-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.2-11b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.2-1b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.2-3b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.2-90b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.3-70b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cerebras",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.3-70b-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-3.3-70b-versatile",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-maverick",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "meta",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-maverick-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepinfra",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-maverick-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-scout",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "meta",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-scout-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-scout-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepinfra",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-scout-v3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "llama-4-scout-v4",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "vertex",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "magistral-medium-2506",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "magistral-medium-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mercury-coder-small",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "inception",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "meta-llama/Llama-3.2-90B-Vision-Instruct",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "meta-llama",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "meta-llama/Llama-3.3-70B-Instruct",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "meta-llama",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "ministral-3b-2410",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "ministral-3b-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "ministral-8b-2410",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "ministral-8b-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-large",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-large-2411",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-large-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-medium-2505",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-medium-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-saba",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-saba-2502",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-saba-24b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-saba-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-small",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-small-2503",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistral-small-3.1-24b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistralai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "mixtral-8x22b-instruct",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "fireworks",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "morph-v2",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "morph",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "nova-lite",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "nova-micro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "nova-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "bedrock",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "o3",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "o3-mini",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "o4-mini",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "omni-moderation-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/moderations"
+    },
+    {
+      "id": "pixtral-12b-2409",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "pixtral-large",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "pixtral-large-2411",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "pixtral-large-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "mistral",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-2.5-coder-32b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "alibaba",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-14b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepinfra",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-235b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "alibaba",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-235b-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "fireworks",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-30b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepinfra",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-32b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "cerebras",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-3-32b-v1",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "deepinfra",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwen-qwq-32b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "groq",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "qwq-32b",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "alibaba",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "r1-1776",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "perplexity",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "sonar",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "perplexity",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "sonar-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "perplexity",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "sonar-reasoning",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "perplexity",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "sonar-reasoning-pro",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "perplexity",
+      "endpoint": "/v1/chat/completions"
+    },
+    {
+      "id": "text-moderation-latest",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/moderations"
+    },
+    {
+      "id": "text-moderation-stable",
+      "object": "model",
+      "created": 1749028256,
+      "owned_by": "openai",
+      "endpoint": "/v1/moderations"
+    }
+  ]
+}

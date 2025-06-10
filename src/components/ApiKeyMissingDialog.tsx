@@ -73,8 +73,8 @@ export default function ApiKeyMissingDialog() {
       </DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-slide-description">
-          Your VoidAI API key is missing. Please enter it in Chat Settings to
-          enable sending messages.
+          Your API key is missing. Please enter it in Chat Settings to enable
+          sending messages.
         </DialogContentText>
       </DialogContent>
       <DialogActions>

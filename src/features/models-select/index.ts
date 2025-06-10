@@ -23,4 +23,9 @@ export {
   setShowFreeOnly,
   modelSelectorFocused,
   autoSelectModelForCapabilities,
+  testProviderUrl, // Triggered to test URL connectivity
+
+  // URL Testing stores
+  $isTestingUrl,
+  $urlTestResult,
 } from "./model";

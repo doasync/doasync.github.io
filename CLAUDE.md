@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 Build and development commands:
+
 ```bash
 npm run dev        # Start development server with Turbopack
 npm run build      # Create production build (static export to out/)
@@ -14,9 +15,10 @@ npm run lint       # Run ESLint
 
 ## Architecture Overview
 
-This is a Next.js chat application using Effector for state management. The app integrates with VoidAI API (OpenRouter-compatible) for LLM interactions.
+This is a Next.js chat application using Effector for state management. The app integrates with OpenAI-compatible API for LLM interactions.
 
 ### Key Technologies
+
 - **Framework**: Next.js 15 with App Router and TypeScript
 - **State Management**: Effector with patronum utilities
 - **UI**: Material UI (MUI) v7
@@ -40,6 +42,7 @@ src/features/
 ```
 
 Each feature follows this pattern:
+
 - `model.ts` - Effector state management (stores, events, effects)
 - `index.ts` - Public API exports
 - `types.ts` - TypeScript interfaces (if needed)
@@ -56,6 +59,7 @@ All state logic uses Effector and follows these conventions:
 5. Debug logging is enabled in development via `patronum/debug`
 
 Example pattern:
+
 ```typescript
 const $store = createStore(initialValue);
 const event = createEvent<Payload>();
@@ -75,12 +79,13 @@ sample({
 
 2. **Message Handling**: Messages support rich content including Markdown, LaTeX math (KaTeX), code highlighting (Prism), and Mermaid diagrams.
 
-3. **Storage**: 
+3. **Storage**:
+
    - Chat history uses IndexedDB with the `idb` library
    - Settings and API key use LocalStorage
    - Auto-save is debounced to prevent excessive writes
 
-4. **API Integration**: All LLM calls go through VoidAI API endpoint with OpenRouter-compatible format.
+4. **API Integration**: All LLM calls go through API endpoint with OpenAI-compatible format.
 
 5. **Static Export**: The app is configured for static export (`output: 'export'`), meaning no server-side rendering.
 
@@ -96,17 +101,20 @@ sample({
 ### Common Tasks
 
 **Adding a new feature:**
+
 1. Create a new directory under `src/features/`
 2. Add `model.ts` with state logic
 3. Export public API through `index.ts`
 4. Connect to main app in `src/app/page.tsx` if needed
 
 **Modifying chat behavior:**
+
 - Main logic is in `src/features/chat/model.ts`
 - Streaming logic is in `src/features/chat-stream/model.ts`
 - UI components are in `src/components/MessageItem.tsx`
 
 **Debugging state:**
+
 - Effector debug logs are enabled in development
 - Check browser console for detailed state flow
 - Use Effector DevTools browser extension for inspection

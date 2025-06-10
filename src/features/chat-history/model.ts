@@ -13,7 +13,7 @@ import {
   normalResponseProcessed, // For saving after normal API responses
   assistantResponseCompleted, // Added: For saving after generate/retry completion
 } from "@/features/chat";
-import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
+import { $apiKey, $providerApiUrl, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $autoTitleModelId } from "@/features/models-select/model";
 import { $availableModels, ModelInfo } from "@/features/models-select";
 import { $selectedModelId } from "@/features/models-select";
@@ -167,6 +167,7 @@ export const regenerateTitleForChatFx = historyDomain.effect<
 
 regenerateTitleForChatFx.use(async (chatId) => {
   const apiKey = $apiKey.getState();
+  const providerApiUrl = $providerApiUrl.getState();
   if (!apiKey) throw new Error("API key is missing");
 
   const chat = await loadSpecificChatHandler(chatId);
@@ -178,6 +179,7 @@ regenerateTitleForChatFx.use(async (chatId) => {
     chatId,
     messages: chat.messages,
     apiKey,
+    providerApiUrl,
     modelId: $selectedModelId.getState(),
   });
 
@@ -531,15 +533,16 @@ sample({
 // Trigger title generation after the first save of a new chat
 sample({
   clock: saveChatFx.done,
-  source: $apiKey,
-  filter: (apiKey, { params: savedChat }) =>
+  source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl },
+  filter: ({ apiKey }, { params: savedChat }) =>
     !!apiKey && 
     savedChat.messages.length >= 2 && 
     (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(savedChat.title) || !savedChat.title), // Generate if no title or has timestamp title
-  fn: (apiKey, { params: savedChat }): GenerateTitleParams => ({
+  fn: ({ apiKey, providerApiUrl }, { params: savedChat }): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
     apiKey: apiKey,
+    providerApiUrl: providerApiUrl,
     modelId: $autoTitleModelId.getState(),
   }),
   target: generateTitleFx,
@@ -559,13 +562,14 @@ sample({
 // Trigger title generation manually via event
 sample({
   clock: generateTitle,
-  source: { apiKey: $apiKey, currentChat: $currentChatSession },
+  source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl, currentChat: $currentChatSession },
   filter: ({ apiKey, currentChat }) =>
     !!apiKey && !!currentChat && currentChat.messages.length > 0,
-  fn: ({ apiKey, currentChat }) => ({
+  fn: ({ apiKey, providerApiUrl, currentChat }) => ({
     chatId: currentChat!.id,
     messages: currentChat!.messages,
     apiKey: apiKey,
+    providerApiUrl: providerApiUrl,
     modelId: $autoTitleModelId.getState(),
   }),
   target: generateTitleFx,

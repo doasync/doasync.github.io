@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-The Main Chat Interface is the central feature of this application, providing users with the primary means to interact with various Large Language Models (LLMs) facilitated through the VoidAI API. This feature is responsible for managing the current chat session's messages, handling user input, orchestrating message-related actions (sending, editing, deleting, retrying, generating new responses), and displaying the conversation. It deeply integrates with the `chat-stream` feature ([`src/features/chat-stream/FRD.md`](../chat-stream/FRD.md:1)) to deliver real-time, streaming responses from LLMs.
+The Main Chat Interface is the central feature of this application, providing users with the primary means to interact with various Large Language Models (LLMs) facilitated through the API provider. This feature is responsible for managing the current chat session's messages, handling user input, orchestrating message-related actions (sending, editing, deleting, retrying, generating new responses), and displaying the conversation. It deeply integrates with the `chat-stream` feature ([`src/features/chat-stream/FRD.md`](../chat-stream/FRD.md:1)) to deliver real-time, streaming responses from LLMs.
 
 As a client-side only application, the chat feature manages its state locally using Effector. It collaborates with other features such as `chat-settings` ([`src/features/chat-settings/model.ts`](../chat-settings/model.ts:1)) for API key and model parameters, `models-select` ([`src/features/models-select/model.ts`](../models-select/model.ts:1)) for LLM selection, and `chat-history` ([`src/features/chat-history/model.ts`](../chat-history/model.ts:1)) for persistence of conversations and message drafts. The overall vision is guided by the Product Requirements Document ([`PRD.md`](../../PRD.md:1)).
 
@@ -19,7 +19,7 @@ As a client-side only application, the chat feature manages its state locally us
 
 Derived from the [`PRD.md`](../../PRD.md:17) (Section 2), the primary goals for the Main Chat Interface are:
 
-- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via VoidAI.
+- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via the API provider.
 - Enable robust chat message interactions including copy, **editing of both user and model messages** ([`PRD.md`](../../PRD.md:21)), delete, and retry with resubmission capabilities.
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams ([`PRD.md`](../../PRD.md:22)).
 - **Persist in-progress message drafts** per chat session with debounce, restoring drafts on reload ([`PRD.md`](../../PRD.md:26)), facilitated via `chat-history`.
@@ -33,10 +33,10 @@ Derived from the [`PRD.md`](../../PRD.md:17) (Section 2), the primary goals for 
 
 The Main Chat Interface feature does NOT directly handle:
 
-- **Direct API Communication:** All direct calls to the VoidAI API for streaming chat completions are delegated to the `chat-stream` feature.
+- **Direct API Communication:** All direct calls to the API provider for streaming chat completions are delegated to the `chat-stream` feature.
 - **Model List Management:** Fetching, storing, and filtering the list of available LLM models is the responsibility of the `models-select` feature.
 - **Chat History Persistence:** Long-term storage, retrieval, and management of multiple chat sessions (including titles, timestamps, deletion, duplication) are handled by the `chat-history` feature.
-- **Global Settings Management:** Storage and management of the VoidAI API key and other global application settings (like the "show free models only" toggle) are handled by the `chat-settings` feature.
+- **Global Settings Management:** Storage and management of the API key and other global application settings (like the "show free models only" toggle) are handled by the `chat-settings` feature.
 - **Rich Content Rendering Implementation:** While the chat feature manages message objects containing potentially rich content, the actual parsing and rendering logic for Markdown, LaTeX, Mermaid diagrams, and syntax-highlighted code blocks is delegated to specific UI components like `MarkdownRenderer.tsx` ([`src/components/MarkdownRenderer.tsx`](../../components/MarkdownRenderer.tsx:1)) and `MessageItem.tsx` ([`src/components/MessageItem.tsx`](../../components/MessageItem.tsx:1)).
 - **Client-Side Token Estimation Algorithms:** The `chat` feature provides the message data, but any complex token counting or cost estimation logic is handled by the `usage-info` feature ([`src/features/usage-info/model.ts`](../usage-info/model.ts:1)), as per [`PRD.md`](../../PRD.md:201).
 - **Advanced File Management:** Implementation of file attachments beyond basic text and image concepts outlined in the [`PRD.md`](../../PRD.md:24) (e.g., complex upload UI, previews for various file types) is out of scope for this core chat FRD.
@@ -316,7 +316,7 @@ The `chat` feature acts as a consumer of the `chat-stream` feature for all LLM i
 ## 8. Constraints & Risks
 
 - **Complexity:** The state management for various message generation flows (normal send, retry user, retry assistant, generate) and the precise construction of `messagesForApi` for each case is complex and error-prone if not handled carefully.
-- **External Dependencies:** Heavy reliance on `chat-stream` for all API interactions. Any issues in `chat-stream` will directly impact the chat feature. Reliance on the VoidAI API's availability and performance.
+- **External Dependencies:** Heavy reliance on `chat-stream` for all API interactions. Any issues in `chat-stream` will directly impact the chat feature. Reliance on the API provider's availability and performance.
 - **State Synchronization:** Ensuring that UI state, Effector store state, and persisted state (via `chat-history`) remain consistent, especially around message edits, deletions, and retries.
 - **`Message.content` Type:** The `string | any` type for `Message.content` offers flexibility but lacks strict type safety for future non-string content types (e.g., structured data for tool calls, image URLs). This could lead to runtime errors if not handled carefully by rendering components.
 - **Performance:** While Effector is efficient, very long chat histories held in the in-memory `$messages` array could potentially degrade UI performance on less powerful devices if not paired with UI virtualization techniques (which is a UI concern, not model logic).
@@ -444,7 +444,7 @@ graph TD
     end
 
     subgraph External Systems & Features
-        FX_streamChat -- Interacts with --> Ext_VoidAI[VoidAI API]
+        FX_streamChat -- Interacts with --> Ext_APIProvider[API Provider]
         S_messages -- Data for --> Ext_UsageInfo[usage-info Feature: Calculates Tokens/Cost]
         EV_initialChatSaveNeeded --> Ext_ChatHistory[chat-history Feature: Save New Session to IndexedDB]
         EV_normProcessed --> Ext_ChatHistory[Save Updated Session to IndexedDB]
@@ -485,7 +485,7 @@ The line count is 469.
 
 ## 1. Overview
 
-The Main Chat Interface is the central feature of this application, providing users with the primary means to interact with various Large Language Models (LLMs) facilitated through the VoidAI API. This feature is responsible for managing the current chat session's messages, handling user input, orchestrating message-related actions (sending, editing, deleting, retrying, generating new responses), and displaying the conversation. It deeply integrates with the `chat-stream` feature ([`src/features/chat-stream/FRD.md`](../chat-stream/FRD.md:1)) to deliver real-time, streaming responses from LLMs.
+The Main Chat Interface is the central feature of this application, providing users with the primary means to interact with various Large Language Models (LLMs) facilitated through the API provider. This feature is responsible for managing the current chat session's messages, handling user input, orchestrating message-related actions (sending, editing, deleting, retrying, generating new responses), and displaying the conversation. It deeply integrates with the `chat-stream` feature ([`src/features/chat-stream/FRD.md`](../chat-stream/FRD.md:1)) to deliver real-time, streaming responses from LLMs.
 
 As a client-side only application, the chat feature manages its state locally using Effector. It collaborates with other features such as `chat-settings` ([`src/features/chat-settings/model.ts`](../chat-settings/model.ts:1)) for API key and model parameters, `models-select` ([`src/features/models-select/model.ts`](../models-select/model.ts:1)) for LLM selection, and `chat-history` ([`src/features/chat-history/model.ts`](../chat-history/model.ts:1)) for persistence of conversations and message drafts. The overall vision is guided by the Product Requirements Document ([`PRD.md`](../../PRD.md:1)).
 
@@ -495,7 +495,7 @@ As a client-side only application, the chat feature manages its state locally us
 
 Derived from the [`PRD.md`](../../PRD.md:17) (Section 2), the primary goals for the Main Chat Interface are:
 
-- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via VoidAI.
+- Provide a clean, intuitive, and responsive user interface for chatting with selected LLMs via the API provider.
 - Enable robust chat message interactions including copy, **editing of both user and model messages** ([`PRD.md`](../../PRD.md:21)), delete, and retry with resubmission capabilities.
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams ([`PRD.md`](../../PRD.md:22)).
 - **Persist in-progress message drafts** per chat session with debounce, restoring drafts on reload ([`PRD.md`](../../PRD.md:26)), facilitated via `chat-history`.
@@ -509,10 +509,10 @@ Derived from the [`PRD.md`](../../PRD.md:17) (Section 2), the primary goals for 
 
 The Main Chat Interface feature does NOT directly handle:
 
-- **Direct API Communication:** All direct calls to the VoidAI API for streaming chat completions are delegated to the `chat-stream` feature.
+- **Direct API Communication:** All direct calls to the API provider for streaming chat completions are delegated to the `chat-stream` feature.
 - **Model List Management:** Fetching, storing, and filtering the list of available LLM models is the responsibility of the `models-select` feature.
 - **Chat History Persistence:** Long-term storage, retrieval, and management of multiple chat sessions (including titles, timestamps, deletion, duplication) are handled by the `chat-history` feature.
-- **Global Settings Management:** Storage and management of the VoidAI API key and other global application settings (like the "show free models only" toggle) are handled by the `chat-settings` feature.
+- **Global Settings Management:** Storage and management of the API key and other global application settings (like the "show free models only" toggle) are handled by the `chat-settings` feature.
 - **Rich Content Rendering Implementation:** While the chat feature manages message objects containing potentially rich content, the actual parsing and rendering logic for Markdown, LaTeX, Mermaid diagrams, and syntax-highlighted code blocks is delegated to specific UI components like `MarkdownRenderer.tsx` ([`src/components/MarkdownRenderer.tsx`](../../components/MarkdownRenderer.tsx:1)) and `MessageItem.tsx` ([`src/components/MessageItem.tsx`](../../components/MessageItem.tsx:1)).
 - **Client-Side Token Estimation Algorithms:** The `chat` feature provides the message data, but any complex token counting or cost estimation logic is handled by the `usage-info` feature ([`src/features/usage-info/model.ts`](../usage-info/model.ts:1)), as per [`PRD.md`](../../PRD.md:201).
 - **Advanced File Management:** Implementation of file attachments beyond basic text and image concepts outlined in the [`PRD.md`](../../PRD.md:24) (e.g., complex upload UI, previews for various file types) is out of scope for this core chat FRD.
@@ -792,7 +792,7 @@ The `chat` feature acts as a consumer of the `chat-stream` feature for all LLM i
 ## 8. Constraints & Risks
 
 - **Complexity:** The state management for various message generation flows (normal send, retry user, retry assistant, generate) and the precise construction of `messagesForApi` for each case is complex and error-prone if not handled carefully.
-- **External Dependencies:** Heavy reliance on `chat-stream` for all API interactions. Any issues in `chat-stream` will directly impact the chat feature. Reliance on the VoidAI API's availability and performance.
+- **External Dependencies:** Heavy reliance on `chat-stream` for all API interactions. Any issues in `chat-stream` will directly impact the chat feature. Reliance on the API provider's availability and performance.
 - **State Synchronization:** Ensuring that UI state, Effector store state, and persisted state (via `chat-history`) remain consistent, especially around message edits, deletions, and retries.
 - **`Message.content` Type:** The `string | any` type for `Message.content` offers flexibility but lacks strict type safety for future non-string content types (e.g., structured data for tool calls, image URLs). This could lead to runtime errors if not handled carefully by rendering components.
 - **Performance:** While Effector is efficient, very long chat histories held in the in-memory `$messages` array could potentially degrade UI performance on less powerful devices if not paired with UI virtualization techniques (which is a UI concern, not model logic).
@@ -920,7 +920,7 @@ graph TD
     end
 
     subgraph External Systems & Features
-        FX_streamChat -- Interacts with --> Ext_VoidAI[VoidAI API]
+        FX_streamChat -- Interacts with --> Ext_APIProvider[API Provider]
         S_messages -- Data for --> Ext_UsageInfo[usage-info Feature: Calculates Tokens/Cost]
         EV_initialChatSaveNeeded --> Ext_ChatHistory[chat-history Feature: Save New Session to IndexedDB]
         EV_normProcessed --> Ext_ChatHistory[Save Updated Session to IndexedDB]

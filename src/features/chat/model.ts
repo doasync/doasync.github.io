@@ -1,6 +1,6 @@
 import { sample, createDomain, createEvent } from "effector"; // Removed split
 import { debug } from "patronum/debug";
-import { $apiKey, $temperature, $systemPrompt } from "@/features/chat-settings";
+import { $apiKey, $providerApiUrl, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { 
   $selectedModelId, 
   $currentModelSupportsVision,
@@ -524,15 +524,17 @@ sample({
   clock: imageGenerationRequested,
   source: {
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     selectedModel: $selectedImageGenModel,
     settings: $imageGenerationSettings,
   },
   filter: ({ apiKey }) => !!apiKey,
-  fn: ({ apiKey, selectedModel, settings }, command) => {
+  fn: ({ apiKey, providerApiUrl, selectedModel, settings }, command) => {
     const { prompt, params } = parseImageGenerationCommand(command);
     
-    const imageGenParams: ImageGenerationParams & { apiKey: string } = {
+    const imageGenParams: ImageGenerationParams & { apiKey: string; providerApiUrl: string } = {
       apiKey,
+      providerApiUrl,
       prompt,
       model: selectedModel,
       size: params.size || settings.size,
@@ -914,6 +916,7 @@ sample({
   source: {
     messages: $messages, // messages as it is *before* the new user message (since userMessageCreated already updated it)
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
@@ -923,6 +926,7 @@ sample({
     sourceData: {
       messages: Message[]; // This `messages` already includes the new `userMessage` due to `userMessageCreated` effect.
       apiKey: string;
+      providerApiUrl: string;
       temperature: number;
       systemPrompt: string;
       selectedModelId: string;
@@ -930,7 +934,7 @@ sample({
     userMessage: Message // The user message that was just created and added
   ): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -989,6 +993,7 @@ sample({
       model: selectedModelId,
       messages: messagesWithSystem, // Send history with system prompt and user message
       apiKey,
+      providerApiUrl,
       temperature,
       onChunk,
       onComplete,
@@ -1015,6 +1020,7 @@ sample({
   source: {
     messages: $messages,
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
@@ -1023,12 +1029,13 @@ sample({
   fn: (sourceData: {
     messages: Message[];
     apiKey: string;
+    providerApiUrl: string;
     temperature: number;
     systemPrompt: string;
     selectedModelId: string;
   }): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -1113,6 +1120,7 @@ sample({
       model: selectedModelId,
       messages: messagesWithSystem,
       apiKey,
+      providerApiUrl,
       temperature,
       onChunk,
       onComplete,
@@ -1138,6 +1146,7 @@ sample({
   source: {
     messages: $messages,
     apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
@@ -1145,6 +1154,7 @@ sample({
   filter: (
     sourceData: {
       apiKey: string | null;
+      providerApiUrl: string;
       messages: Message[];
       temperature: number;
       systemPrompt: string;
@@ -1153,6 +1163,7 @@ sample({
     messageToRetry: Message
   ): sourceData is {
     apiKey: string;
+    providerApiUrl: string;
     messages: Message[];
     temperature: number;
     systemPrompt: string;
@@ -1160,7 +1171,7 @@ sample({
   } => !!sourceData.apiKey && isRetryableMessage(messageToRetry),
   fn: (sourceData, messageToRetry): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -1217,6 +1228,7 @@ sample({
       model: modelId, // Use modelId from prepareRetryRequestParamsFn
       messages: messagesWithSystem, // Use sliced history with system prompt
       apiKey,
+      providerApiUrl,
       temperature,
       onChunk: ({ chunk }: StreamChunkPayload) => {
         const content = chunk.choices?.[0]?.delta?.content;
