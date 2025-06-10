@@ -126,10 +126,7 @@ export default function HomePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [messages, messageText] = useUnit([
-    $messages, 
-    $messageText,
-  ]);
+  const [messages, messageText] = useUnit([$messages, $messageText]);
   const lastMessage =
     messages.length > 0 ? messages[messages.length - 1] : null;
 
@@ -175,6 +172,7 @@ export default function HomePage() {
   const [historySearchTerm, setHistorySearchTerm] = React.useState("");
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
+  const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
   );
@@ -268,7 +266,9 @@ export default function HomePage() {
 
     const isInputEmpty = messageText.trim().length === 0;
     // Check for pending images
-    const pendingImages = messages.filter(m => m.status === 'pending' && m.role === 'user');
+    const pendingImages = messages.filter(
+      (m) => m.status === "pending" && m.role === "user"
+    );
     const hasPendingImages = pendingImages.length > 0;
     const isLastMessageUser = lastMessage?.role === "user";
 
@@ -608,16 +608,29 @@ export default function HomePage() {
             </Alert>
           </Container>
         )}
-        <LinearProgress
-          color="secondary"
-          sx={{
-            top: 1,
-            poosition: "absolute",
-            width: "100%",
-            height: "1px",
-            visibility: isGenerating ? "visible" : "hidden",
-          }}
-        />
+        {/* Progress bars above input */}
+        <Box sx={{ width: "100%" }}>
+          {/* Progress bar for generation (green/blue) */}
+          <LinearProgress
+            color="secondary"
+            sx={{
+              width: "100%",
+              height: "1px",
+              top: "2px", // Overlap with the border
+              visibility: isGenerating && !isRecording ? "visible" : "hidden",
+            }}
+          />
+          {/* Progress bar for recording (red) */}
+          <LinearProgress
+            color="error"
+            sx={{
+              width: "100%",
+              height: "1px",
+              top: "1px", // Overlap with the border
+              visibility: isRecording ? "visible" : "hidden",
+            }}
+          />
+        </Box>
         {/* Input Area Wrapper - Sticks to the bottom */}
         <Paper
           square
@@ -653,11 +666,12 @@ export default function HomePage() {
               }}
             >
               {/* Consolidated Attachment Menu - positioned on the far left */}
-              <AttachmentMenu 
-                disabled={isGenerating} 
+              <AttachmentMenu
+                disabled={isGenerating}
                 onImageGenerationClick={() => setImageGenDialogOpen(true)}
+                onRecordingStateChange={setIsRecording}
               />
-              
+
               {/* Text Input Field - flexible width between buttons */}
               <TextField
                 fullWidth
@@ -672,7 +686,7 @@ export default function HomePage() {
                 onFocus={() => mainInputFocused(true)} // Trigger event on focus
                 onBlur={() => mainInputFocused(false)} // Trigger event on blur
               />
-              
+
               {/* Send/Stop Button - positioned on the far right */}
               <Box sx={{ position: "relative" }}>
                 {isGenerating ? (
@@ -690,13 +704,21 @@ export default function HomePage() {
                   // Calculate disabled state based on new logic only when not generating
                   (() => {
                     const isInputEmpty = messageText.trim().length === 0;
-                    const pendingImages = messages.filter(m => m.status === 'pending' && m.role === 'user');
+                    const pendingImages = messages.filter(
+                      (m) => m.status === "pending" && m.role === "user"
+                    );
                     const hasPendingImages = pendingImages.length > 0;
                     const lastMessage =
-                      messages.length > 0 ? messages[messages.length - 1] : null;
+                      messages.length > 0
+                        ? messages[messages.length - 1]
+                        : null;
                     const isLastMessageUser = lastMessage?.role === "user";
-                    // Disable if (input is empty AND no pending images AND last message was NOT user)
-                    const isDisabled = isInputEmpty && !hasPendingImages && !isLastMessageUser;
+                    // Disable if (input is empty AND no pending images AND last message was NOT user) OR if recording
+                    const isDisabled =
+                      (isInputEmpty &&
+                        !hasPendingImages &&
+                        !isLastMessageUser) ||
+                      isRecording;
 
                     return (
                       <IconButton

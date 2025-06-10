@@ -141,7 +141,10 @@ const getFileTypeDescription = (mimeType: string): string => {
 };
 
 // Helper function to format duration
-const formatDuration = (seconds: number): string => {
+const formatDuration = (seconds: number | undefined): string => {
+  if (!seconds || !isFinite(seconds) || isNaN(seconds)) {
+    return "Unknown";
+  }
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -484,8 +487,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               }}
                             >
                               {attachment.fileName} • {formatFileSize(attachment.size)} • {getFileTypeDescription(attachment.mimeType)}
-                              {attachment.metadata?.duration && (
+                              {attachment.metadata?.duration !== undefined ? (
                                 <> • Duration: {formatDuration(attachment.metadata.duration)}</>
+                              ) : (
+                                <> • Duration: Unknown</>
                               )}
                             </Typography>
                           )}

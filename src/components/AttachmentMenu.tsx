@@ -10,10 +10,9 @@ import {
   Typography,
   Tooltip,
   Alert,
-  CircularProgress,
   Divider,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Upload";
+import AddIcon from "@mui/icons-material/MoreVert";
 import ImageIcon from "@mui/icons-material/Image";
 import AudioFileIcon from "@mui/icons-material/Audiotrack";
 import MicIcon from "@mui/icons-material/Mic";
@@ -51,23 +50,23 @@ const SUPPORTED_AUDIO_TYPES = [
 interface AttachmentMenuProps {
   disabled?: boolean;
   onImageGenerationClick?: () => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
 }
 
 export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   disabled = false,
   onImageGenerationClick,
+  onRecordingStateChange,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingStartTimeRef = useRef<number | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
     null
   );
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [
     isProcessingFile,
@@ -176,9 +175,12 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
         },
       });
 
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+      // Prefer M4A format for better metadata support
+      const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
-        : "audio/mp4";
+        : "audio/wav";
 
       const recorder = new MediaRecorder(stream, { mimeType });
       const chunks: Blob[] = [];
@@ -191,9 +193,17 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
 
       recorder.onstop = async () => {
         const audioBlob = new Blob(chunks, { type: mimeType });
+        // Determine proper file extension
+        const extensionMap: Record<string, string> = {
+          "audio/mp4": "m4a",
+          "audio/webm": "webm", 
+          "audio/wav": "wav"
+        };
+        const extension = extensionMap[mimeType] || "mp3";
+        
         const audioFile = new File(
           [audioBlob],
-          `recording_${Date.now()}.${mimeType.split("/")[1]}`,
+          `recording_${Date.now()}.${extension}`,
           {
             type: mimeType,
           }
@@ -203,30 +213,22 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
 
         // Clean up
         stream.getTracks().forEach((track) => track.stop());
-        setAudioChunks([]);
-        setRecordingDuration(0);
-        if (recordingIntervalRef.current) {
-          clearInterval(recordingIntervalRef.current);
-          recordingIntervalRef.current = null;
-        }
+        recordingStartTimeRef.current = null;
+        onRecordingStateChange?.(false);
       };
 
       recorder.onerror = (event) => {
         console.error("Recording error:", event);
         setIsRecording(false);
         setMediaRecorder(null);
+        onRecordingStateChange?.(false);
         stream.getTracks().forEach((track) => track.stop());
       };
 
       setMediaRecorder(recorder);
-      setAudioChunks(chunks);
       setIsRecording(true);
-      setRecordingDuration(0);
-
-      // Start duration counter
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
+      recordingStartTimeRef.current = Date.now();
+      onRecordingStateChange?.(true);
 
       recorder.start();
     } catch (error) {
@@ -239,27 +241,22 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
       mediaRecorder.stop();
       setIsRecording(false);
       setMediaRecorder(null);
+      onRecordingStateChange?.(false);
+      
+      // Clear the recording state
+      recordingStartTimeRef.current = null;
     }
   };
 
   // Cleanup effect
   useEffect(() => {
     return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
       }
     };
   }, [mediaRecorder]);
 
-  // Format recording duration
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   // Show warnings for unsupported models
   const showVisionWarning = !modelSupportsVision;
@@ -295,8 +292,10 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
           vertical: "bottom",
           horizontal: "left",
         }}
-        PaperProps={{
-          sx: { minWidth: 200 },
+        slotProps={{
+          paper: {
+            sx: { minWidth: 200 },
+          },
         }}
       >
         <MenuItem
@@ -378,30 +377,6 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
         multiple={true}
       />
 
-      {/* Recording indicator */}
-      {isRecording && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: -60,
-            left: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            backgroundColor: "error.main",
-            color: "error.contrastText",
-            px: 2,
-            py: 1,
-            borderRadius: 1,
-            zIndex: 10,
-          }}
-        >
-          <CircularProgress size={16} color="inherit" />
-          <Typography variant="caption">
-            Recording: {formatDuration(recordingDuration)}
-          </Typography>
-        </Box>
-      )}
 
       {/* Processing indicator */}
       {isProcessingFile && (

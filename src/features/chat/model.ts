@@ -268,25 +268,68 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         };
       } else {
         // Audio file
-        // Get audio duration if possible
+        // Get audio duration with improved handling for different formats
         const duration = await new Promise<number | undefined>((resolve) => {
           const audio = new Audio();
+          let resolved = false;
+          
+          const resolveWithValue = (value: number | undefined, source: string) => {
+            if (!resolved) {
+              resolved = true;
+              if (value && isFinite(value) && !isNaN(value) && value > 0) {
+                console.log(`Audio duration extracted from ${source}:`, value);
+                resolve(value);
+              } else {
+                console.log(`Invalid duration from ${source}:`, value);
+                resolve(undefined);
+              }
+            }
+          };
+          
+          // Multiple event handlers for different browsers/formats
           audio.onloadedmetadata = () => {
-            resolve(audio.duration);
+            console.log("Audio metadata loaded, duration:", audio.duration);
+            resolveWithValue(audio.duration, 'loadedmetadata');
           };
-          audio.onerror = () => {
-            resolve(undefined); // Fallback if duration can't be determined
+          
+          audio.oncanplaythrough = () => {
+            console.log("Audio can play through, duration:", audio.duration);
+            resolveWithValue(audio.duration, 'canplaythrough');
           };
+          
+          audio.ondurationchange = () => {
+            console.log("Audio duration changed:", audio.duration);
+            resolveWithValue(audio.duration, 'durationchange');
+          };
+          
+          audio.onerror = (e) => {
+            console.log("Audio loading error:", e);
+            resolveWithValue(undefined, 'error');
+          };
+          
+          // Shorter timeout for better UX
+          setTimeout(() => {
+            console.log("Audio duration extraction timeout for format:", file.type);
+            resolveWithValue(undefined, 'timeout');
+          }, 3000);
+          
+          // Set source and preload
+          audio.preload = 'metadata';
           audio.src = dataUrl;
+          audio.load();
         });
         
         // Extract format from MIME type
         const formatMap: Record<string, string> = {
           'audio/wav': 'wav',
           'audio/mp3': 'mp3',
+          'audio/mpeg': 'mp3',
+          'audio/mp4': 'mp4',
+          'audio/m4a': 'mp4',
           'audio/flac': 'flac',
           'audio/ogg': 'opus',
-          'audio/webm': 'opus'
+          'audio/webm': 'opus',
+          'audio/aac': 'aac'
         };
         const format = formatMap[file.type] || 'mp3';
         
