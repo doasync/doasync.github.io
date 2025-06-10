@@ -194,10 +194,8 @@ sample({
   target: regenerateTitleForChatFx,
 });
 
-sample({
-  clock: regenerateTitleForChatFx.done,
-  target: loadChatHistoryIndexFx,
-});
+// Removed automatic history reload after title regeneration
+// The title is already updated via the normal save flow
 
 // --- Stores ---
 export const $chatHistoryIndex = historyDomain.store<ChatHistoryIndex[]>([], {
@@ -258,15 +256,8 @@ sample({
   target: $chatHistoryIndex,
 });
 
-sample({
-  source: $currentChatSession.updates,
-  filter: (session): session is ChatSession =>
-    session !== null &&
-    session.messages.length === 2 &&
-    (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(session.title) ||
-      session.title.trim() === ""),
-  target: regenerateTitleForChat.prepend((session: ChatSession) => session.id),
-});
+// Removed automatic title regeneration on session updates
+// Title generation is now handled only by the save-based trigger (lines 539-551)
 
 // Update $chatHistoryIndex when a chat title is edited
 sample({
@@ -337,12 +328,20 @@ export const restoreChatSession = historyDomain.event<string | null>(
   "restoreChatSession"
 );
 
+// Track if we're in initial startup phase
+const $isAppStartup = historyDomain.store(false, { name: "$isAppStartup" });
+$isAppStartup.on(appStarted, () => true);
+$isAppStartup.on(restoreChatSession, () => false);
+
+// Only trigger restoration during app startup
 sample({
   clock: loadChatHistoryIndexFx.done,
   source: {
     activeId: $activeChatId,
     chatHistory: $chatHistoryIndex,
+    isAppStartup: $isAppStartup,
   },
+  filter: ({ isAppStartup }) => isAppStartup, // Only during app startup
   fn: ({ activeId, chatHistory }) => {
     if (activeId && chatHistory.some((c) => c.id === activeId)) {
       return activeId;
@@ -534,7 +533,9 @@ sample({
   clock: saveChatFx.done,
   source: $apiKey,
   filter: (apiKey, { params: savedChat }) =>
-    !!apiKey && savedChat.messages.length > 0 && !savedChat.title, // Only generate if title doesn't exist
+    !!apiKey && 
+    savedChat.messages.length >= 2 && 
+    (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(savedChat.title) || !savedChat.title), // Generate if no title or has timestamp title
   fn: (apiKey, { params: savedChat }): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
@@ -572,9 +573,21 @@ sample({
 
 // --- Debugging ---
 
-// Optional: Log errors during title generation
+// Debug title generation flow
+generateTitleFx.done.watch(({ params, result }) => {
+  console.log(`[DEBUG] Title generated for chat ${params.chatId}:`, result.generatedTitle);
+});
+
 generateTitleFx.fail.watch(({ error, params }) => {
   console.error(`Failed to generate title for chat ${params.chatId}:`, error);
+});
+
+editChatTitleFx.done.watch(({ params, result }) => {
+  console.log(`[DEBUG] Title edited for chat ${params.id}:`, params.newTitle, "Result:", result);
+});
+
+editChatTitleFx.fail.watch(({ error, params }) => {
+  console.error(`Failed to edit title for chat ${params.id}:`, error);
 });
 
 // Debug watches for development
@@ -628,6 +641,7 @@ debug(
   $isLoadingHistory,
   $isSavingChat,
   $isLoadingChat,
+  $isAppStartup,
   // Events
   appStarted,
   loadChatHistory,

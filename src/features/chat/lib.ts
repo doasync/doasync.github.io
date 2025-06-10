@@ -115,7 +115,7 @@ export const formatMessagesForAPI = (
 }> => {
   const isGPTModel = modelId.includes("gpt") || modelId.includes("chatgpt");
 
-  return messages.map((message) => {
+  const result = messages.map((message) => {
     // If content is a string, pass it through as-is
     if (typeof message.content === "string") {
       return {
@@ -132,6 +132,7 @@ export const formatMessagesForAPI = (
       for (const part of message.content) {
         // Convert document parts to text parts for API
         if (part.type === "document") {
+          console.log("Converting document part to text for API:", part);
           if (
             part.document &&
             typeof part.document.text === "string" &&
@@ -148,10 +149,14 @@ export const formatMessagesForAPI = (
               (part.document.metadata.author ? `Author: ${part.document.metadata.author}\n` : '') +
               `--- Content ---\n`;
             
-            transformedContentParts.push({
-              type: "text",
+            const convertedTextPart = {
+              type: "text" as const,
               text: documentHeader + part.document.text
-            });
+            };
+            console.log("Converted document to text part:", convertedTextPart);
+            transformedContentParts.push(convertedTextPart);
+          } else {
+            console.warn("Document part validation failed:", part);
           }
           continue;
         }
@@ -234,4 +239,7 @@ export const formatMessagesForAPI = (
       content: "",
     };
   });
+  
+  console.log("Final formatted messages for API:", JSON.stringify(result, null, 2));
+  return result;
 };

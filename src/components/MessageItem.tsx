@@ -832,24 +832,23 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               >
                                 <ContentCopyIcon fontSize="small" />
                               </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  // For PDFs, copy the full HTML; for text files, copy the full text as code
-                                  const contentToCopy = documentPart.document.previewHtml || documentPart.document.text;
-                                  navigator.clipboard.writeText(contentToCopy);
-                                  showSnackbar({
-                                    message: documentPart.document.previewHtml 
-                                      ? "Document HTML code copied to clipboard"
-                                      : "Document content copied as code",
-                                    severity: "success",
-                                  });
-                                }}
-                                sx={{ p: 0.5 }}
-                                title="Copy full content as code"
-                              >
-                                <CodeIcon fontSize="small" />
-                              </IconButton>
+                              {documentPart.document.previewHtml && 
+                               documentPart.document.metadata.mimeType === 'application/pdf' && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(documentPart.document.previewHtml!);
+                                    showSnackbar({
+                                      message: "Document HTML code copied to clipboard",
+                                      severity: "success",
+                                    });
+                                  }}
+                                  sx={{ p: 0.5 }}
+                                  title="Copy HTML code"
+                                >
+                                  <CodeIcon fontSize="small" />
+                                </IconButton>
+                              )}
                               <IconButton
                                 size="small"
                                 onClick={handleShowMore}
