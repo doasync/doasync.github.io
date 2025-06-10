@@ -25,6 +25,7 @@ import {
   TextContentPart,
   ImageContentPart,
   AudioContentPart,
+  GeneratedImageContentPart,
   RetryUpdatePayload, // Keep for now, might become obsolete
   MessageRetryInitiatedPayload, // Keep for spinner logic potentially
   RequestContext, // Import the new context type
@@ -38,6 +39,16 @@ import {
   determineRetryingMessageIdFn, // Keep for spinner logic
   formatMessagesForAPI, // New function for message formatting
 } from "./lib"; // Only keep necessary imports
+
+// Import image generation feature
+import {
+  generateImageFx,
+  $selectedImageGenModel,
+  $imageGenerationSettings,
+  isImageGenerationCommand,
+  parseImageGenerationCommand,
+  type ImageGenerationParams
+} from "@/features/image-generation";
 
 // --- Domain ---
 const chatDomain = createDomain("chat");
@@ -81,6 +92,9 @@ export const assistantResponseCompleted = chatDomain.event<void>(
 
 // File attachment events
 export const filesSelected = chatDomain.event<File[]>("filesSelected");
+
+// Image generation events
+export const imageGenerationRequested = chatDomain.event<string>("imageGenerationRequested");
 
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
@@ -375,6 +389,50 @@ sample({
   target: autoSelectModelForCapabilities,
 });
 
+// Handle image generation requests
+sample({
+  clock: imageGenerationRequested,
+  source: {
+    apiKey: $apiKey,
+    selectedModel: $selectedImageGenModel,
+    settings: $imageGenerationSettings,
+  },
+  filter: ({ apiKey }) => !!apiKey,
+  fn: ({ apiKey, selectedModel, settings }, command) => {
+    const { prompt, params } = parseImageGenerationCommand(command);
+    
+    const imageGenParams: ImageGenerationParams & { apiKey: string } = {
+      apiKey,
+      prompt,
+      model: selectedModel,
+      size: params.size || settings.size,
+      quality: params.quality || settings.quality,
+      style: params.style || settings.style,
+      n: params.n || settings.n,
+    };
+    
+    return imageGenParams;
+  },
+  target: generateImageFx,
+});
+
+
+// Clear message input after image generation request
+sample({
+  clock: imageGenerationRequested,
+  fn: () => "",
+  target: $messageText,
+});
+
+
+// Trigger API key missing event if image generation requested without key
+sample({
+  clock: imageGenerationRequested,
+  source: $apiKey,
+  filter: (key) => !key,
+  target: apiKeyMissing,
+});
+
 
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
@@ -547,11 +605,25 @@ type BundleResultNonNull = {
 
 type BundleResult = BundleResultNonNull | null;
 
-// Create a new user message object when message is sent
+// Handle image generation commands separately
+sample({
+  clock: messageSent,
+  source: { text: $messageText },
+  filter: ({ text }) => isImageGenerationCommand(text.trim()),
+  fn: ({ text }) => text.trim(),
+  target: imageGenerationRequested,
+});
+
+// Create a new user message object when message is sent (excluding image generation commands)
 sample({
   clock: messageSent,
   source: { text: $messageText, messages: $messages },
   filter: ({ text, messages }) => {
+    // Skip if this is an image generation command
+    if (isImageGenerationCommand(text.trim())) {
+      return false;
+    }
+    
     const hasText = text.trim().length > 0;
     const pendingMedia = messages.filter(m => 
       m.status === 'pending' && 
@@ -1113,6 +1185,7 @@ debug(
   normalResponseProcessed,
   mainInputFocused,
   filesSelected,
+  imageGenerationRequested,
 
   // Internal events
   userMessageCreated,

@@ -2,10 +2,12 @@
 import {
   Message,
   MessageContentPart,
+  GeneratedImageContentPart,
   // CalculatedRetryUpdatePayload, // No longer used as calculateRetryUpdatePayloadFn is removed
   MessageRetryInitiatedPayload,
   // RequestContext, // No longer used directly in this file
 } from "./types";
+import { StreamMessageContentPart } from "@/features/chat-stream";
 
 // Removed sendApiRequestFn and addAssistantMessageFn as they are replaced by chat-stream logic
 
@@ -109,7 +111,7 @@ export const formatMessagesForAPI = (
   modelId: string
 ): Array<{
   role: "system" | "user" | "assistant";
-  content: string | MessageContentPart[];
+  content: string | StreamMessageContentPart[];
 }> => {
   const isGPTModel = modelId.includes("gpt") || modelId.includes("chatgpt");
 
@@ -124,8 +126,8 @@ export const formatMessagesForAPI = (
 
     // If content is an array (multimodal), validate and format it
     if (Array.isArray(message.content)) {
-      // Filter out any invalid content parts - keep OpenAI format for all models
-      const validContentParts = message.content.filter((part): part is MessageContentPart => {
+      // Filter out any invalid content parts and generated images - keep OpenAI format for all models
+      const validContentParts = message.content.filter((part): part is StreamMessageContentPart => {
         if (part.type === "text") {
           return typeof part.text === "string" && part.text.trim().length > 0;
         }
@@ -144,6 +146,10 @@ export const formatMessagesForAPI = (
             typeof part.input_audio.data === "string" &&
             part.input_audio.data.length > 0
           );
+        }
+        // Filter out generated images - they are for display only, not for API
+        if (part.type === "generated_image") {
+          return false;
         }
         return false;
       });

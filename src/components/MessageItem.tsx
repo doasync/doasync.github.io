@@ -15,7 +15,7 @@ import {
   startEditingMessage,
   stopEditingMessage,
 } from "@/features/ui-state"; // Import global editing state
-import { Message, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart } from "@/features/chat";
+import { Message, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, GeneratedImageContentPart } from "@/features/chat";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -35,6 +35,8 @@ import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
+import DownloadIcon from "@mui/icons-material/Download";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface MessageItemProps {
@@ -87,6 +89,16 @@ const getAudioParts = (content: string | MessageContentPart[]): AudioContentPart
   }
   return content.filter((part): part is AudioContentPart => 
     part.type === 'input_audio'
+  );
+};
+
+// Helper function to get generated image parts from content
+const getGeneratedImageParts = (content: string | MessageContentPart[]): GeneratedImageContentPart[] => {
+  if (typeof content === 'string') {
+    return [];
+  }
+  return content.filter((part): part is GeneratedImageContentPart => 
+    part.type === 'generated_image'
   );
 };
 
@@ -160,7 +172,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     message.content.every(part => part.type === 'image_url');
   const isAudioOnlyMessage = Array.isArray(message.content) && 
     message.content.every(part => part.type === 'input_audio');
-  const isMediaOnlyMessage = isImageOnlyMessage || isAudioOnlyMessage;
+  const isGeneratedImageOnlyMessage = Array.isArray(message.content) && 
+    message.content.every(part => part.type === 'generated_image');
+  const isMediaOnlyMessage = isImageOnlyMessage || isAudioOnlyMessage || isGeneratedImageOnlyMessage;
   const isPending = message.status === 'pending';
 
   // Event Handlers
@@ -475,6 +489,131 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               )}
                             </Typography>
                           )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                );
+              }
+              return null;
+            })()}
+            
+            {/* Render generated images if present */}
+            {(() => {
+              const generatedImageParts = getGeneratedImageParts(message.content);
+              if (generatedImageParts.length > 0) {
+                return (
+                  <Box sx={{ mb: generatedImageParts.length > 0 ? 2 : 0 }}>
+                    {generatedImageParts.map((imagePart, index) => {
+                      const imageUrl = imagePart.generated_image.url || 
+                        (imagePart.generated_image.b64_json ? `data:image/png;base64,${imagePart.generated_image.b64_json}` : '');
+                      
+                      if (!imageUrl) return null;
+                      
+                      return (
+                        <Box 
+                          key={index} 
+                          sx={{ 
+                            mb: index < generatedImageParts.length - 1 ? 2 : 0,
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            backgroundColor: theme.palette.action.hover,
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          {/* Generated Image */}
+                          <CardMedia
+                            component="img"
+                            image={imageUrl}
+                            alt={`Generated: ${imagePart.generated_image.prompt.substring(0, 50)}...`}
+                            sx={{
+                              width: '100%',
+                              maxWidth: 512,
+                              height: 'auto',
+                              borderRadius: 1,
+                              cursor: "pointer",
+                              '&:hover': {
+                                opacity: 0.8,
+                              },
+                            }}
+                            onClick={() => {
+                              // Open image in new tab
+                              window.open(imageUrl, '_blank');
+                            }}
+                          />
+                          
+                          {/* Image metadata and actions */}
+                          <Box sx={{ p: 1.5 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 500,
+                                mb: 0.5,
+                                color: 'text.primary',
+                              }}
+                            >
+                              🎨 Generated Image
+                            </Typography>
+                            
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                display: 'block',
+                                mb: 1,
+                                color: 'text.secondary',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              "{imagePart.generated_image.prompt}"
+                            </Typography>
+                            
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: 'text.secondary',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                Model: {imagePart.generated_image.model}
+                                {imagePart.generated_image.parameters?.size && (
+                                  <> • Size: {imagePart.generated_image.parameters.size}</>
+                                )}
+                                {imagePart.generated_image.parameters?.quality && (
+                                  <> • Quality: {imagePart.generated_image.parameters.quality}</>
+                                )}
+                              </Typography>
+                              
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    window.open(imageUrl, '_blank');
+                                  }}
+                                  sx={{ p: 0.5 }}
+                                >
+                                  <FullscreenIcon fontSize="small" />
+                                </IconButton>
+                                
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    // Download image
+                                    const link = document.createElement('a');
+                                    link.href = imageUrl;
+                                    link.download = `generated-image-${Date.now()}.png`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  sx={{ p: 0.5 }}
+                                >
+                                  <DownloadIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </Box>
+                          </Box>
                         </Box>
                       );
                     })}

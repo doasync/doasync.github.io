@@ -24,7 +24,23 @@ export interface AudioContentPart {
   };
 }
 
-export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart;
+export interface GeneratedImageContentPart {
+  type: "generated_image";
+  generated_image: {
+    url?: string; // Image URL from API
+    b64_json?: string; // Base64 encoded image data
+    prompt: string; // The prompt used to generate the image
+    model: string; // Model used for generation
+    parameters?: {
+      size?: string;
+      quality?: string;
+      style?: string;
+      n?: number;
+    };
+  };
+}
+
+export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart | GeneratedImageContentPart;
 
 // Attachment metadata for UI handling
 export interface Attachment {

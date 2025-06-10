@@ -51,6 +51,7 @@ import { generateResponseClicked } from "@/features/chat";
 import MessageItem from "@/components/MessageItem";
 import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
 import AttachmentMenu from "@/components/AttachmentMenu";
+import ImageGenerationDialog from "@/components/ImageGenerationDialog";
 import Drawer from "@mui/material/Drawer";
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
@@ -173,6 +174,7 @@ export default function HomePage() {
 
   const [historySearchTerm, setHistorySearchTerm] = React.useState("");
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
+  const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
   );
@@ -651,7 +653,10 @@ export default function HomePage() {
               }}
             >
               {/* Consolidated Attachment Menu - positioned on the far left */}
-              <AttachmentMenu disabled={isGenerating} />
+              <AttachmentMenu 
+                disabled={isGenerating} 
+                onImageGenerationClick={() => setImageGenDialogOpen(true)}
+              />
               
               {/* Text Input Field - flexible width between buttons */}
               <TextField
@@ -769,6 +774,10 @@ export default function HomePage() {
         />
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
+      <ImageGenerationDialog
+        open={imageGenDialogOpen}
+        onClose={() => setImageGenDialogOpen(false)}
+      />
       <MiniChatToolbar />
       <MiniChatDialog />
       {/* <MiniChatFAB /> FAB is now rendered inside the scrollable area */}

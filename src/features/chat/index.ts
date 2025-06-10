@@ -3,10 +3,10 @@
 // by other features or UI components.
 
 // Import types separately
-import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type AudioContentPart, type MessageStatus } from "./types";
+import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type AudioContentPart, type GeneratedImageContentPart, type MessageStatus } from "./types";
 
 // Export types
-export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, MessageStatus };
+export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, GeneratedImageContentPart, MessageStatus };
 
 export {
   // Stores - Likely needed by UI
@@ -31,6 +31,9 @@ export {
   
   // File attachment events
   filesSelected,
+  
+  // Image generation events
+  imageGenerationRequested,
 
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,

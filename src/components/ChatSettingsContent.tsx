@@ -1,5 +1,6 @@
 import React from "react";
 import { MiniChatModelSelector } from "@/features/mini-chat/MiniChatModelSelector"; // Import the new component
+import ImageGenerationModelSelector from "./ImageGenerationModelSelector";
 import { $isMobileDrawerOpen, closeSettingsDrawer } from "@/features/ui-state"; // Import close event
 import {
   Box,
@@ -190,6 +191,11 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       {/* Add Mini Chat Model Selector Here */}
       <Box sx={{ px: 2, py: 1 }}>
         <MiniChatModelSelector />
+      </Box>
+
+      {/* Add Image Generation Model Selector */}
+      <Box sx={{ px: 2, py: 1 }}>
+        <ImageGenerationModelSelector />
       </Box>
 
       <Box sx={{ px: 2, pb: 2, pt: 1 }}>
