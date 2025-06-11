@@ -37,7 +37,7 @@
     {
       "id": "gpt-4o-mini-tts",
       "name": "GPT-4o Mini TTS",
-      "provider": "openai",
+      "provider": "voidai",
       "apiFormat": "openai",
       "capabilities": {
         "tts": true,
@@ -48,6 +48,23 @@
       "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
       "description": "Voice control via instructions parameter",
       "supportsInstructions": true
+    },
+    {
+      "id": "elevenlabs",
+      "name": "ElevenLabs",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko", "nl", "sv", "cs", "ar", "hi", "tr"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "High-quality voice synthesis with emotion and accent control",
+      "pricing": {
+        "tts": 150
+      }
     },
     {
       "id": "gpt-4o-audio-preview",
@@ -64,9 +81,23 @@
       "description": "Audio generation in chat conversations"
     },
     {
+      "id": "gpt-4o-audio-preview-2024-12-17",
+      "name": "GPT-4o Audio Preview (Dec 2024)",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": true
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "Dated version of GPT-4o audio preview model"
+    },
+    {
       "id": "whisper-1",
       "name": "Whisper-1",
-      "provider": "openai",
+      "provider": "voidai",
       "apiFormat": "openai",
       "capabilities": {
         "tts": false,
@@ -84,7 +115,7 @@
     {
       "id": "gpt-4o-transcribe",
       "name": "GPT-4o Transcribe",
-      "provider": "openai",
+      "provider": "voidai",
       "apiFormat": "openai",
       "capabilities": {
         "tts": false,
@@ -94,6 +125,20 @@
       "languages": ["auto"],
       "formats": ["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"],
       "description": "Advanced transcription with better accuracy"
+    },
+    {
+      "id": "gpt-4o-mini-transcribe",
+      "name": "GPT-4o Mini Transcribe",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": false,
+        "stt": true,
+        "audioChat": false
+      },
+      "languages": ["auto"],
+      "formats": ["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"],
+      "description": "Cost-effective transcription with good accuracy"
     },
     {
       "id": "gemini-2.5-flash-preview-tts",

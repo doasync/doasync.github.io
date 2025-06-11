@@ -10,6 +10,7 @@ import { MiniChatFAB } from "@/features/mini-chat/MiniChatFAB"; // Import the FA
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
+import { TTSDialog } from "@/features/text-to-speech/components/TTSDialog";
 import {
   useTheme,
   useMediaQuery,
@@ -176,6 +177,7 @@ export default function HomePage() {
   const [historySearchTerm, setHistorySearchTerm] = React.useState("");
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
+  const [ttsDialogOpen, setTtsDialogOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
@@ -676,6 +678,7 @@ export default function HomePage() {
                 disabled={isGenerating}
                 onImageGenerationClick={() => setImageGenDialogOpen(true)}
                 onRecordingStateChange={setIsRecording}
+                onTTSClick={() => setTtsDialogOpen(true)}
               />
 
               {/* Text Input Field - flexible width between buttons */}
@@ -805,6 +808,10 @@ export default function HomePage() {
       <ImageGenerationDialog
         open={imageGenDialogOpen}
         onClose={() => setImageGenDialogOpen(false)}
+      />
+      <TTSDialog
+        open={ttsDialogOpen}
+        onClose={() => setTtsDialogOpen(false)}
       />
       <MiniChatToolbar />
       <MiniChatDialog />

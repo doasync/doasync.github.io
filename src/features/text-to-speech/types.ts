@@ -37,6 +37,7 @@ export interface TTSState {
   previewUrl: string | null;
   availableVoices: VoiceOption[];
   speed: number;
+  instructions: string;
 }
 
 export interface TTSProvider {
@@ -51,4 +52,16 @@ export interface TTSProvider {
     min: number;
     max: number;
   };
+}
+
+export interface GeneratedAudio {
+  id: string;
+  url: string;
+  text: string;
+  model: string;
+  voice: string;
+  format: AudioFormat;
+  timestamp: number;
+  size: number; // Size in bytes
+  filename: string; // Unique filename for download
 }

@@ -19,6 +19,7 @@ import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import DocumentIcon from "@mui/icons-material/Description";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import { $isProcessingFile, filesSelected } from "@/features/chat";
 import {
   $currentModelSupportsVision,
@@ -63,12 +64,14 @@ interface AttachmentMenuProps {
   disabled?: boolean;
   onImageGenerationClick?: () => void;
   onRecordingStateChange?: (isRecording: boolean) => void;
+  onTTSClick?: () => void;
 }
 
 export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   disabled = false,
   onImageGenerationClick,
   onRecordingStateChange,
+  onTTSClick,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -416,6 +419,22 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
           <ListItemText
             primary="Generate Image"
             secondary={`Use ${selectedImageGenModel}`}
+          />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            onTTSClick?.();
+          }}
+          disabled={disabled || isProcessingFile}
+        >
+          <ListItemIcon>
+            <VolumeUpIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Text to Speech"
+            secondary="Convert text to audio"
           />
         </MenuItem>
       </Menu>

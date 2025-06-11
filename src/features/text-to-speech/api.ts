@@ -18,7 +18,7 @@ async function getProviderConfig(provider: VoiceProvider): Promise<ProviderConfi
 
   const baseConfigs: Record<VoiceProvider, ProviderConfig> = {
     voidai: {
-      endpoint: `${providerUrl}/v1/audio/speech`,
+      endpoint: `${providerUrl}/audio/speech`,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -29,6 +29,7 @@ async function getProviderConfig(provider: VoiceProvider): Promise<ProviderConfi
         voice: params.voice,
         response_format: params.format,
         ...(params.speed && params.model !== 'gpt-4o-mini-tts' ? { speed: params.speed } : {}),
+        ...(params.instructions && params.model === 'gpt-4o-mini-tts' ? { instructions: params.instructions } : {}),
       }),
       parseResponse: async (response) => {
         if (!response.ok) {
@@ -205,14 +206,16 @@ function createWavFromPcm(pcmData: ArrayBuffer, sampleRate: number): ArrayBuffer
   return wavBuffer;
 }
 
-export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
-  // Determine provider from model or use selected provider
+export async function generateSpeechStream(
+  params: TTSParams,
+  onChunk?: (chunk: ArrayBuffer) => void
+): Promise<Response> {
+  // Determine provider from model
   let provider: VoiceProvider = 'voidai';
   
-  if (params.model.includes('gemini')) {
+  // Only use Gemini provider for actual Gemini models
+  if (params.model.startsWith('gemini-')) {
     provider = 'gemini';
-  } else if (params.model.includes('gpt-4o')) {
-    provider = 'openai';
   }
   
   const config = await getProviderConfig(provider);
@@ -230,5 +233,72 @@ export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
     body: JSON.stringify(config.body(params)),
   });
   
-  return config.parseResponse(response);
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`TTS failed: ${error}`);
+  }
+  
+  // For streaming, return the response directly
+  if (onChunk && response.body && provider !== 'gemini') {
+    const reader = response.body.getReader();
+    const chunks: ArrayBuffer[] = [];
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        // Convert Uint8Array to ArrayBuffer
+        const buffer = new ArrayBuffer(value.byteLength);
+        const view = new Uint8Array(buffer);
+        view.set(value);
+        
+        chunks.push(buffer);
+        onChunk(buffer);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    
+    // Return a new response with the collected chunks
+    const blob = new Blob(chunks);
+    return new Response(blob);
+  }
+  
+  return response;
+}
+
+export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
+  // Determine provider from model
+  let provider: VoiceProvider = 'voidai';
+  
+  // Only use Gemini provider for actual Gemini models
+  if (params.model.startsWith('gemini-')) {
+    provider = 'gemini';
+  }
+  // All other models (including OpenAI models) go through VoidAI
+  
+  const config = await getProviderConfig(provider);
+  
+  // Special handling for Gemini endpoint
+  let endpoint = config.endpoint;
+  if (provider === 'gemini') {
+    const apiKey = $apiKey.getState();
+    endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${params.model}:generateContent?key=${apiKey}`;
+  }
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: config.headers,
+    body: JSON.stringify(config.body(params)),
+  });
+  
+  const result = await config.parseResponse(response);
+  
+  // Override format with the requested format for VoidAI/OpenAI
+  if (provider !== 'gemini') {
+    result.format = params.format;
+  }
+  
+  return result;
 }
