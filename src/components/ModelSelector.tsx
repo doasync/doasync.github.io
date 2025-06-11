@@ -18,6 +18,7 @@ import { styled, lighten, darken, padding } from "@mui/system";
 import { openModelInfoAlert } from "@/features/ui-state";
 import {
   $availableModels,
+  $filteredModels,
   $selectedModelId,
   $isLoadingModels,
   $modelsError,
@@ -49,6 +50,7 @@ export const ModelSelector: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
+    allModels,
     models,
     selectedModelId,
     isLoading,
@@ -57,7 +59,8 @@ export const ModelSelector: React.FC = () => {
     retryFetch,
     showFreeOnly,
   } = useUnit({
-    models: $availableModels,
+    allModels: $availableModels, // Keep all models for selected model info
+    models: $filteredModels, // Use filtered models for the dropdown
     selectedModelId: $selectedModelId,
     isLoading: $isLoadingModels,
     error: $modelsError,
@@ -77,27 +80,17 @@ export const ModelSelector: React.FC = () => {
     }
   };
 
-  const filteredModels = useMemo(() => {
-    let list = models;
-    if (showFreeOnly) {
-      list = list.filter(
-        (m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0"
-      );
-    }
-    return list;
-  }, [models, showFreeOnly]); // Removed searchTerm dependency
-
   const selectedModelName = useMemo(() => {
-    const model = models.find((m) => m.id === selectedModelId);
+    const model = allModels.find((m) => m.id === selectedModelId);
     // TODO: Why is there no model.name?
     return model && model.name
       ? model.name.replace(/^[^:]+:\s*/, "")
       : selectedModelId;
-  }, [models, selectedModelId]);
+  }, [allModels, selectedModelId]);
 
   const selectedModel: ModelInfo | undefined = useMemo(() => {
-    return models.find((m) => m.id === selectedModelId);
-  }, [models, selectedModelId]);
+    return allModels.find((m) => m.id === selectedModelId);
+  }, [allModels, selectedModelId]);
 
   return (
     <Box
@@ -149,7 +142,7 @@ export const ModelSelector: React.FC = () => {
           modelSelectorFocused(false); // Trigger event on close
         }}
         onChange={handleAutocompleteChange} // Use new handler
-        options={filteredModels} // Use the existing filtered list (includes free filter)
+        options={models} // Use the pre-filtered models from store
         // TODO: Why is there no option.name?
         getOptionLabel={(option) =>
           option.name ? option.name.replace(/^[^:]+:\s*/, "") : option.id

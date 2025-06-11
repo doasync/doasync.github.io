@@ -381,8 +381,25 @@ const FREE_MODEL_PATTERNS = [
   "llama",
 ];
 
-const isFreeModel = (modelId: string): boolean => {
+const isFreeModel = (modelId: string, pricing?: any): boolean => {
   const id = modelId.toLowerCase();
+  
+  // OpenRouter format: check actual pricing data
+  if (pricing) {
+    // If pricing exists, check if prompt and completion are both exactly "0"
+    const promptPrice = parseFloat(pricing.prompt || "0");
+    const completionPrice = parseFloat(pricing.completion || "0");
+    
+    // Only consider truly free models (exactly $0 for both prompt and completion)
+    if (promptPrice === 0 && completionPrice === 0) {
+      return true;
+    }
+    
+    // If pricing data exists but model isn't free, return false
+    return false;
+  }
+  
+  // Fallback to pattern matching for APIs without pricing data
   return FREE_MODEL_PATTERNS.some((pattern) => id.includes(pattern));
 };
 
@@ -484,7 +501,7 @@ const fetchModelsFx = modelsDomain.effect<{providerApiUrl: string, apiKey: strin
           model.context_length
         );
         const category = categorizeModel(model.id);
-        const isFree = isFreeModel(model.id);
+        const isFree = isFreeModel(model.id, model.pricing);
 
         return {
           id: model.id,
@@ -742,6 +759,21 @@ sample({
   target: $selectedModelId,
 });
 
+// Computed store for filtered models (respects showFreeOnly setting)
+export const $filteredModels = sample({
+  source: [$availableModels, $showFreeOnly],
+  fn: ([models, showFreeOnly]): ModelInfo[] => {
+    if (!Array.isArray(models)) return [];
+    
+    if (!showFreeOnly) {
+      return models; // Return all models if filter is off
+    }
+    
+    // Filter to show only free models
+    return models.filter((model: ModelInfo) => model.isFree);
+  },
+});
+
 // Computed store for vision-capable models
 export const $visionModels = $availableModels.map((models) =>
   models.filter((model) => model.capabilities?.vision)
@@ -770,6 +802,7 @@ export const $currentModelSupportsAudio = $selectedModelInfo.map(
 debug(
   // Stores
   $availableModels,
+  $filteredModels,
   $selectedModelId,
   $selectedModelInfo,
   $currentModelSupportsVision,

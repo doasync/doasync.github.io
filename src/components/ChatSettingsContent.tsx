@@ -193,24 +193,25 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         </Box>
       </Box>
 
-      {/* 
-      <Box sx={{ px: 2 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isSwitchChecked} // Use local state for checked status
-              onChange={(e) => {
-                const newValue = e.target.checked;
-                setIsSwitchChecked(newValue); // Update local state immediately
-                setShowFreeOnlyEvent(newValue); // Update the persisted Effector store
-              }}
-              color="primary"
-            />
-          }
-          label="Show only free models"
-        />
-      </Box>
-      */}
+      {/* Show "Show only free models" toggle only for OpenRouter */}
+      {providerApiUrl.includes('openrouter.ai') && (
+        <Box sx={{ px: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isSwitchChecked} // Use local state for checked status
+                onChange={(e) => {
+                  const newValue = e.target.checked;
+                  setIsSwitchChecked(newValue); // Update local state immediately
+                  setShowFreeOnlyEvent(newValue); // Update the persisted Effector store
+                }}
+                color="primary"
+              />
+            }
+            label="Show only free models"
+          />
+        </Box>
+      )}
 
       {/* Add Mini Chat Model Selector Here */}
       <Box sx={{ px: 2, py: 1 }}>

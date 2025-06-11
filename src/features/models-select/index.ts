@@ -8,6 +8,7 @@ export {
 
   // Stores - Needed by UI (ModelSelector, Header)
   $availableModels,
+  $filteredModels, // Filtered models based on showFreeOnly setting
   $selectedModelId, // Also needed by chat feature
   $selectedModelInfo,
   $visionModels,
