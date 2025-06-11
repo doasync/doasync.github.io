@@ -1,0 +1,36 @@
+{
+  "voidai": {
+    "voices": [
+      { "id": "alloy", "name": "Alloy", "gender": "neutral", "style": ["balanced", "versatile"] },
+      { "id": "ash", "name": "Ash", "gender": "neutral", "style": ["soft", "warm"] },
+      { "id": "ballad", "name": "Ballad", "gender": "neutral", "style": ["expressive", "dramatic"] },
+      { "id": "coral", "name": "Coral", "gender": "female", "style": ["friendly", "conversational"] },
+      { "id": "echo", "name": "Echo", "gender": "male", "style": ["smooth", "calm"] },
+      { "id": "fable", "name": "Fable", "gender": "neutral", "style": ["narrative", "storytelling"] },
+      { "id": "onyx", "name": "Onyx", "gender": "male", "style": ["deep", "authoritative"] },
+      { "id": "nova", "name": "Nova", "gender": "female", "style": ["energetic", "bright"] },
+      { "id": "sage", "name": "Sage", "gender": "neutral", "style": ["wise", "thoughtful"] },
+      { "id": "shimmer", "name": "Shimmer", "gender": "female", "style": ["light", "cheerful"] },
+      { "id": "verse", "name": "Verse", "gender": "neutral", "style": ["poetic", "rhythmic"] }
+    ]
+  },
+  "openai": {
+    "voices": [
+      { "id": "alloy", "name": "Alloy", "gender": "neutral", "style": ["balanced"] },
+      { "id": "echo", "name": "Echo", "gender": "male", "style": ["smooth"] },
+      { "id": "fable", "name": "Fable", "gender": "neutral", "style": ["narrative"] },
+      { "id": "nova", "name": "Nova", "gender": "female", "style": ["energetic"] },
+      { "id": "shimmer", "name": "Shimmer", "gender": "female", "style": ["pleasant"] }
+    ]
+  },
+  "gemini": {
+    "voices": [
+      { "id": "Aoede", "name": "Aoede", "gender": "female", "style": ["warm", "engaging"], "description": "Warm and engaging female voice" },
+      { "id": "Charon", "name": "Charon", "gender": "male", "style": ["deep", "serious"], "description": "Deep and serious male voice" },
+      { "id": "Fenrir", "name": "Fenrir", "gender": "male", "style": ["powerful", "dramatic"], "description": "Powerful and dramatic male voice" },
+      { "id": "Kore", "name": "Kore", "gender": "female", "style": ["youthful", "bright"], "description": "Youthful and bright female voice" },
+      { "id": "Puck", "name": "Puck", "gender": "male", "style": ["playful", "mischievous"], "description": "Playful and mischievous male voice" },
+      { "id": "Zephyr", "name": "Zephyr", "gender": "neutral", "style": ["gentle", "flowing"], "description": "Gentle and flowing neutral voice" }
+    ]
+  }
+}

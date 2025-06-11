@@ -4,9 +4,14 @@
 
 // Import types separately
 import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type AudioContentPart, type GeneratedImageContentPart, type DocumentContentPart, type MessageStatus } from "./types";
+import { type AudioMessage, type AudioOutputPart, type ExtendedMessageContentPart, type AudioContentPartExtended, isAudioInputPart, isAudioOutputPart, hasAudioContent, createAudioContentPart, createAudioOutputPart } from "./audio-types";
 
 // Export types
 export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, GeneratedImageContentPart, DocumentContentPart, MessageStatus };
+
+// Export audio types and utilities
+export type { AudioMessage, AudioOutputPart, ExtendedMessageContentPart, AudioContentPartExtended };
+export { isAudioInputPart, isAudioOutputPart, hasAudioContent, createAudioContentPart, createAudioOutputPart };
 
 export {
   // Stores - Likely needed by UI

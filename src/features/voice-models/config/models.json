@@ -1,0 +1,129 @@
+{
+  "models": [
+    {
+      "id": "tts-1",
+      "name": "TTS-1",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "Standard quality, low latency text-to-speech",
+      "pricing": {
+        "tts": 15
+      }
+    },
+    {
+      "id": "tts-1-hd",
+      "name": "TTS-1 HD",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "High definition audio quality",
+      "pricing": {
+        "tts": 30
+      }
+    },
+    {
+      "id": "gpt-4o-mini-tts",
+      "name": "GPT-4o Mini TTS",
+      "provider": "openai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "Voice control via instructions parameter",
+      "supportsInstructions": true
+    },
+    {
+      "id": "gpt-4o-audio-preview",
+      "name": "GPT-4o Audio Preview",
+      "provider": "voidai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": true
+      },
+      "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
+      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "description": "Audio generation in chat conversations"
+    },
+    {
+      "id": "whisper-1",
+      "name": "Whisper-1",
+      "provider": "openai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": false,
+        "stt": true,
+        "audioChat": false
+      },
+      "languages": ["auto"],
+      "formats": ["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"],
+      "description": "Speech recognition and transcription",
+      "maxDuration": 1500,
+      "pricing": {
+        "stt": 0.006
+      }
+    },
+    {
+      "id": "gpt-4o-transcribe",
+      "name": "GPT-4o Transcribe",
+      "provider": "openai",
+      "apiFormat": "openai",
+      "capabilities": {
+        "tts": false,
+        "stt": true,
+        "audioChat": false
+      },
+      "languages": ["auto"],
+      "formats": ["mp3", "mp4", "mpeg", "mpga", "m4a", "wav", "webm"],
+      "description": "Advanced transcription with better accuracy"
+    },
+    {
+      "id": "gemini-2.5-flash-preview-tts",
+      "name": "Gemini 2.5 Flash TTS",
+      "provider": "gemini",
+      "apiFormat": "gemini",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["bg", "ca", "cs", "da", "de", "el", "en", "es", "fi", "fr", "hi", "hr", "hu", "id", "it", "ja", "ko", "lt", "lv", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "th", "tr", "uk", "vi", "zh"],
+      "formats": ["wav"],
+      "description": "Fast multi-speaker text-to-speech",
+      "supportsMultiSpeaker": true
+    },
+    {
+      "id": "gemini-2.5-pro-preview-tts",
+      "name": "Gemini 2.5 Pro TTS",
+      "provider": "gemini",
+      "apiFormat": "gemini",
+      "capabilities": {
+        "tts": true,
+        "stt": false,
+        "audioChat": false
+      },
+      "languages": ["bg", "ca", "cs", "da", "de", "el", "en", "es", "fi", "fr", "hi", "hr", "hu", "id", "it", "ja", "ko", "lt", "lv", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "th", "tr", "uk", "vi", "zh"],
+      "formats": ["wav"],
+      "description": "Higher quality multi-speaker synthesis",
+      "supportsMultiSpeaker": true
+    }
+  ]
+}
