@@ -20,6 +20,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import DocumentIcon from "@mui/icons-material/Description";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import TranscribeIcon from "@mui/icons-material/RecordVoiceOver";
 import { $isProcessingFile, filesSelected } from "@/features/chat";
 import {
   $currentModelSupportsVision,
@@ -65,6 +66,7 @@ interface AttachmentMenuProps {
   onImageGenerationClick?: () => void;
   onRecordingStateChange?: (isRecording: boolean) => void;
   onTTSClick?: () => void;
+  onSTTClick?: () => void;
 }
 
 export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
@@ -72,6 +74,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   onImageGenerationClick,
   onRecordingStateChange,
   onTTSClick,
+  onSTTClick,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -435,6 +438,22 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
           <ListItemText
             primary="Text to Speech"
             secondary="Convert text to audio"
+          />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            onSTTClick?.();
+          }}
+          disabled={disabled || isProcessingFile}
+        >
+          <ListItemIcon>
+            <TranscribeIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Transcribe Audio"
+            secondary="Convert audio to text"
           />
         </MenuItem>
       </Menu>

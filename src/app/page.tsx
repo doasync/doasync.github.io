@@ -11,6 +11,7 @@ import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import UsageInfoDialog from "@/components/UsageInfoDialog";
 import { refreshUsageInfo } from "@/features/usage-info/model";
 import { TTSDialog } from "@/features/text-to-speech/components/TTSDialog";
+import { TranscriptionDialog } from "@/features/speech-to-text/components/TranscriptionDialog";
 import {
   useTheme,
   useMediaQuery,
@@ -178,6 +179,7 @@ export default function HomePage() {
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
   const [ttsDialogOpen, setTtsDialogOpen] = React.useState(false);
+  const [sttDialogOpen, setSttDialogOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
@@ -679,6 +681,7 @@ export default function HomePage() {
                 onImageGenerationClick={() => setImageGenDialogOpen(true)}
                 onRecordingStateChange={setIsRecording}
                 onTTSClick={() => setTtsDialogOpen(true)}
+                onSTTClick={() => setSttDialogOpen(true)}
               />
 
               {/* Text Input Field - flexible width between buttons */}
@@ -812,6 +815,10 @@ export default function HomePage() {
       <TTSDialog
         open={ttsDialogOpen}
         onClose={() => setTtsDialogOpen(false)}
+      />
+      <TranscriptionDialog
+        open={sttDialogOpen}
+        onClose={() => setSttDialogOpen(false)}
       />
       <MiniChatToolbar />
       <MiniChatDialog />

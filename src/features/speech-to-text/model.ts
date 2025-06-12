@@ -1,185 +1,305 @@
-import { createDomain, createEffect, sample, combine } from 'effector';
+import { createDomain, createEffect, sample, combine, createEvent, createStore } from 'effector';
 import { debug } from 'patronum/debug';
-import { AudioFileInfo, STTParams, STTResponse, STTState, TranscriptionSegment } from './types';
-import { transcribeAudio } from './api';
+import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult } from './types';
+import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
+import { messageSent, messageTextChanged } from '../chat/model';
 
 const domain = createDomain('speech-to-text');
 
-// Stores
+// Core Stores
 export const $sttFile = domain.createStore<File | null>(null);
-export const $sttProgress = domain.createStore<number>(0);
-export const $isTranscribing = domain.createStore<boolean>(false);
-export const $sttResult = domain.createStore<string | null>(null);
-export const $sttLanguage = domain.createStore<string | null>(null);
+export const $sttModel = domain.createStore<string>('whisper-1');
+export const $sttPrompt = domain.createStore<string>('');
+export const $isTranslate = domain.createStore<boolean>(false);
+export const $isLoading = domain.createStore<boolean>(false);
 export const $sttError = domain.createStore<string | null>(null);
-export const $sttProvider = domain.createStore<'voidai' | 'openai' | 'gemini'>('voidai');
-export const $sttSegments = domain.createStore<TranscriptionSegment[]>([]);
 
+// Results and history
+export const $transcriptionResults = domain.createStore<TranscriptionResult[]>([]);
+export const $selectedResult = domain.createStore<string | null>(null);
+
+// UI state
+export const $isDialogOpen = domain.createStore<boolean>(false);
+export const $availableModels = domain.createStore(STT_MODELS);
+
+// Derived state
+export const $currentModel = combine(
+  $sttModel,
+  $availableModels,
+  (selectedModel, models) => models.find(m => m.id === selectedModel) || models[0]
+);
+
+export const $isTranslateEnabled = combine(
+  $currentModel,
+  (model) => model?.supportsTranslation || false
+);
+
+export const $fileValidation = combine(
+  $sttFile,
+  (file): ValidationResult | null => {
+    if (!file) return null;
+    
+    const validation = validateAudioFile(file);
+    return {
+      ...validation,
+      fileInfo: {
+        name: file.name,
+        size: file.size,
+        format: file.type,
+      }
+    };
+  }
+);
+
+export const $canTranscribe = combine(
+  $sttFile,
+  $fileValidation,
+  $isLoading,
+  (file, validation, loading) => 
+    Boolean(file && validation?.isValid && !loading)
+);
+
+// Combined state for easy consumption
 export const $sttState = combine({
+  // Current operation
   file: $sttFile,
-  progress: $sttProgress,
-  isTranscribing: $isTranscribing,
-  result: $sttResult,
-  language: $sttLanguage,
+  selectedModel: $sttModel,
+  prompt: $sttPrompt,
+  isTranslation: $isTranslate,
+  isLoading: $isLoading,
   error: $sttError,
-  provider: $sttProvider,
-  segments: $sttSegments,
+  
+  // Results and history
+  transcriptionResults: $transcriptionResults,
+  selectedResult: $selectedResult,
+  
+  // UI state
+  isDialogOpen: $isDialogOpen,
+  availableModels: $availableModels,
+  currentModel: $currentModel,
+  isTranslateEnabled: $isTranslateEnabled,
+  fileValidation: $fileValidation,
+  canTranscribe: $canTranscribe,
 });
 
 // Events
-export const audioFileDropped = domain.createEvent<File>();
-export const transcriptionStarted = domain.createEvent();
-export const progressUpdated = domain.createEvent<number>();
-export const transcriptionCompleted = domain.createEvent<STTResponse>();
-export const transcriptionFailed = domain.createEvent<string>();
-export const insertToChat = domain.createEvent();
-export const createNewMessage = domain.createEvent();
-export const clearTranscription = domain.createEvent();
-export const providerChanged = domain.createEvent<'voidai' | 'openai' | 'gemini'>();
+export const dialogOpened = domain.createEvent<void>();
+export const dialogClosed = domain.createEvent<void>();
+
+export const fileSelected = domain.createEvent<File>();
+export const fileCleared = domain.createEvent<void>();
+
+export const modelChanged = domain.createEvent<string>();
+export const promptChanged = domain.createEvent<string>();
+export const translateToggled = domain.createEvent<boolean>();
+
+export const transcribeClicked = domain.createEvent<void>();
+export const resultSelected = domain.createEvent<string>();
+export const copyTextClicked = domain.createEvent<string>();
+export const generateMessageClicked = domain.createEvent<string>();
+export const deleteResultClicked = domain.createEvent<string>();
+export const clearError = domain.createEvent<void>();
 
 // Effects
-export const transcribeAudioFx = createEffect<STTParams, STTResponse, Error>({
+export const transcribeAudioFx = createEffect<TranscribeParams, STTResponse, Error>({
   handler: transcribeAudio,
 });
 
-export const processAudioFileFx = createEffect<File, AudioFileInfo, Error>({
-  handler: async (file) => {
-    // Validate file type
-    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 'audio/x-wav', 
-                       'audio/ogg', 'audio/opus', 'audio/flac', 'audio/webm', 'audio/mp4'];
-    
-    if (!validTypes.includes(file.type)) {
-      throw new Error('Invalid audio file type. Supported formats: MP3, WAV, OGG, OPUS, FLAC, WebM, MP4');
+export const saveTranscriptionFx = createEffect<TranscriptionResult, void, Error>({
+  handler: async (result) => {
+    try {
+      const existingResults = JSON.parse(localStorage.getItem('stt-transcriptions') || '[]');
+      const updatedResults = [result, ...existingResults.slice(0, 49)]; // Keep last 50
+      localStorage.setItem('stt-transcriptions', JSON.stringify(updatedResults));
+    } catch (error) {
+      console.warn('Failed to save transcription to localStorage:', error);
     }
-    
-    // Check file size (25MB limit for OpenAI)
-    const maxSize = 25 * 1024 * 1024; // 25MB
-    if (file.size > maxSize) {
-      throw new Error('File size exceeds 25MB limit');
-    }
-    
-    // Generate waveform (simplified - in real app would use Web Audio API)
-    const waveform = Array(100).fill(0).map(() => Math.random());
-    
-    // Get duration (would use Web Audio API in real implementation)
-    const duration = 0; // Placeholder
-    
-    return {
-      file,
-      duration,
-      waveform,
-    };
   },
 });
 
-export const detectLanguageFx = createEffect<string, string | null, Error>({
+export const loadTranscriptionHistoryFx = createEffect<void, TranscriptionResult[], Error>({
+  handler: async () => {
+    try {
+      const stored = localStorage.getItem('stt-transcriptions');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.warn('Failed to load transcription history:', error);
+      return [];
+    }
+  },
+});
+
+export const deleteTranscriptionFx = createEffect<string, string, Error>({
+  handler: async (id) => {
+    try {
+      const existingResults = JSON.parse(localStorage.getItem('stt-transcriptions') || '[]');
+      const filteredResults = existingResults.filter((r: TranscriptionResult) => r.id !== id);
+      localStorage.setItem('stt-transcriptions', JSON.stringify(filteredResults));
+      return id;
+    } catch (error) {
+      console.warn('Failed to delete transcription:', error);
+      throw error;
+    }
+  },
+});
+
+export const addToChatFx = createEffect<string, void, Error>({
   handler: async (text) => {
-    // Simple language detection based on character sets
-    // In production, would use a proper language detection library or API
-    
-    if (/[\u4e00-\u9fa5]/.test(text)) return 'zh';
-    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja';
-    if (/[\u0400-\u04ff]/.test(text)) return 'ru';
-    if (/[\u0600-\u06ff]/.test(text)) return 'ar';
-    
-    return 'en'; // Default to English
+    // Set the message text and then send it as a new message to the main chat
+    messageTextChanged(text);
+    messageSent();
   },
 });
 
 // Store updates
-$sttFile.on(audioFileDropped, (_, file) => file);
-$sttProgress.on(progressUpdated, (_, progress) => progress);
-$sttProvider.on(providerChanged, (_, provider) => provider);
-$sttError.on(transcriptionFailed, (_, error) => error);
+$isDialogOpen
+  .on(dialogOpened, () => true)
+  .on(dialogClosed, () => false);
 
-// Clear state
+$sttFile
+  .on(fileSelected, (_, file) => file)
+  .on(fileCleared, () => null)
+  .reset(dialogClosed);
+
+$sttModel.on(modelChanged, (_, model) => model);
+$sttPrompt.on(promptChanged, (_, prompt) => prompt);
+$isTranslate.on(translateToggled, (_, isTranslate) => isTranslate);
+
+// Reset translation toggle when model changes and doesn't support translation
 sample({
-  clock: clearTranscription,
-  fn: () => null,
-  target: [
-    $sttFile.reinit,
-    $sttProgress.reinit,
-    $sttResult.reinit,
-    $sttLanguage.reinit,
-    $sttError.reinit,
-    $sttSegments.reinit,
-  ],
+  clock: modelChanged,
+  source: $availableModels,
+  fn: (models, modelId) => {
+    const model = models.find(m => m.id === modelId);
+    return model?.supportsTranslation ? $isTranslate.getState() : false;
+  },
+  target: $isTranslate,
 });
+
+$sttError
+  .on(transcribeAudioFx.failData, (_, { message }) => message)
+  .on(clearError, () => null)
+  .reset([fileSelected, transcribeClicked]);
 
 // Loading state
-$isTranscribing
+$isLoading
   .on(transcribeAudioFx, () => true)
-  .on(transcribeAudioFx.done, () => false)
-  .on(transcribeAudioFx.fail, () => false);
+  .on(transcribeAudioFx.finally, () => false);
 
-// Error handling
-$sttError
-  .on(transcribeAudioFx.fail, (_, { error }) => error.message)
-  .on(processAudioFileFx.fail, (_, { error }) => error.message)
-  .reset(audioFileDropped);
+// Transcription history
+$transcriptionResults
+  .on(loadTranscriptionHistoryFx.doneData, (_, results) => results)
+  .on(saveTranscriptionFx.done, (results, { params }) => [params, ...results])
+  .on(deleteTranscriptionFx.doneData, (results, deletedId) => 
+    results.filter(r => r.id !== deletedId)
+  );
 
-// Process file when dropped
+$selectedResult.on(resultSelected, (_, id) => id);
+
+// Transcription workflow
 sample({
-  clock: audioFileDropped,
-  target: processAudioFileFx,
-});
-
-// Start transcription after file processing
-sample({
-  clock: processAudioFileFx.doneData,
-  fn: (info) => ({
-    audio: info.file,
+  clock: transcribeClicked,
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, isTranslation: $isTranslate },
+  filter: ({ file }) => Boolean(file),
+  fn: ({ file, model, prompt, isTranslation }) => ({
+    file: file!,
+    model,
+    prompt: prompt.trim() || undefined,
+    isTranslation,
   }),
   target: transcribeAudioFx,
 });
 
-// Handle transcription result
+// Save successful transcription
 sample({
   clock: transcribeAudioFx.doneData,
-  target: transcriptionCompleted,
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, isTranslation: $isTranslate },
+  filter: ({ file }) => Boolean(file),
+  fn: ({ file, model, prompt, isTranslation }, response): TranscriptionResult => {
+    const wordCount = response.text.trim().split(/\s+/).length;
+    return {
+      id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: response.text,
+      fileName: file!.name,
+      fileSize: file!.size,
+      model,
+      isTranslation,
+      prompt: prompt.trim() || undefined,
+      timestamp: Date.now(),
+      wordCount,
+      duration: response.duration,
+    };
+  },
+  target: saveTranscriptionFx,
 });
 
-// Update stores with transcription result
-$sttResult.on(transcriptionCompleted, (_, { text }) => text);
-$sttLanguage.on(transcriptionCompleted, (_, { language }) => language || null);
-$sttSegments.on(transcriptionCompleted, (_, { segments }) => segments || []);
-
-// Detect language after transcription
+// Copy text functionality
 sample({
-  clock: transcriptionCompleted,
-  fn: ({ text }) => text,
-  target: detectLanguageFx,
-});
-
-// Update detected language
-sample({
-  clock: detectLanguageFx.doneData,
-  target: $sttLanguage,
-});
-
-// Progress simulation (in real app, would track actual upload/processing progress)
-sample({
-  clock: transcribeAudioFx,
-  fn: () => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      if (progress <= 90) {
-        progressUpdated(progress);
-      } else {
-        clearInterval(interval);
-      }
-    }, 200);
-    return interval;
+  clock: copyTextClicked,
+  source: $transcriptionResults,
+  fn: (results, id) => {
+    const result = results.find(r => r.id === id);
+    if (result) {
+      navigator.clipboard.writeText(result.text).catch(console.error);
+    }
   },
 });
 
-// Complete progress on success
+// Generate message functionality
 sample({
-  clock: transcribeAudioFx.done,
-  fn: () => 100,
-  target: progressUpdated,
+  clock: generateMessageClicked,
+  source: $transcriptionResults,
+  filter: (results, id) => {
+    const result = results.find(r => r.id === id);
+    return Boolean(result?.text?.trim());
+  },
+  fn: (results, id) => {
+    const result = results.find(r => r.id === id);
+    return result!.text;
+  },
+  target: addToChatFx,
 });
+
+// Delete transcription
+sample({
+  clock: deleteResultClicked,
+  target: deleteTranscriptionFx,
+});
+
+// Load history when dialog opens
+sample({
+  clock: dialogOpened,
+  target: loadTranscriptionHistoryFx,
+});
+
+// Clear selected result when dialog closes
+sample({
+  clock: dialogClosed,
+  fn: () => null,
+  target: $selectedResult,
+});
+
+// Legacy compatibility - maintain existing API for backwards compatibility
+export const $sttProgress = domain.createStore<number>(0);
+export const $sttResult = domain.createStore<string | null>(null);
+export const $sttLanguage = domain.createStore<string | null>(null);
+export const $sttProvider = domain.createStore<'voidai' | 'openai' | 'gemini'>('voidai');
+export const $sttSegments = domain.createStore<any[]>([]);
+
+// Legacy events
+export const audioFileDropped = fileSelected;
+export const transcriptionStarted = transcribeClicked;
+export const progressUpdated = createEvent<number>();
+export const transcriptionCompleted = createEvent<STTResponse>();
+export const transcriptionFailed = createEvent<string>();
+export const insertToChat = generateMessageClicked;
+export const createNewMessage = generateMessageClicked;
+export const clearTranscription = fileCleared;
+export const providerChanged = createEvent<'voidai' | 'openai' | 'gemini'>();
+
+// Update legacy stores
+$sttResult.on(transcribeAudioFx.doneData, (_, response) => response.text);
+$sttLanguage.on(transcribeAudioFx.doneData, (_, response) => response.language || null);
 
 // Debug
 if (process.env.NODE_ENV === 'development') {
