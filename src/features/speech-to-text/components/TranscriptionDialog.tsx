@@ -46,7 +46,6 @@ import {
   fileCleared,
   modelChanged,
   promptChanged,
-  translateToggled,
   transcribeClicked,
   copyTextClicked,
   generateMessageClicked,
@@ -68,6 +67,18 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
       dialogOpened();
     }
   }, [open]);
+
+  // Debug logging in development
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('TranscriptionDialog state:', {
+        transcriptionResultsCount: state.transcriptionResults.length,
+        transcriptionResults: state.transcriptionResults,
+        isLoading: state.isLoading,
+        error: state.error,
+      });
+    }
+  }, [state.transcriptionResults, state.isLoading, state.error]);
 
   const handleClose = () => {
     dialogClosed();
@@ -92,6 +103,81 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getMimeTypeDisplay = (mimeType: string) => {
+    const mimeMap: Record<string, string> = {
+      'audio/mpeg': 'MP3',
+      'audio/mp3': 'MP3',
+      'audio/mp4': 'MP4',
+      'audio/mpeg4-generic': 'MP4',
+      'audio/x-mpeg': 'MPEG',
+      'audio/mpga': 'MPGA',
+      'audio/x-mpga': 'MPGA',
+      'audio/m4a': 'M4A',
+      'audio/x-m4a': 'M4A',
+      'audio/wav': 'WAV',
+      'audio/wave': 'WAV',
+      'audio/x-wav': 'WAV',
+      'audio/webm': 'WebM'
+    };
+    return mimeMap[mimeType] || mimeType.replace('audio/', '').toUpperCase();
+  };
+
+  // State for audio file analysis and player
+  const [audioInfo, setAudioInfo] = React.useState<{
+    duration?: number;
+    sampleRate?: number;
+  } | null>(null);
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
+
+  // Analyze audio file and create URL when selected
+  React.useEffect(() => {
+    if (!state.file) {
+      setAudioInfo(null);
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      return;
+    }
+
+    // Create blob URL for audio player
+    const url = URL.createObjectURL(state.file);
+    setAudioUrl(url);
+
+    const analyzeAudio = async () => {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const arrayBuffer = await state.file!.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        setAudioInfo({
+          duration: audioBuffer.duration,
+          sampleRate: audioBuffer.sampleRate
+        });
+        
+        audioContext.close();
+      } catch (error) {
+        console.warn('Could not analyze audio file:', error);
+        setAudioInfo(null);
+      }
+    };
+
+    analyzeAudio();
+
+    // Cleanup function
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [state.file]);
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -162,18 +248,44 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 </Box>
               ) : (
                 <Box>
-                  <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={1}>
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
                     <AudioFileIcon color="primary" />
-                    <Typography variant="body1">
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {state.file.name}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  
+                  {/* Audio Player */}
+                  {audioUrl && (
+                    <Box mb={1}>
+                      <audio 
+                        controls 
+                        style={{ width: '100%', maxWidth: '400px' }}
+                        preload="metadata"
+                      >
+                        <source src={audioUrl} type={state.file.type} />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </Box>
+                  )}
+                  
+                  {/* File Information - Compact List */}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {formatFileSize(state.file.size)}
+                    {audioInfo?.duration && ` • Duration: ${formatDuration(audioInfo.duration)}`}
+                    {` • ${getMimeTypeDisplay(state.file.type)} Audio`}
+                    {audioInfo?.sampleRate && ` • ${(audioInfo.sampleRate / 1000).toFixed(1)} kHz`}
                   </Typography>
+                  
                   <Button
                     size="small"
-                    onClick={() => fileCleared()}
+                    onClick={() => {
+                      if (audioUrl) {
+                        URL.revokeObjectURL(audioUrl);
+                        setAudioUrl(null);
+                      }
+                      fileCleared();
+                    }}
                     sx={{ mt: 1 }}
                   >
                     Remove
@@ -205,9 +317,14 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                   {state.availableModels.map((model) => (
                     <MenuItem key={model.id} value={model.id}>
                       <Box>
-                        <Typography variant="body2">
-                          {model.name}
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="body2">
+                            {model.name}
+                          </Typography>
+                          {model.hasLimitedParams && (
+                            <Chip label="Limited params" size="small" variant="outlined" />
+                          )}
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
                           {model.description}
                         </Typography>
@@ -217,17 +334,14 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 </Select>
               </FormControl>
 
-              {state.isTranslateEnabled && (
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={state.isTranslation}
-                      onChange={(e) => translateToggled(e.target.checked)}
-                    />
-                  }
-                  label="Translate to English"
-                />
+              {state.currentModel?.hasLimitedParams && (
+                <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                  <Typography variant="body2">
+                    <strong>{state.currentModel.name}</strong> supports only basic parameters.
+                  </Typography>
+                </Alert>
               )}
+
 
               <TextField
                 label="Context Prompt (Optional)"
@@ -277,72 +391,99 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 Transcription Results ({state.transcriptionResults.length})
               </Typography>
               <Stack spacing={2} sx={{ maxHeight: '400px', overflow: 'auto' }}>
-                {state.transcriptionResults.map((result) => (
-                  <Card key={result.id} variant="outlined">
-                    <CardContent>
-                      <Box mb={2}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          {result.fileName} • {result.model} • {formatTimestamp(result.timestamp)}
-                          {result.isTranslation && (
-                            <Chip label="Translation" size="small" sx={{ ml: 1 }} />
-                          )}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {result.wordCount} words • {formatFileSize(result.fileSize)}
-                        </Typography>
-                      </Box>
+                {state.transcriptionResults.map((result) => {
+                  // Debug logging in development
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Rendering transcription result:', result);
+                  }
+                  return (
+                    <Card 
+                      key={result.id} 
+                      variant="outlined"
+                      sx={{ 
+                        overflow: 'visible',
+                        '& .MuiCardContent-root': {
+                          paddingBottom: '8px',
+                        },
+                        '& .MuiCardActions-root': {
+                          paddingTop: '8px',
+                        }
+                      }}
+                    >
+                      <CardContent>
+                        <Box mb={2}>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {result.fileName} • {result.model} • {formatTimestamp(result.timestamp)}
+                          </Typography>
+                          <Box display="flex" gap={2} flexWrap="wrap">
+                            <Typography variant="caption" color="text.secondary">
+                              {result.wordCount} words
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatFileSize(result.fileSize)}
+                            </Typography>
+                            {result.duration && (
+                              <Typography variant="caption" color="text.secondary">
+                                {formatDuration(result.duration)}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        
+                        <TextField
+                          multiline
+                          fullWidth
+                          value={result.text}
+                          variant="outlined"
+                          rows={3}
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              fontSize: '0.9rem',
+                              lineHeight: 1.4,
+                            }
+                          }}
+                        />
+                      </CardContent>
                       
-                      <TextField
-                        multiline
-                        fullWidth
-                        value={result.text}
-                        variant="outlined"
-                        rows={3}
-                        InputProps={{
-                          readOnly: true,
-                        }}
-                        sx={{
-                          '& .MuiInputBase-input': {
-                            fontSize: '0.9rem',
-                            lineHeight: 1.4,
-                          }
-                        }}
-                      />
-                    </CardContent>
-                    
-                    <CardActions>
-                      <Tooltip title="Copy text">
-                        <IconButton
-                          size="small"
-                          onClick={() => copyTextClicked(result.id)}
-                        >
-                          <CopyIcon />
-                        </IconButton>
-                      </Tooltip>
-                      
-                      <Tooltip title="Generate message">
-                        <IconButton
-                          size="small"
-                          onClick={() => generateMessageClicked(result.id)}
-                        >
-                          <SendIcon />
-                        </IconButton>
-                      </Tooltip>
-                      
-                      <Box flexGrow={1} />
-                      
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          onClick={() => deleteResultClicked(result.id)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </CardActions>
-                  </Card>
-                ))}
+                      <CardActions sx={{ justifyContent: 'space-between', pt: 1 }}>
+                        <Box display="flex" gap={1}>
+                          <Tooltip title="Copy text">
+                            <IconButton
+                              size="small"
+                              onClick={() => copyTextClicked(result.id)}
+                              color="primary"
+                            >
+                              <CopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          <Tooltip title="Generate message">
+                            <IconButton
+                              size="small"
+                              onClick={() => generateMessageClicked(result.id)}
+                              color="primary"
+                            >
+                              <SendIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                        
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => deleteResultClicked(result.id)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </CardActions>
+                    </Card>
+                  );
+                })}
               </Stack>
             </Box>
           )}

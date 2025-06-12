@@ -3,7 +3,6 @@ export {
   $sttFile,
   $sttModel,
   $sttPrompt,
-  $isTranslate,
   $isLoading,
   $sttError,
   
@@ -15,7 +14,6 @@ export {
   $isDialogOpen,
   $availableModels,
   $currentModel,
-  $isTranslateEnabled,
   $fileValidation,
   $canTranscribe,
   $sttState,
@@ -27,7 +25,6 @@ export {
   fileCleared,
   modelChanged,
   promptChanged,
-  translateToggled,
   transcribeClicked,
   resultSelected,
   copyTextClicked,

@@ -10,7 +10,6 @@ const domain = createDomain('speech-to-text');
 export const $sttFile = domain.createStore<File | null>(null);
 export const $sttModel = domain.createStore<string>('whisper-1');
 export const $sttPrompt = domain.createStore<string>('');
-export const $isTranslate = domain.createStore<boolean>(false);
 export const $isLoading = domain.createStore<boolean>(false);
 export const $sttError = domain.createStore<string | null>(null);
 
@@ -29,10 +28,6 @@ export const $currentModel = combine(
   (selectedModel, models) => models.find(m => m.id === selectedModel) || models[0]
 );
 
-export const $isTranslateEnabled = combine(
-  $currentModel,
-  (model) => model?.supportsTranslation || false
-);
 
 export const $fileValidation = combine(
   $sttFile,
@@ -65,7 +60,6 @@ export const $sttState = combine({
   file: $sttFile,
   selectedModel: $sttModel,
   prompt: $sttPrompt,
-  isTranslation: $isTranslate,
   isLoading: $isLoading,
   error: $sttError,
   
@@ -77,7 +71,6 @@ export const $sttState = combine({
   isDialogOpen: $isDialogOpen,
   availableModels: $availableModels,
   currentModel: $currentModel,
-  isTranslateEnabled: $isTranslateEnabled,
   fileValidation: $fileValidation,
   canTranscribe: $canTranscribe,
 });
@@ -91,7 +84,6 @@ export const fileCleared = domain.createEvent<void>();
 
 export const modelChanged = domain.createEvent<string>();
 export const promptChanged = domain.createEvent<string>();
-export const translateToggled = domain.createEvent<boolean>();
 
 export const transcribeClicked = domain.createEvent<void>();
 export const resultSelected = domain.createEvent<string>();
@@ -111,6 +103,11 @@ export const saveTranscriptionFx = createEffect<TranscriptionResult, void, Error
       const existingResults = JSON.parse(localStorage.getItem('stt-transcriptions') || '[]');
       const updatedResults = [result, ...existingResults.slice(0, 49)]; // Keep last 50
       localStorage.setItem('stt-transcriptions', JSON.stringify(updatedResults));
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Saved transcription result:', result);
+        console.log('Total transcriptions in storage:', updatedResults.length);
+      }
     } catch (error) {
       console.warn('Failed to save transcription to localStorage:', error);
     }
@@ -121,7 +118,14 @@ export const loadTranscriptionHistoryFx = createEffect<void, TranscriptionResult
   handler: async () => {
     try {
       const stored = localStorage.getItem('stt-transcriptions');
-      return stored ? JSON.parse(stored) : [];
+      const results = stored ? JSON.parse(stored) : [];
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Loaded transcription history:', results);
+        console.log('Number of transcriptions loaded:', results.length);
+      }
+      
+      return results;
     } catch (error) {
       console.warn('Failed to load transcription history:', error);
       return [];
@@ -163,18 +167,7 @@ $sttFile
 
 $sttModel.on(modelChanged, (_, model) => model);
 $sttPrompt.on(promptChanged, (_, prompt) => prompt);
-$isTranslate.on(translateToggled, (_, isTranslate) => isTranslate);
 
-// Reset translation toggle when model changes and doesn't support translation
-sample({
-  clock: modelChanged,
-  source: $availableModels,
-  fn: (models, modelId) => {
-    const model = models.find(m => m.id === modelId);
-    return model?.supportsTranslation ? $isTranslate.getState() : false;
-  },
-  target: $isTranslate,
-});
 
 $sttError
   .on(transcribeAudioFx.failData, (_, { message }) => message)
@@ -199,13 +192,12 @@ $selectedResult.on(resultSelected, (_, id) => id);
 // Transcription workflow
 sample({
   clock: transcribeClicked,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, isTranslation: $isTranslate },
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt, isTranslation }) => ({
+  fn: ({ file, model, prompt }) => ({
     file: file!,
     model,
     prompt: prompt.trim() || undefined,
-    isTranslation,
   }),
   target: transcribeAudioFx,
 });
@@ -213,9 +205,9 @@ sample({
 // Save successful transcription
 sample({
   clock: transcribeAudioFx.doneData,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, isTranslation: $isTranslate },
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt, isTranslation }, response): TranscriptionResult => {
+  fn: ({ file, model, prompt }, response): TranscriptionResult => {
     const wordCount = response.text.trim().split(/\s+/).length;
     return {
       id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -223,7 +215,6 @@ sample({
       fileName: file!.name,
       fileSize: file!.size,
       model,
-      isTranslation,
       prompt: prompt.trim() || undefined,
       timestamp: Date.now(),
       wordCount,
