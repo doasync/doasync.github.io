@@ -1,6 +1,6 @@
 import { createDomain, createEffect, sample, combine, createEvent, createStore } from 'effector';
 import { debug } from 'patronum/debug';
-import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult } from './types';
+import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult, ResponseFormat } from './types';
 import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
 import { messageSent, messageTextChanged } from '../chat/model';
 
@@ -21,11 +21,24 @@ export const $selectedResult = domain.createStore<string | null>(null);
 export const $isDialogOpen = domain.createStore<boolean>(false);
 export const $availableModels = domain.createStore(STT_MODELS);
 
+// Response format settings per model
+export const $responseFormatsPerModel = domain.createStore<Record<string, ResponseFormat>>({});
+
 // Derived state
 export const $currentModel = combine(
   $sttModel,
   $availableModels,
   (selectedModel, models) => models.find(m => m.id === selectedModel) || models[0]
+);
+
+export const $currentResponseFormat = combine(
+  $sttModel,
+  $responseFormatsPerModel,
+  $currentModel,
+  (modelId, formatsPerModel, currentModel) => {
+    // Return saved format for this model, or default format
+    return formatsPerModel[modelId] || currentModel?.defaultResponseFormat || 'text';
+  }
 );
 
 
@@ -71,6 +84,8 @@ export const $sttState = combine({
   isDialogOpen: $isDialogOpen,
   availableModels: $availableModels,
   currentModel: $currentModel,
+  currentResponseFormat: $currentResponseFormat,
+  responseFormatsPerModel: $responseFormatsPerModel,
   fileValidation: $fileValidation,
   canTranscribe: $canTranscribe,
 });
@@ -84,6 +99,7 @@ export const fileCleared = domain.createEvent<void>();
 
 export const modelChanged = domain.createEvent<string>();
 export const promptChanged = domain.createEvent<string>();
+export const responseFormatChanged = domain.createEvent<ResponseFormat>();
 
 export const transcribeClicked = domain.createEvent<void>();
 export const resultSelected = domain.createEvent<string>();
@@ -133,6 +149,30 @@ export const loadTranscriptionHistoryFx = createEffect<void, TranscriptionResult
   },
 });
 
+export const loadResponseFormatsSettingsFx = createEffect<void, Record<string, ResponseFormat>, Error>({
+  handler: async () => {
+    try {
+      const stored = localStorage.getItem('stt-response-formats');
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      console.warn('Failed to load response format settings:', error);
+      return {};
+    }
+  },
+});
+
+export const saveResponseFormatSettingFx = createEffect<{ modelId: string; format: ResponseFormat }, void, Error>({
+  handler: async ({ modelId, format }) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('stt-response-formats') || '{}');
+      const updated = { ...existing, [modelId]: format };
+      localStorage.setItem('stt-response-formats', JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Failed to save response format setting:', error);
+    }
+  },
+});
+
 export const deleteTranscriptionFx = createEffect<string, string, Error>({
   handler: async (id) => {
     try {
@@ -168,6 +208,22 @@ $sttFile
 $sttModel.on(modelChanged, (_, model) => model);
 $sttPrompt.on(promptChanged, (_, prompt) => prompt);
 
+// Response format settings
+$responseFormatsPerModel
+  .on(loadResponseFormatsSettingsFx.doneData, (_, formats) => formats)
+  .on(saveResponseFormatSettingFx.done, (state, { params: { modelId, format } }) => ({
+    ...state,
+    [modelId]: format
+  }));
+
+// Save response format when changed
+sample({
+  clock: responseFormatChanged,
+  source: $sttModel,
+  fn: (modelId, format) => ({ modelId, format }),
+  target: saveResponseFormatSettingFx,
+});
+
 
 $sttError
   .on(transcribeAudioFx.failData, (_, { message }) => message)
@@ -192,12 +248,13 @@ $selectedResult.on(resultSelected, (_, id) => id);
 // Transcription workflow
 sample({
   clock: transcribeClicked,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt },
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt }) => ({
+  fn: ({ file, model, prompt, responseFormat }) => ({
     file: file!,
     model,
     prompt: prompt.trim() || undefined,
+    responseFormat,
   }),
   target: transcribeAudioFx,
 });
@@ -205,13 +262,14 @@ sample({
 // Save successful transcription
 sample({
   clock: transcribeAudioFx.doneData,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt },
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt }, response): TranscriptionResult => {
+  fn: ({ file, model, prompt, responseFormat }, response): TranscriptionResult => {
     const wordCount = response.text.trim().split(/\s+/).length;
     return {
       id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: response.text,
+      rawResponse: response.rawResponse,
       fileName: file!.name,
       fileSize: file!.size,
       model,
@@ -219,6 +277,7 @@ sample({
       timestamp: Date.now(),
       wordCount,
       duration: response.duration,
+      responseFormat,
     };
   },
   target: saveTranscriptionFx,
@@ -231,7 +290,8 @@ sample({
   fn: (results, id) => {
     const result = results.find(r => r.id === id);
     if (result) {
-      navigator.clipboard.writeText(result.text).catch(console.error);
+      const textToCopy = result.rawResponse || result.text;
+      navigator.clipboard.writeText(textToCopy).catch(console.error);
     }
   },
 });
@@ -257,10 +317,10 @@ sample({
   target: deleteTranscriptionFx,
 });
 
-// Load history when dialog opens
+// Load history and settings when dialog opens
 sample({
   clock: dialogOpened,
-  target: loadTranscriptionHistoryFx,
+  target: [loadTranscriptionHistoryFx, loadResponseFormatsSettingsFx],
 });
 
 // Clear selected result when dialog closes

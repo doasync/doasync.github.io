@@ -1,4 +1,4 @@
-import { STTParams, STTResponse, TranscribeParams } from './types';
+import { STTParams, STTResponse, TranscribeParams, ResponseFormat, ResponseFormatOption, STTModel } from './types';
 import { $apiKey, $providerApiUrl } from '../chat-settings/model';
 
 export async function transcribeAudio(params: TranscribeParams): Promise<STTResponse> {
@@ -22,8 +22,8 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
     formData.append('prompt', params.prompt.trim());
   }
 
-  // Add response format - always use json for our dialog
-  formData.append('response_format', 'json');
+  // Add response format
+  formData.append('response_format', params.responseFormat);
 
   // Debug logging for troubleshooting
   if (process.env.NODE_ENV === 'development') {
@@ -34,6 +34,7 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
       fileSize: params.file.size,
       fileType: params.file.type,
       hasPrompt: Boolean(params.prompt?.trim()),
+      responseFormat: params.responseFormat,
     });
   }
 
@@ -58,19 +59,44 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    
-    // Validate response has required text field
-    if (!data.text) {
-      throw new Error('No transcription text in response');
-    }
+    // Handle different response formats
+    if (params.responseFormat === 'text') {
+      const rawText = await response.text();
+      return {
+        text: rawText,
+        rawResponse: rawText,
+        language: undefined,
+        duration: undefined,
+        segments: undefined,
+      };
+    } else if (params.responseFormat === 'srt' || params.responseFormat === 'vtt') {
+      // SRT and VTT formats return subtitles as plain text
+      const rawText = await response.text();
+      return {
+        text: rawText,
+        rawResponse: rawText,
+        language: undefined,
+        duration: undefined,
+        segments: undefined,
+      };
+    } else {
+      // JSON and verbose_json formats
+      const rawText = await response.text();
+      const data = JSON.parse(rawText);
+      
+      // Validate response has required text field
+      if (!data.text) {
+        throw new Error('No transcription text in response');
+      }
 
-    return {
-      text: data.text,
-      language: data.language,
-      duration: data.duration,
-      segments: data.segments,
-    };
+      return {
+        text: data.text,
+        rawResponse: rawText,  // Store the original JSON string
+        language: data.language,
+        duration: data.duration,
+        segments: data.segments,
+      };
+    }
   } catch (error) {
     // Handle network-level errors (Failed to fetch, CORS, timeout, etc.)
     if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -123,8 +149,37 @@ export function validateAudioFile(file: File): { isValid: boolean; error?: strin
   return { isValid: true };
 }
 
+// Response format options with descriptions
+export const RESPONSE_FORMAT_OPTIONS: ResponseFormatOption[] = [
+  {
+    value: 'json',
+    label: 'JSON',
+    description: 'Simple JSON with text'
+  },
+  {
+    value: 'text',
+    label: 'Plain Text',
+    description: 'Plain text response for simple integration'
+  },
+  {
+    value: 'srt',
+    label: 'SRT',
+    description: 'SubRip subtitle format for video captioning'
+  },
+  {
+    value: 'vtt',
+    label: 'WebVTT',
+    description: 'Web Video Text Tracks for web video captioning'
+  },
+  {
+    value: 'verbose_json',
+    label: 'Verbose JSON',
+    description: 'Detailed JSON with metadata for advanced applications'
+  }
+];
+
 // Available STT models from VoidAI documentation
-export const STT_MODELS = [
+export const STT_MODELS: STTModel[] = [
   {
     id: 'whisper-1',
     name: 'Whisper-1',
@@ -132,6 +187,7 @@ export const STT_MODELS = [
     maxFileSize: 25 * 1024 * 1024,
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text', 'srt', 'verbose_json', 'vtt'],
+    defaultResponseFormat: 'text',
     hasLimitedParams: false
   },
   {
@@ -141,6 +197,7 @@ export const STT_MODELS = [
     maxFileSize: 25 * 1024 * 1024,
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text'],
+    defaultResponseFormat: 'text',
     hasLimitedParams: true
   },
   {
@@ -150,6 +207,7 @@ export const STT_MODELS = [
     maxFileSize: 25 * 1024 * 1024,
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text'],
+    defaultResponseFormat: 'text',
     hasLimitedParams: true
   }
 ];

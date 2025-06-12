@@ -14,6 +14,8 @@ export {
   $isDialogOpen,
   $availableModels,
   $currentModel,
+  $currentResponseFormat,
+  $responseFormatsPerModel,
   $fileValidation,
   $canTranscribe,
   $sttState,
@@ -25,6 +27,7 @@ export {
   fileCleared,
   modelChanged,
   promptChanged,
+  responseFormatChanged,
   transcribeClicked,
   resultSelected,
   copyTextClicked,
@@ -38,6 +41,8 @@ export {
   loadTranscriptionHistoryFx,
   deleteTranscriptionFx,
   addToChatFx,
+  loadResponseFormatsSettingsFx,
+  saveResponseFormatSettingFx,
   
   // Legacy compatibility
   $sttProgress,
@@ -66,10 +71,13 @@ export type {
   AudioFileInfo,
   ValidationResult,
   TranscribeParams,
+  ResponseFormat,
+  ResponseFormatOption,
 } from './types';
 
 export {
   transcribeAudio,
   validateAudioFile,
   STT_MODELS,
+  RESPONSE_FORMAT_OPTIONS,
 } from './api';

@@ -35,6 +35,7 @@ import {
   Send as SendIcon,
   Delete as DeleteIcon,
   AudioFile as AudioFileIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useUnit } from 'effector-react';
@@ -46,12 +47,14 @@ import {
   fileCleared,
   modelChanged,
   promptChanged,
+  responseFormatChanged,
   transcribeClicked,
   copyTextClicked,
   generateMessageClicked,
   deleteResultClicked,
   clearError,
 } from '../model';
+import { RESPONSE_FORMAT_OPTIONS } from '../api';
 
 interface TranscriptionDialogProps {
   open: boolean;
@@ -342,6 +345,30 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 </Alert>
               )}
 
+              <FormControl fullWidth>
+                <InputLabel>Response Format</InputLabel>
+                <Select
+                  value={state.currentResponseFormat}
+                  label="Response Format"
+                  onChange={(e) => responseFormatChanged(e.target.value as any)}
+                >
+                  {RESPONSE_FORMAT_OPTIONS
+                    .filter(option => state.currentModel?.supportedResponseFormats.includes(option.value))
+                    .map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Box>
+                          <Typography variant="body2">
+                            {option.label}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {option.description}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))
+                  }
+                </Select>
+              </FormControl>
 
               <TextField
                 label="Context Prompt (Optional)"
@@ -427,15 +454,20 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                                 {formatDuration(result.duration)}
                               </Typography>
                             )}
+                            {result.responseFormat && result.responseFormat !== 'json' && (
+                              <Typography variant="caption" color="text.secondary">
+                                Format: {result.responseFormat.toUpperCase()}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
                         
                         <TextField
                           multiline
                           fullWidth
-                          value={result.text}
+                          value={result.rawResponse || result.text}
                           variant="outlined"
-                          rows={3}
+                          rows={result.responseFormat === 'json' || result.responseFormat === 'verbose_json' ? 8 : 3}
                           InputProps={{
                             readOnly: true,
                           }}
@@ -443,6 +475,9 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                             '& .MuiInputBase-input': {
                               fontSize: '0.9rem',
                               lineHeight: 1.4,
+                              fontFamily: result.responseFormat === 'json' || result.responseFormat === 'verbose_json' 
+                                ? 'monospace' 
+                                : 'inherit',
                             }
                           }}
                         />
@@ -450,17 +485,49 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                       
                       <CardActions sx={{ justifyContent: 'space-between', pt: 1 }}>
                         <Box display="flex" gap={1}>
-                          <Tooltip title="Copy text">
+                          <Tooltip title="Copy">
                             <IconButton
                               size="small"
-                              onClick={() => copyTextClicked(result.id)}
+                              onClick={() => {
+                                const textToCopy = result.rawResponse || result.text;
+                                navigator.clipboard.writeText(textToCopy).catch(console.error);
+                              }}
                               color="primary"
                             >
                               <CopyIcon />
                             </IconButton>
                           </Tooltip>
                           
-                          <Tooltip title="Generate message">
+                          <Tooltip title="Download">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                const content = result.rawResponse || result.text;
+                                let extension: string;
+                                if (result.responseFormat === 'json' || result.responseFormat === 'verbose_json') {
+                                  extension = 'json';
+                                } else if (result.responseFormat === 'text') {
+                                  extension = 'txt';
+                                } else {
+                                  extension = result.responseFormat; // srt, vtt
+                                }
+                                const blob = new Blob([content], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${result.fileName.replace(/\.[^/.]+$/, '')}_transcription.${extension}`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                              }}
+                              color="primary"
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          <Tooltip title="Send to chat">
                             <IconButton
                               size="small"
                               onClick={() => generateMessageClicked(result.id)}

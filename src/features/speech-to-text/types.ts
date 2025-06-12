@@ -3,10 +3,12 @@ export interface STTParams {
   language?: string;
   model?: string;
   prompt?: string;
+  responseFormat?: ResponseFormat;
 }
 
 export interface STTResponse {
   text: string;
+  rawResponse: string;  // Store the actual API response
   language?: string;
   duration?: number;
   segments?: TranscriptionSegment[];
@@ -21,6 +23,7 @@ export interface TranscriptionSegment {
 export interface TranscriptionResult {
   id: string;
   text: string;
+  rawResponse: string;  // Store the actual API response
   fileName: string;
   fileSize: number;
   model: string;
@@ -28,6 +31,15 @@ export interface TranscriptionResult {
   timestamp: number;
   wordCount: number;
   duration?: number;
+  responseFormat: ResponseFormat;
+}
+
+export type ResponseFormat = 'json' | 'text' | 'srt' | 'vtt' | 'verbose_json';
+
+export interface ResponseFormatOption {
+  value: ResponseFormat;
+  label: string;
+  description: string;
 }
 
 export interface STTModel {
@@ -36,7 +48,8 @@ export interface STTModel {
   description: string;
   maxFileSize: number;
   supportedFormats: string[];
-  supportedResponseFormats: string[];
+  supportedResponseFormats: ResponseFormat[];
+  defaultResponseFormat: ResponseFormat;
   hasLimitedParams: boolean;
 }
 
@@ -55,6 +68,9 @@ export interface STTState {
   // UI state
   isDialogOpen: boolean;
   availableModels: STTModel[];
+  
+  // Response format settings per model
+  responseFormatsPerModel: Record<string, ResponseFormat>;
   
   // Legacy compatibility
   progress: number;
@@ -84,4 +100,5 @@ export interface TranscribeParams {
   file: File;
   model: string;
   prompt?: string;
+  responseFormat: ResponseFormat;
 }
