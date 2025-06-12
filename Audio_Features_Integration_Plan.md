@@ -26,19 +26,21 @@ The audio integration will add the following features:
 
 Users can convert any text to audio through:
 
-- A dedicated TTS dialog accessible via attachment menu (📎 → "Text to Speech")
-- Text selection with right-click context menu option (planned)
-- Keyboard shortcut (Ctrl/Cmd + Shift + S) (planned)
+- A dedicated TTS dialog accessible via attachment menu (📎 → "Text to Speech") ✅ Implemented
+- Text selection with right-click context menu option ❌ Not implemented
+- Keyboard shortcut (Ctrl/Cmd + Shift + S) ❌ Not implemented
 
 The TTS dialog includes:
 
-- Text input area with character counter (4000 max)
-- TTS model selector dropdown with provider information
-- Voice selector dropdown with search, favorites, and gender indicators
-- Audio format selector (MP3, WAV, OPUS, AAC, FLAC, PCM)
-- Always-visible audio player for preview (no separate preview button)
-- Generate Audio button to create the audio
-- Download button to save the audio file
+- Text input area with character counter (4000 max) ✅
+- TTS model selector dropdown with provider information ✅
+- Voice selector dropdown (dynamic based on model) ✅
+- Audio format selector (filtered by model capabilities) ✅
+- Instructions field (only for gpt-4o-mini-tts model) ✅
+- Streaming toggle switch ✅
+- Generated audio history with playback and download ✅
+- Delete audio functionality ✅
+- Speed control ❌ Not implemented in UI (store exists)
 
 ### 2.2 Architecture
 
@@ -76,49 +78,78 @@ graph TB
     TTSAdapter --> GeminiTTS
 ```
 
-### 2.3 Provider Capabilities Matrix
+### 2.3 Provider Capabilities Matrix (Implemented)
 
 | Feature          | VoidAI                                                                                              | Gemini                                                   |
 | ---------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Voices           | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse                            | 30+ voices (Zephyr, Puck, Kore, Fenrir, etc.)            |
-| Formats          | MP3, OPUS, AAC, FLAC, WAV, PCM                                                                      | WAV (PCM 24kHz)                                          |
+| Voices           | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse                            | 30+ voices (Aoede, Charon, Circe, Kore, Fenrir, etc.)   |
+| Formats          | MP3, OPUS, AAC, FLAC, WAV, PCM (varies by model)                                                   | WAV only                                                 |
 | Models           | tts-1, tts-1-hd, gpt-4o-mini-tts, elevenlabs, gpt-4o-audio-preview, gpt-4o-audio-preview-2024-12-17 | gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts |
-| Multi-speaker    | No (except Gemini models)                                                                           | Yes (up to 2 speakers)                                   |
-| Style Control    | Yes (gpt-4o-mini-tts, elevenlabs)                                                                   | Yes (via prompt)                                         |
-| Languages        | Multiple (16+ for ElevenLabs)                                                                       | 24 languages                                             |
-| Special Features | ElevenLabs: emotion & accent control                                                                | Multi-speaker synthesis                                  |
+| API Endpoint     | /audio/speech (except gpt-4o-audio models use /chat/completions)                                    | /audio/speech (hybrid format)                            |
+| Instructions     | ✅ Supported (gpt-4o-mini-tts only)                                                                | ❌ Not supported                                         |
+| Speed Control    | 0.25-4.0 (tts-1, tts-1-hd only)                                                                    | ❌ Not supported                                         |
+| Multi-speaker    | ❌ Not implemented                                                                                  | ❌ Not implemented (single speaker only)                |
+| Special Features | ElevenLabs: emotion & accent control, GPT-4o-mini: voice instructions                               | Hybrid API format support                                |
 
-### 2.4 State Model
+### 2.4 State Model (Actual Implementation)
 
 ```typescript
-// Features/text-to-speech/model.ts structure
+// Features/text-to-speech/model.ts actual structure
 interface TTSState {
   text: string
+  selectedModel: string
   selectedVoice: string
   selectedFormat: AudioFormat
-  selectedModel: string
-  selectedProvider: 'voidai' | 'gemini'
   isLoading: boolean
   error: string | null
-  previewUrl: string | null
+  availableVoices: VoiceOption[]
+  instructions: string // For gpt-4o-mini-tts
   audioUrl: string | null
-  speed: number
+}
+
+// Model Preferences (persisted)
+interface ModelPreferences {
+  [modelId: string]: {
+    voice: string
+    format: AudioFormat
+    speed: number
+    instructions?: string
+  }
+}
+
+// Generated Audio Storage
+interface GeneratedAudio {
+  id: string
+  url: string
+  text: string
+  model: string
+  voice: string
+  format: AudioFormat
+  size: number
+  timestamp: number
+  filename: string
 }
 
 // Events
 - textChanged: Update text to convert
 - voiceSelected: Change voice option
 - formatSelected: Change output format
-- modelSelected: Change TTS model
-- generateTTSClicked: Start TTS generation
+- modelSelected: Change TTS model (updates voice options)
+- instructionsChanged: Update voice instructions
+- generateTTSClicked: Regular TTS generation
+- generateTTSStreamClicked: Streaming TTS (falls back to regular)
 - downloadRequested: Save audio file
+- previewRequested: Play audio preview
+- deleteAudio: Remove from history
+- clearError: Clear error message
 - ttsDialogOpened: Initialize dialog
 - ttsDialogClosed: Cleanup dialog
 
 // Effects
-- generateTTSFx: Call appropriate provider API
-- downloadAudioFx: Save audio to file system
-- playPreviewFx: Integrated into AudioPlayer component
+- generateTTSFx: Call provider API with hybrid format for Gemini
+- generateTTSStreamFx: Attempt streaming (falls back)
+- loadModelPreferencesFx: Load saved preferences
+- saveModelPreferencesFx: Persist preferences
 ```
 
 ## 3. Speech-to-Text (STT) Feature
@@ -394,45 +425,26 @@ interface VoiceOption {
 
 ## 6. Integration with Existing Architecture
 
-### 6.1 File Structure
+### 6.1 File Structure (Actual Implementation)
 
 ```
 src/features/
-├── text-to-speech/
-│   ├── model.ts          # TTS state management
-│   ├── index.ts          # Public API
-│   ├── types.ts          # TypeScript types
-│   ├── components/
-│   │   ├── TTSDialog.tsx
-│   │   └── VoiceSelector.tsx
-│   └── api/
-│       ├── adapter.ts
-│       └── providers/
-├── speech-to-text/
-│   ├── model.ts          # STT state management
-│   ├── index.ts
-│   ├── types.ts
-│   ├── components/
-│   │   ├── AudioUpload.tsx
-│   │   └── TranscriptionProgress.tsx
-│   └── api/
-├── audio-chat/
-│   ├── model.ts          # Audio chat state
-│   ├── index.ts
-│   ├── types.ts
-│   ├── components/
-│   │   ├── AudioRecorder.tsx
-│   │   ├── AudioPlayer.tsx
-│   │   └── AudioMessage.tsx
-│   └── utils/
-│       └── audio-processing.ts
-└── voice-models/
-    ├── model.ts          # Voice model state
-    ├── index.ts
-    ├── types.ts
+├── text-to-speech/          ✅ Fully implemented
+│   ├── model.ts            # TTS state management with preferences
+│   ├── index.ts            # Public API exports
+│   ├── types.ts            # TypeScript interfaces
+│   ├── api.ts              # Unified API adapter with hybrid format
+│   └── components/
+│       ├── TTSDialog.tsx   # Main TTS UI dialog
+│       └── VoiceSelector.tsx # Voice selection component
+├── speech-to-text/          ❌ Not implemented
+├── audio-chat/              ❌ Not implemented
+└── voice-models/            ✅ Implemented
+    ├── model.ts            # Voice model loading and state
+    ├── index.ts            # Public exports
     └── config/
-        ├── voices.json
-        └── providers.json
+        ├── models.json     # TTS/STT model definitions
+        └── voices.json     # Voice configurations per model
 ```
 
 ### 6.2 API Integration Points
@@ -467,34 +479,26 @@ graph LR
     TTSAPI --> Gemini
 ```
 
-## 7. Provider-Specific Handling
+## 7. Provider-Specific Handling (Actual Implementation)
 
 ### 7.1 API Format Differences
 
 **VoidAI (OpenAI-compatible)**:
 
-- TTS: `/audio/speech` endpoint (fixed: no duplicate v1)
-- STT: `/audio/transcriptions` endpoint
-- Audio Chat: `/chat/completions` with audio modality
-- Speed parameter: 0.25 to 4.0 (tts-1, tts-1-hd only)
-- Instructions parameter: Supported on gpt-4o-mini-tts
+- TTS: `/audio/speech` endpoint ✅
+- GPT-4o audio models: `/chat/completions` endpoint ✅
+- Response: Binary audio data (MP3, WAV, etc.) ✅
+- Speed parameter: 0.25 to 4.0 (tts-1, tts-1-hd only) ✅
+- Instructions parameter: Supported on gpt-4o-mini-tts ✅
 
-**OpenAI**:
+**Gemini (Hybrid Implementation)**:
 
-- Same endpoints as VoidAI
-- Additional models: `gpt-4o-mini-tts`, `gpt-4o-transcribe`
-- Speed parameter: Not supported on gpt-4o-mini-tts
-- Instructions parameter: Supported on gpt-4o-mini-tts for voice control
-- Streaming transcription: Supported
-
-**Gemini**:
-
-- TTS: `/v1beta/models/{model}:generateContent` with audio response
-- STT: Multimodal input to chat endpoint
-- Requires different request/response format
-- Multi-speaker support: Up to 2 speakers
-- Audio output: Base64 encoded PCM data (24kHz, 16-bit)
-- Voice control: Via natural language prompts
+- TTS: `/audio/speech` endpoint (using VoidAI proxy) ✅
+- Request format: Hybrid OpenAI + Gemini native ✅
+- Response format: JSON with base64 audio or binary ✅
+- Supported models: gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts ✅
+- Audio format: WAV only ✅
+- Multi-speaker: Not implemented (single speaker only)
 
 ### 7.2 Model-Specific Audio Support Tracking
 
@@ -512,19 +516,52 @@ graph LR
 | gemini-2.5-flash-preview-tts    | Gemini   | Gemini       | ✓           | ✗           | Multi-speaker support                        |
 | gemini-2.5-pro-preview-tts      | Gemini   | Gemini       | ✓           | ✗           | Higher quality                               |
 
-### 7.3 Provider Adapter Pattern
+### 7.3 Provider Adapter Pattern (Actual Implementation)
 
 ```typescript
-interface AudioProvider {
-  generateSpeech(params: TTSParams): Promise<AudioBlob>;
-  transcribeAudio(params: STTParams): Promise<Transcript>;
-  chatWithAudio(params: AudioChatParams): Promise<AudioResponse>;
-}
-
-// Each provider implements the interface
-class VoidAIProvider implements AudioProvider {}
-class OpenAIProvider implements AudioProvider {}
-class GeminiProvider implements AudioProvider {}
+// Unified API adapter in api.ts
+const getProviderConfig = (model: string, text: string, voice: string, format: AudioFormat, speed?: number, instructions?: string) => {
+  const isGeminiModel = model.includes('gemini');
+  const isGPT4oAudioModel = model === 'gpt-4o-audio-preview' || model === 'gpt-4o-audio-preview-2024-12-17';
+  
+  if (isGPT4oAudioModel) {
+    // Use chat completions endpoint
+    return {
+      endpoint: `${providerUrl}/chat/completions`,
+      body: {
+        model,
+        modalities: ["text", "audio"],
+        audio: { voice, format },
+        messages: [{ role: "user", content: text }]
+      }
+    };
+  } else if (isGeminiModel) {
+    // Hybrid format for Gemini
+    return {
+      endpoint: `${providerUrl}/audio/speech`,
+      body: {
+        // OpenAI format
+        model, input: text, voice, response_format: format,
+        // Gemini format
+        contents: [{ parts: [{ text }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voice }
+            }
+          }
+        }
+      }
+    };
+  } else {
+    // Standard OpenAI format
+    return {
+      endpoint: `${providerUrl}/audio/speech`,
+      body: { model, input: text, voice, response_format: format, speed, instructions }
+    };
+  }
+};
 ```
 
 ## 8. User Interface Changes
@@ -553,11 +590,11 @@ Attachment Menu (📎):
 - Text to Speech ← TTS Access Point
 ```
 
-### 8.2 TTS Dialog Design
+### 8.2 TTS Dialog Design (Actual Implementation)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ Text to Speech                              [X] │
+│ 🔊 Text to Speech                           [X] │
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │ Text to convert:                               │
@@ -566,21 +603,28 @@ Attachment Menu (📎):
 │ │ [Multi-line text input area]                │ │
 │ │                                             │ │
 │ └─────────────────────────────────────────────┘ │
-│ Characters: 0/4000                             │
+│ 0/4000 characters                              │
 │                                                 │
-│ TTS Model: [tts-1-hd ▼] (VoidAI)               │
+│ TTS Model: [tts-1-hd ▼]                        │
 │ Voice: [Nova ▼]         Format: [MP3 ▼]        │
 │                                                 │
+│ Voice Instructions: (only for gpt-4o-mini-tts)  │
 │ ┌─────────────────────────────────────────────┐ │
-│ │ Generated Audio:                            │ │
-│ │ [Audio Player Component]                    │ │
-│ │ • Play/pause button                         │ │
-│ │ • Seek slider                               │ │
-│ │ • Time display                              │ │
-│ │ • No separate download button               │ │
+│ │ [Optional instructions field]               │ │
 │ └─────────────────────────────────────────────┘ │
 │                                                 │
-│ [Cancel]                     [Generate Audio]   │
+│ ⚠️ Error: [Error message with working X button] │
+│                                                 │
+│ Generated Audio Files (2)                       │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ 🎵 tts_20241206_143022.mp3                  │ │
+│ │ tts-1-hd • nova • MP3 • 45.2 KB            │ │
+│ │ 2:30:22 PM              [📥] [🗑️]          │ │
+│ │ "Hello, this is a test..."                 │ │
+│ │ [════════════════════━━━━] 0:12/0:45       │ │
+│ └─────────────────────────────────────────────┘ │
+│                                                 │
+│ [Cancel] [🔄 Stream audio] [🔊 Generate Audio]  │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -627,46 +671,48 @@ Attachment Menu (📎):
 
 ### Phase 1: Foundation ✅ (Completed)
 
-1. ✅ Created audio feature modules structure
-2. ✅ Implemented provider adapter pattern
-3. ✅ Extended message types for audio support
+1. ✅ Created text-to-speech feature module
+2. ✅ Implemented unified API adapter with hybrid format support
+3. ✅ Created voice-models configuration system
 
 ### Phase 2: TTS Feature ✅ (Completed)
 
-1. ✅ Built TTS dialog and UI components
-2. ✅ Implemented TTS state management
-3. ✅ Added provider-specific TTS handlers
-4. ✅ Moved TTS access to attachment menu
-5. ✅ Added model selector to TTS dialog
-6. ✅ Replaced preview button with audio player
-7. ✅ Fixed API endpoint URL issues
+1. ✅ Built TTSDialog component with full UI
+2. ✅ Implemented TTS state management with preferences persistence
+3. ✅ Added support for all VoidAI TTS models (tts-1, tts-1-hd, gpt-4o-mini-tts, elevenlabs)
+4. ✅ Added support for GPT-4o audio models using chat completions
+5. ✅ Implemented hybrid API format for Gemini TTS models
+6. ✅ Added generated audio history with playback and download
+7. ✅ Implemented model-specific voice and format filtering
+8. ✅ Added instructions field for gpt-4o-mini-tts
+9. ✅ Fixed error message close button functionality
+10. ✅ Added streaming toggle (falls back to regular generation)
 
-### Phase 3: STT Feature ✅ (Partially Completed)
+### Phase 3: STT Feature ❌ (Not Implemented)
 
-1. ✅ Created STT module structure
-2. ✅ Implemented transcription API adapters
-3. ⏳ Create audio upload components (pending UI)
-4. ⏳ Add progress tracking and visualization
+1. ❌ Speech-to-text module not created
+2. ❌ No audio upload functionality
+3. ❌ No transcription UI
 
-### Phase 4: Audio Chat ✅ (Structure Completed)
+### Phase 4: Audio Chat ❌ (Not Implemented)
 
-1. ✅ Created audio-chat module structure
-2. ✅ Added recording state management
-3. ⏳ Build audio recorder component UI
-4. ⏳ Integrate audio messages into chat
+1. ❌ Audio recording not implemented
+2. ❌ Audio messages not integrated into chat
+3. ❌ No audio playback in messages
 
 ### Phase 5: Voice Models ✅ (Completed)
 
 1. ✅ Implemented voice models configuration
-2. ✅ Added all TTS/STT models from VoidAI
-3. ✅ Created voice preferences system
-4. ✅ Added voice selection with search & favorites
+2. ✅ Added all TTS models from VoidAI and Gemini
+3. ✅ Created model-specific voice mappings
+4. ✅ Dynamic voice loading based on selected model
+5. ✅ Model preferences persistence
 
 ## 11. API Request/Response Examples
 
-### 11.1 TTS Request Examples
+### 11.1 TTS Request Examples (Actual Implementation)
 
-**VoidAI/OpenAI Format**:
+**Standard TTS Models (tts-1, tts-1-hd, elevenlabs)**:
 
 ```json
 {
@@ -678,15 +724,53 @@ Attachment Menu (📎):
 }
 ```
 
-**Gemini Format**:
+**GPT-4o-mini-tts (with instructions)**:
 
 ```json
 {
+  "model": "gpt-4o-mini-tts",
+  "input": "Hello, this is a test.",
+  "voice": "alloy",
+  "response_format": "mp3",
+  "instructions": "Speak in a cheerful tone with emphasis on 'Hello'"
+}
+```
+
+**GPT-4o Audio Models (via chat completions)**:
+
+```json
+{
+  "model": "gpt-4o-audio-preview",
+  "modalities": ["text", "audio"],
+  "audio": {
+    "voice": "nova",
+    "format": "mp3"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, this is a test."
+    }
+  ]
+}
+```
+
+**Gemini Hybrid Format (as implemented)**:
+
+```json
+{
+  // OpenAI-style fields
+  "model": "gemini-2.5-flash-preview-tts",
+  "input": "Hello, this is a test.",
+  "voice": "Aoede",
+  "response_format": "wav",
+  
+  // Gemini-native fields
   "contents": [
     {
       "parts": [
         {
-          "text": "Speaker1: Hello!\nSpeaker2: Hi there!"
+          "text": "Hello, this is a test."
         }
       ]
     }
@@ -694,25 +778,10 @@ Attachment Menu (📎):
   "generationConfig": {
     "responseModalities": ["AUDIO"],
     "speechConfig": {
-      "multiSpeakerVoiceConfig": {
-        "speakerVoiceConfigs": [
-          {
-            "speaker": "Speaker1",
-            "voiceConfig": {
-              "prebuiltVoiceConfig": {
-                "voiceName": "Puck"
-              }
-            }
-          },
-          {
-            "speaker": "Speaker2",
-            "voiceConfig": {
-              "prebuiltVoiceConfig": {
-                "voiceName": "Kore"
-              }
-            }
-          }
-        ]
+      "voiceConfig": {
+        "prebuiltVoiceConfig": {
+          "voiceName": "Aoede"
+        }
       }
     }
   }
@@ -760,15 +829,31 @@ Attachment Menu (📎):
 
 ## 13. Summary
 
-This plan provides a comprehensive architecture for integrating audio features into the chat application while maintaining clean separation of concerns and supporting multiple providers. The phased approach allows incremental implementation while ensuring each feature is fully functional before moving to the next.
+This document has been updated to reflect the actual TTS implementation completed in December 2024. The implementation successfully delivered a working Text-to-Speech feature with the following achievements:
 
-Key architectural decisions:
+### Completed Features:
 
-- Feature-based module structure aligns with existing codebase
-- Provider adapter pattern handles API differences elegantly
-- Model-specific format tracking for VoidAI/OpenAI vs Gemini
-- Effector state management ensures predictable updates
-- Progressive enhancement maintains app stability
-- Clear UI/UX design focuses on user needs
+1. **Full TTS Support**: All TTS models from VoidAI and Gemini are working
+2. **Hybrid API Format**: Successfully implemented a unified approach that supports both OpenAI-style and Gemini-native formats
+3. **Rich UI**: TTSDialog with model selection, voice filtering, format options, and generated audio history
+4. **Model Preferences**: Persistent storage of user preferences per model
+5. **Error Handling**: Proper error display with functional close button
+6. **Audio Management**: Native HTML5 audio playback with download functionality
 
-The implementation will extend the existing chat application with powerful audio capabilities while preserving the current architecture and user experience patterns.
+### Key Technical Achievements:
+
+- **Unified API Adapter**: Single `api.ts` file handles all provider differences elegantly
+- **Dynamic Configuration**: Voice and format options update based on selected model
+- **Memory Management**: Proper cleanup of blob URLs to prevent memory leaks
+- **GPT-4o Audio Models**: Successfully integrated using chat completions endpoint
+- **Instructions Support**: Added for gpt-4o-mini-tts model
+
+### Remaining Work:
+
+- Speech-to-Text (STT) feature not implemented
+- Audio chat integration not implemented
+- Speed control UI not added (backend support exists)
+- Context menu TTS option not implemented
+- Voice preview functionality not implemented
+
+The implementation demonstrates a solid foundation for audio features with clean architecture, good error handling, and excellent user experience. The hybrid API approach for Gemini models is particularly noteworthy as it allows seamless integration through the VoidAI proxy.
