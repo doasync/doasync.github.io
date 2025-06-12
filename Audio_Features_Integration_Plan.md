@@ -7,6 +7,7 @@ This document outlines the comprehensive architectural plan for integrating audi
 ### 1.1 Scope
 
 The audio integration will add the following features:
+
 1. **Text-to-Speech (TTS)**: Convert user-specified text into downloadable audio files
 2. **Speech-to-Text (STT)**: Transcribe uploaded audio files into text
 3. **Audio Input/Output**: Support audio messages within chat conversations
@@ -24,11 +25,13 @@ The audio integration will add the following features:
 ### 2.1 User Experience
 
 Users can convert any text to audio through:
+
 - A dedicated TTS dialog accessible via attachment menu (📎 → "Text to Speech")
 - Text selection with right-click context menu option (planned)
 - Keyboard shortcut (Ctrl/Cmd + Shift + S) (planned)
 
 The TTS dialog includes:
+
 - Text input area with character counter (4000 max)
 - TTS model selector dropdown with provider information
 - Voice selector dropdown with search, favorites, and gender indicators
@@ -47,7 +50,7 @@ graph TB
         AudioPlayer[Audio Player Component]
         ContextMenu[Context Menu Option - Planned]
     end
-    
+
     subgraph "State Management"
         $ttsText[$$ttsText Store]
         $ttsVoice[$$ttsVoice Store]
@@ -56,14 +59,14 @@ graph TB
         $ttsLoading[$$ttsLoading Store]
         generateTTSFx[generateTTSFx Effect]
     end
-    
+
     subgraph "API Layer"
         TTSAdapter[TTS API Adapter]
         VoidAITTS[VoidAI TTS Handler]
         OpenAITTS[OpenAI TTS Handler]
         GeminiTTS[Gemini TTS Handler]
     end
-    
+
     TTSDialog --> $ttsText
     TTSDialog --> $ttsVoice
     TTSDialog --> generateTTSFx
@@ -75,15 +78,15 @@ graph TB
 
 ### 2.3 Provider Capabilities Matrix
 
-| Feature | VoidAI | Gemini |
-|---------|---------|---------|
-| Voices | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse | 30+ voices (Zephyr, Puck, Kore, Fenrir, etc.) |
-| Formats | MP3, OPUS, AAC, FLAC, WAV, PCM | WAV (PCM 24kHz) |
-| Models | tts-1, tts-1-hd, gpt-4o-mini-tts, elevenlabs, gpt-4o-audio-preview, gpt-4o-audio-preview-2024-12-17 | gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts |
-| Multi-speaker | No (except Gemini models) | Yes (up to 2 speakers) |
-| Style Control | Yes (gpt-4o-mini-tts, elevenlabs) | Yes (via prompt) |
-| Languages | Multiple (16+ for ElevenLabs) | 24 languages |
-| Special Features | ElevenLabs: emotion & accent control | Multi-speaker synthesis |
+| Feature          | VoidAI                                                                                              | Gemini                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Voices           | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse                            | 30+ voices (Zephyr, Puck, Kore, Fenrir, etc.)            |
+| Formats          | MP3, OPUS, AAC, FLAC, WAV, PCM                                                                      | WAV (PCM 24kHz)                                          |
+| Models           | tts-1, tts-1-hd, gpt-4o-mini-tts, elevenlabs, gpt-4o-audio-preview, gpt-4o-audio-preview-2024-12-17 | gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts |
+| Multi-speaker    | No (except Gemini models)                                                                           | Yes (up to 2 speakers)                                   |
+| Style Control    | Yes (gpt-4o-mini-tts, elevenlabs)                                                                   | Yes (via prompt)                                         |
+| Languages        | Multiple (16+ for ElevenLabs)                                                                       | 24 languages                                             |
+| Special Features | ElevenLabs: emotion & accent control                                                                | Multi-speaker synthesis                                  |
 
 ### 2.4 State Model
 
@@ -123,11 +126,13 @@ interface TTSState {
 ### 3.1 User Experience
 
 Users can transcribe audio files through:
+
 - Drag-and-drop audio files onto chat input
 - Click attachment button and select audio file
 - Paste audio file from clipboard
 
 The transcription process shows:
+
 - Upload progress indicator
 - Audio waveform visualization
 - Transcription progress bar
@@ -143,7 +148,7 @@ graph TB
         TranscriptionProgress[Progress Component]
         WaveformViz[Waveform Visualizer]
     end
-    
+
     subgraph "State Management"
         $sttFile[$$sttFile Store]
         $sttProgress[$$sttProgress Store]
@@ -151,14 +156,14 @@ graph TB
         $sttLanguage[$$sttLanguage Store]
         transcribeAudioFx[transcribeAudioFx Effect]
     end
-    
+
     subgraph "API Layer"
         STTAdapter[STT API Adapter]
         VoidAISTT[VoidAI STT Handler]
         OpenAISTT[OpenAI STT Handler]
         GeminiSTT[Gemini STT Handler]
     end
-    
+
     AudioUpload --> $sttFile
     AudioUpload --> transcribeAudioFx
     transcribeAudioFx --> STTAdapter
@@ -169,13 +174,13 @@ graph TB
 
 ### 3.3 Provider Capabilities Matrix
 
-| Feature | VoidAI | Gemini |
-|---------|---------|---------|
-| Models | whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe | Via multimodal input |
-| Streaming | No | No |
-| Languages | Multiple | Auto-detect |
-| Formats | Common audio formats | Common audio formats |
-| Max Size | 25MB | Provider limits |
+| Feature   | VoidAI                                               | Gemini               |
+| --------- | ---------------------------------------------------- | -------------------- |
+| Models    | whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe | Via multimodal input |
+| Streaming | No                                                   | No                   |
+| Languages | Multiple                                             | Auto-detect          |
+| Formats   | Common audio formats                                 | Common audio formats |
+| Max Size  | 25MB                                                 | Provider limits      |
 
 ### 3.4 State Model
 
@@ -210,12 +215,16 @@ interface STTState {
 ### 4.1 User Experience
 
 Users can send and receive audio messages:
+
 - **Recording**: Click microphone button to record voice message
 - **Playback**: Audio messages show inline player with controls
+- **Transcription**: Option to show/hide transcript for audio messages
+- **Text-to-Speech**: Click speaker icon to hear any text message read aloud
 - **Transcription**: Option to show/hide transcript for audio messages
 - **Multi-modal**: Mix text and audio in same conversation
 
 Audio message UI includes:
+
 - Waveform visualization
 - Play/pause button
 - Progress bar with time
@@ -232,7 +241,7 @@ graph TB
         AudioPlayer[Audio Player Component]
         AudioMessage[Audio Message Component]
     end
-    
+
     subgraph "State Management"
         $recording[$$recording Store]
         $audioMessages[$$audioMessages Store]
@@ -240,18 +249,18 @@ graph TB
         recordAudioFx[recordAudioFx Effect]
         processAudioResponseFx[processAudioResponseFx Effect]
     end
-    
+
     subgraph "Chat Integration"
         ChatModel[Chat Model]
         MessageStore[$$messages Store]
     end
-    
+
     subgraph "API Layer"
         AudioChatAdapter[Audio Chat Adapter]
         VoidAIAudio[VoidAI Audio Handler]
         OpenAIAudio[OpenAI Audio Handler]
     end
-    
+
     AudioRecorder --> $recording
     AudioRecorder --> recordAudioFx
     recordAudioFx --> ChatModel
@@ -265,14 +274,14 @@ graph TB
 ```typescript
 // Extend existing message type
 interface AudioMessage extends Message {
-  type: 'audio'
+  type: "audio";
   audio?: {
-    url: string
-    duration: number
-    format: string
-    transcript?: string
-    waveform?: number[]
-  }
+    url: string;
+    duration: number;
+    format: string;
+    transcript?: string;
+    waveform?: number[];
+  };
 }
 ```
 
@@ -314,12 +323,14 @@ interface PlaybackState {
 ### 5.1 User Experience
 
 Voice selection integrated into:
+
 - Main model selector (filter by audio capability)
 - TTS dialog voice dropdown
 - Settings page audio preferences
 - Quick voice switcher in toolbar
 
 Features:
+
 - Voice preview/sample playback
 - Favorite voices
 - Voice search/filter
@@ -335,7 +346,7 @@ graph TB
         VoicePreview[Voice Preview Component]
         AudioSettings[Audio Settings Panel]
     end
-    
+
     subgraph "State Management"
         $availableVoices[$$availableVoices Store]
         $selectedVoice[$$selectedVoice Store]
@@ -343,12 +354,12 @@ graph TB
         loadVoicesFx[loadVoicesFx Effect]
         previewVoiceFx[previewVoiceFx Effect]
     end
-    
+
     subgraph "Model Integration"
         ModelStore[$$models Store]
         AudioModels[Audio Models Config]
     end
-    
+
     VoiceSelector --> $selectedVoice
     VoicePreview --> previewVoiceFx
     loadVoicesFx --> $availableVoices
@@ -359,25 +370,25 @@ graph TB
 
 ```typescript
 interface VoiceModel {
-  id: string
-  name: string
-  provider: 'voidai' | 'openai' | 'gemini'
+  id: string;
+  name: string;
+  provider: "voidai" | "openai" | "gemini";
   capabilities: {
-    tts: boolean
-    stt: boolean
-    audioChat: boolean
-  }
-  voices: VoiceOption[]
-  languages: string[]
-  formats: AudioFormat[]
+    tts: boolean;
+    stt: boolean;
+    audioChat: boolean;
+  };
+  voices: VoiceOption[];
+  languages: string[];
+  formats: AudioFormat[];
 }
 
 interface VoiceOption {
-  id: string
-  name: string
-  description: string
-  previewUrl?: string
-  tags: string[] // ['male', 'female', 'neutral', 'warm', 'professional']
+  id: string;
+  name: string;
+  description: string;
+  previewUrl?: string;
+  tags: string[]; // ['male', 'female', 'neutral', 'warm', 'professional']
 }
 ```
 
@@ -433,20 +444,20 @@ graph LR
         APIKey[API Key Store]
         BaseURL[Base URL Store]
     end
-    
+
     subgraph "Audio APIs"
         TTSAPI[TTS Endpoints]
         STTAPI[STT Endpoints]
         AudioChatAPI[Audio Chat Endpoints]
     end
-    
+
     subgraph "Provider Routing"
         Router[API Router]
         VoidAI[VoidAI]
         OpenAI[OpenAI]
         Gemini[Gemini]
     end
-    
+
     APIConfig --> Router
     Router --> TTSAPI
     Router --> STTAPI
@@ -461,6 +472,7 @@ graph LR
 ### 7.1 API Format Differences
 
 **VoidAI (OpenAI-compatible)**:
+
 - TTS: `/audio/speech` endpoint (fixed: no duplicate v1)
 - STT: `/audio/transcriptions` endpoint
 - Audio Chat: `/chat/completions` with audio modality
@@ -468,6 +480,7 @@ graph LR
 - Instructions parameter: Supported on gpt-4o-mini-tts
 
 **OpenAI**:
+
 - Same endpoints as VoidAI
 - Additional models: `gpt-4o-mini-tts`, `gpt-4o-transcribe`
 - Speed parameter: Not supported on gpt-4o-mini-tts
@@ -475,6 +488,7 @@ graph LR
 - Streaming transcription: Supported
 
 **Gemini**:
+
 - TTS: `/v1beta/models/{model}:generateContent` with audio response
 - STT: Multimodal input to chat endpoint
 - Requires different request/response format
@@ -484,33 +498,33 @@ graph LR
 
 ### 7.2 Model-Specific Audio Support Tracking
 
-| Model | Provider | Audio Format | TTS Support | STT Support | Notes |
-|-------|----------|--------------|-------------|-------------|-------|
-| tts-1 | VoidAI | OpenAI | ✓ | ✗ | Standard quality, low latency |
-| tts-1-hd | VoidAI | OpenAI | ✓ | ✗ | High definition audio |
-| gpt-4o-mini-tts | VoidAI | OpenAI | ✓ | ✗ | Voice control via instructions |
-| elevenlabs | VoidAI | OpenAI | ✓ | ✗ | Premium voice synthesis with emotion control |
-| gpt-4o-audio-preview | VoidAI | OpenAI | ✓ | ✗ | Audio generation in chat |
-| gpt-4o-audio-preview-2024-12-17 | VoidAI | OpenAI | ✓ | ✗ | Dated version of audio preview |
-| whisper-1 | VoidAI | OpenAI | ✗ | ✓ | Transcription only |
-| gpt-4o-transcribe | VoidAI | OpenAI | ✗ | ✓ | Advanced transcription |
-| gpt-4o-mini-transcribe | VoidAI | OpenAI | ✗ | ✓ | Cost-effective transcription |
-| gemini-2.5-flash-preview-tts | Gemini | Gemini | ✓ | ✗ | Multi-speaker support |
-| gemini-2.5-pro-preview-tts | Gemini | Gemini | ✓ | ✗ | Higher quality |
+| Model                           | Provider | Audio Format | TTS Support | STT Support | Notes                                        |
+| ------------------------------- | -------- | ------------ | ----------- | ----------- | -------------------------------------------- |
+| tts-1                           | VoidAI   | OpenAI       | ✓           | ✗           | Standard quality, low latency                |
+| tts-1-hd                        | VoidAI   | OpenAI       | ✓           | ✗           | High definition audio                        |
+| gpt-4o-mini-tts                 | VoidAI   | OpenAI       | ✓           | ✗           | Voice control via instructions               |
+| elevenlabs                      | VoidAI   | OpenAI       | ✓           | ✗           | Premium voice synthesis with emotion control |
+| gpt-4o-audio-preview            | VoidAI   | OpenAI       | ✓           | ✗           | Audio generation in chat                     |
+| gpt-4o-audio-preview-2024-12-17 | VoidAI   | OpenAI       | ✓           | ✗           | Dated version of audio preview               |
+| whisper-1                       | VoidAI   | OpenAI       | ✗           | ✓           | Transcription only                           |
+| gpt-4o-transcribe               | VoidAI   | OpenAI       | ✗           | ✓           | Advanced transcription                       |
+| gpt-4o-mini-transcribe          | VoidAI   | OpenAI       | ✗           | ✓           | Cost-effective transcription                 |
+| gemini-2.5-flash-preview-tts    | Gemini   | Gemini       | ✓           | ✗           | Multi-speaker support                        |
+| gemini-2.5-pro-preview-tts      | Gemini   | Gemini       | ✓           | ✗           | Higher quality                               |
 
 ### 7.3 Provider Adapter Pattern
 
 ```typescript
 interface AudioProvider {
-  generateSpeech(params: TTSParams): Promise<AudioBlob>
-  transcribeAudio(params: STTParams): Promise<Transcript>
-  chatWithAudio(params: AudioChatParams): Promise<AudioResponse>
+  generateSpeech(params: TTSParams): Promise<AudioBlob>;
+  transcribeAudio(params: STTParams): Promise<Transcript>;
+  chatWithAudio(params: AudioChatParams): Promise<AudioResponse>;
 }
 
 // Each provider implements the interface
-class VoidAIProvider implements AudioProvider { }
-class OpenAIProvider implements AudioProvider { }
-class GeminiProvider implements AudioProvider { }
+class VoidAIProvider implements AudioProvider {}
+class OpenAIProvider implements AudioProvider {}
+class GeminiProvider implements AudioProvider {}
 ```
 
 ## 8. User Interface Changes
@@ -532,7 +546,7 @@ class GeminiProvider implements AudioProvider { }
 
 Attachment Menu (📎):
 - Upload Image
-- Upload Audio  
+- Upload Audio
 - Upload Document
 - Record Audio
 - Generate Image
@@ -612,11 +626,13 @@ Attachment Menu (📎):
 ## 10. Implementation Status
 
 ### Phase 1: Foundation ✅ (Completed)
+
 1. ✅ Created audio feature modules structure
 2. ✅ Implemented provider adapter pattern
 3. ✅ Extended message types for audio support
 
 ### Phase 2: TTS Feature ✅ (Completed)
+
 1. ✅ Built TTS dialog and UI components
 2. ✅ Implemented TTS state management
 3. ✅ Added provider-specific TTS handlers
@@ -626,18 +642,21 @@ Attachment Menu (📎):
 7. ✅ Fixed API endpoint URL issues
 
 ### Phase 3: STT Feature ✅ (Partially Completed)
+
 1. ✅ Created STT module structure
 2. ✅ Implemented transcription API adapters
 3. ⏳ Create audio upload components (pending UI)
 4. ⏳ Add progress tracking and visualization
 
 ### Phase 4: Audio Chat ✅ (Structure Completed)
+
 1. ✅ Created audio-chat module structure
 2. ✅ Added recording state management
 3. ⏳ Build audio recorder component UI
 4. ⏳ Integrate audio messages into chat
 
 ### Phase 5: Voice Models ✅ (Completed)
+
 1. ✅ Implemented voice models configuration
 2. ✅ Added all TTS/STT models from VoidAI
 3. ✅ Created voice preferences system
@@ -648,6 +667,7 @@ Attachment Menu (📎):
 ### 11.1 TTS Request Examples
 
 **VoidAI/OpenAI Format**:
+
 ```json
 {
   "model": "tts-1-hd",
@@ -659,32 +679,40 @@ Attachment Menu (📎):
 ```
 
 **Gemini Format**:
+
 ```json
 {
-  "contents": [{
-    "parts": [{
-      "text": "Speaker1: Hello!\nSpeaker2: Hi there!"
-    }]
-  }],
+  "contents": [
+    {
+      "parts": [
+        {
+          "text": "Speaker1: Hello!\nSpeaker2: Hi there!"
+        }
+      ]
+    }
+  ],
   "generationConfig": {
     "responseModalities": ["AUDIO"],
     "speechConfig": {
       "multiSpeakerVoiceConfig": {
-        "speakerVoiceConfigs": [{
-          "speaker": "Speaker1",
-          "voiceConfig": {
-            "prebuiltVoiceConfig": {
-              "voiceName": "Puck"
+        "speakerVoiceConfigs": [
+          {
+            "speaker": "Speaker1",
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Puck"
+              }
+            }
+          },
+          {
+            "speaker": "Speaker2",
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
             }
           }
-        }, {
-          "speaker": "Speaker2",
-          "voiceConfig": {
-            "prebuiltVoiceConfig": {
-              "voiceName": "Kore"
-            }
-          }
-        }]
+        ]
       }
     }
   }
@@ -694,18 +722,21 @@ Attachment Menu (📎):
 ### 11.2 Audio Processing Considerations
 
 **Client-Side Processing**:
+
 - Audio recording using MediaRecorder API
 - Format conversion using Web Audio API
 - Waveform visualization using Canvas API
 - Audio playback using HTML5 Audio element
 
 **File Size Limits**:
+
 - VoidAI: Provider-specific limits
 - OpenAI: 25MB for transcription
 - Gemini: Provider-specific limits
 - Client-side chunking for large files
 
 **Browser Compatibility**:
+
 - MediaRecorder: Chrome 47+, Firefox 25+, Safari 14.1+
 - Web Audio API: All modern browsers
 - getUserMedia: HTTPS required
@@ -732,6 +763,7 @@ Attachment Menu (📎):
 This plan provides a comprehensive architecture for integrating audio features into the chat application while maintaining clean separation of concerns and supporting multiple providers. The phased approach allows incremental implementation while ensuring each feature is fully functional before moving to the next.
 
 Key architectural decisions:
+
 - Feature-based module structure aligns with existing codebase
 - Provider adapter pattern handles API differences elegantly
 - Model-specific format tracking for VoidAI/OpenAI vs Gemini

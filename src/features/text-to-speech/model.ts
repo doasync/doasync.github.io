@@ -1,15 +1,66 @@
 import { createDomain, createEffect, sample, combine } from 'effector';
+import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
+import { spread } from 'patronum/spread';
 import { AudioFormat, TTSParams, TTSResponse, TTSState, VoiceOption, VoiceProvider, GeneratedAudio } from './types';
 import { generateSpeech, generateSpeechStream } from './api';
 
 const domain = createDomain('text-to-speech');
+
+// Get proper MIME type for audio format
+const getAudioMimeType = (format: AudioFormat): string => {
+  switch (format) {
+    case 'mp3':
+      return 'audio/mpeg';
+    case 'wav':
+      return 'audio/wav';
+    case 'aac':
+      return 'audio/aac';
+    case 'opus':
+      return 'audio/opus';
+    case 'flac':
+      return 'audio/flac';
+    case 'pcm':
+      return 'audio/wav'; // PCM data is typically in WAV container
+    default:
+      return 'audio/mpeg'; // fallback
+  }
+};
+
+// Type for model preferences
+type ModelPreferences = {
+  voice: string;
+  format: AudioFormat;
+  speed: number;
+  instructions?: string;
+};
+
+// Model-specific supported formats
+const getSupportedFormats = (modelId: string): AudioFormat[] => {
+  if (modelId === 'elevenlabs') {
+    // ElevenLabs supports: mp3, opus, aac, flac, wav, pcm
+    return ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
+  } else if (modelId.startsWith('gemini-')) {
+    // Gemini supports: wav only (PCM format)
+    return ['wav'];
+  } else if (modelId === 'gpt-4o-audio-preview' || modelId === 'gpt-4o-audio-preview-2024-12-17') {
+    // GPT-4o audio models using chat completions endpoint support: mp3, wav, opus, flac, pcm
+    // Note: AAC is not supported by chat completions audio format
+    return ['mp3', 'wav', 'opus', 'flac', 'pcm'];
+  } else {
+    // Standard OpenAI models support: mp3, opus, aac, flac, wav, pcm
+    return ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
+  }
+};
 
 // Stores
 export const $ttsText = domain.createStore<string>('');
 export const $selectedVoice = domain.createStore<string>('nova');
 export const $selectedFormat = domain.createStore<AudioFormat>('mp3');
 export const $selectedModel = domain.createStore<string>('tts-1');
+
+// Current model's supported formats (computed)
+export const $supportedFormats = $selectedModel.map(getSupportedFormats);
 export const $selectedProvider = domain.createStore<VoiceProvider>('voidai');
 export const $isLoading = domain.createStore<boolean>(false);
 export const $error = domain.createStore<string | null>(null);
@@ -21,6 +72,18 @@ export const $instructions = domain.createStore<string>('');
 export const $generatedAudios = domain.createStore<GeneratedAudio[]>([]);
 export const $isStreaming = domain.createStore<boolean>(false);
 export const $streamingAudioUrl = domain.createStore<string | null>(null);
+
+// Store for model-specific preferences
+export const $modelPreferences = domain.createStore<Record<string, ModelPreferences>>({
+  'tts-1': { voice: 'nova', format: 'mp3', speed: 1.0 },
+  'tts-1-hd': { voice: 'nova', format: 'mp3', speed: 1.0 },
+  'gpt-4o-audio-preview': { voice: 'alloy', format: 'mp3', speed: 1.0 },
+  'gpt-4o-mini-audio-preview': { voice: 'echo', format: 'mp3', speed: 1.0 },
+  'gpt-4o-mini-tts': { voice: 'ash', format: 'mp3', speed: 1.0 },
+  'elevenlabs': { voice: 'Will (US male)', format: 'mp3', speed: 1.0 },
+  'gemini-2.5-flash-preview-tts': { voice: 'Aoede', format: 'wav', speed: 1.0 },
+  'gemini-2.5-pro-preview-tts': { voice: 'Kore', format: 'wav', speed: 1.0 },
+});
 
 export const $ttsState = combine({
   text: $ttsText,
@@ -91,9 +154,10 @@ export const generateTTSStreamFx = createEffect<TTSParams, TTSResponse, Error>({
   },
 });
 
-export const downloadAudioFx = createEffect<{ audio: ArrayBuffer; filename: string }, void, Error>({
-  handler: async ({ audio, filename }) => {
-    const blob = new Blob([audio], { type: 'audio/mpeg' });
+export const downloadAudioFx = createEffect<{ audio: ArrayBuffer; filename: string; format: AudioFormat }, void, Error>({
+  handler: async ({ audio, filename, format }) => {
+    const mimeType = getAudioMimeType(format);
+    const blob = new Blob([audio], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -105,9 +169,10 @@ export const downloadAudioFx = createEffect<{ audio: ArrayBuffer; filename: stri
   },
 });
 
-export const playPreviewFx = createEffect<ArrayBuffer, void, Error>({
-  handler: async (audio) => {
-    const blob = new Blob([audio], { type: 'audio/mpeg' });
+export const playPreviewFx = createEffect<{ audio: ArrayBuffer; format: AudioFormat }, void, Error>({
+  handler: async ({ audio, format }) => {
+    const mimeType = getAudioMimeType(format);
+    const blob = new Blob([audio], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const audioElement = new Audio(url);
     
@@ -125,42 +190,27 @@ export const playPreviewFx = createEffect<ArrayBuffer, void, Error>({
   },
 });
 
-export const loadVoicesFx = createEffect<VoiceProvider, VoiceOption[], Error>({
-  handler: async (provider) => {
-    // This will be implemented when we have the voice configuration
-    // For now, return default voices based on provider
-    const voiceMap: Record<VoiceProvider, VoiceOption[]> = {
-      voidai: [
-        { id: 'alloy', name: 'Alloy', provider: 'voidai' },
-        { id: 'ash', name: 'Ash', provider: 'voidai' },
-        { id: 'ballad', name: 'Ballad', provider: 'voidai' },
-        { id: 'coral', name: 'Coral', provider: 'voidai' },
-        { id: 'echo', name: 'Echo', provider: 'voidai' },
-        { id: 'fable', name: 'Fable', provider: 'voidai' },
-        { id: 'onyx', name: 'Onyx', provider: 'voidai' },
-        { id: 'nova', name: 'Nova', provider: 'voidai' },
-        { id: 'sage', name: 'Sage', provider: 'voidai' },
-        { id: 'shimmer', name: 'Shimmer', provider: 'voidai' },
-        { id: 'verse', name: 'Verse', provider: 'voidai' },
-      ],
-      openai: [
-        { id: 'alloy', name: 'Alloy', provider: 'openai' },
-        { id: 'echo', name: 'Echo', provider: 'openai' },
-        { id: 'fable', name: 'Fable', provider: 'openai' },
-        { id: 'nova', name: 'Nova', provider: 'openai' },
-        { id: 'shimmer', name: 'Shimmer', provider: 'openai' },
-      ],
-      gemini: [
-        { id: 'Zephyr', name: 'Zephyr', provider: 'gemini' },
-        { id: 'Puck', name: 'Puck', provider: 'gemini' },
-        { id: 'Charon', name: 'Charon', provider: 'gemini' },
-        { id: 'Kore', name: 'Kore', provider: 'gemini' },
-        { id: 'Fenrir', name: 'Fenrir', provider: 'gemini' },
-        { id: 'Aoede', name: 'Aoede', provider: 'gemini' },
-      ],
-    };
+export const loadVoicesFx = createEffect<string, VoiceOption[], Error>({
+  handler: async (modelId) => {
+    // Load voices from voice-models feature based on model ID
+    const { $voiceModels } = await import('../voice-models');
+    const models = $voiceModels.getState();
+    const model = models.find(m => m.id === modelId);
     
-    return voiceMap[provider] || [];
+    if (!model) {
+      console.warn(`No voice model found for ${modelId}`);
+      return [];
+    }
+    
+    // Map VoiceInfo to VoiceOption format
+    return (model.voices || []).map(voice => ({
+      id: voice.id,
+      name: voice.name,
+      provider: model.provider as VoiceProvider,
+      gender: voice.gender,
+      style: voice.style,
+      description: voice.description,
+    }));
   },
 });
 
@@ -174,6 +224,59 @@ $speed.on(speedChanged, (_, speed) => speed);
 $instructions.on(instructionsChanged, (_, instructions) => instructions);
 $error.on(clearError, () => null);
 $previewUrl.on(clearPreview, () => null);
+
+// Update preferences when settings change
+sample({
+  clock: [voiceSelected, formatSelected, speedChanged, instructionsChanged],
+  source: { 
+    model: $selectedModel, 
+    voice: $selectedVoice, 
+    format: $selectedFormat, 
+    speed: $speed,
+    instructions: $instructions,
+    preferences: $modelPreferences 
+  },
+  fn: ({ model, voice, format, speed, instructions, preferences }) => ({
+    ...preferences,
+    [model]: { voice, format, speed, instructions }
+  }),
+  target: $modelPreferences,
+});
+
+// Load preferences when model changes and voices are loaded
+sample({
+  clock: loadVoicesFx.doneData,
+  source: { preferences: $modelPreferences, model: $selectedModel },
+  fn: ({ preferences, model }, voices) => {
+    const prefs = preferences[model];
+    const supportedFormats = getSupportedFormats(model);
+    
+    // Find a valid voice for this model
+    let voice = prefs?.voice || 'nova';
+    if (voices.length > 0 && !voices.some(v => v.id === voice)) {
+      voice = voices[0].id;
+    }
+    
+    // Find a valid format for this model
+    let format = prefs?.format || 'mp3';
+    if (!supportedFormats.includes(format)) {
+      format = supportedFormats[0] || 'mp3';
+    }
+    
+    return {
+      voice,
+      format,
+      speed: prefs?.speed || 1.0,
+      instructions: prefs?.instructions || ''
+    };
+  },
+  target: spread({
+    voice: $selectedVoice,
+    format: $selectedFormat,
+    speed: $speed,
+    instructions: $instructions,
+  }),
+});
 
 // Loading state
 $isLoading
@@ -197,9 +300,9 @@ $error
   .on(playPreviewFx.fail, (_, { error }) => error.message)
   .on(downloadAudioFx.fail, (_, { error }) => error.message);
 
-// Load voices when provider changes
+// Load voices when model changes
 sample({
-  clock: providerSelected,
+  clock: modelSelected,
   target: loadVoicesFx,
 });
 
@@ -253,7 +356,8 @@ sample({
   clock: [generateTTSFx.doneData, generateTTSStreamFx.doneData],
   source: { state: $ttsState, audios: $generatedAudios },
   fn: ({ state, audios }, response) => {
-    const blob = new Blob([response.audio], { type: `audio/${response.format}` });
+    const mimeType = getAudioMimeType(response.format);
+    const blob = new Blob([response.audio], { type: mimeType });
     const url = URL.createObjectURL(blob);
     
     // Generate unique filename based on timestamp
@@ -262,11 +366,10 @@ sample({
       month: '2-digit', 
       day: '2-digit', 
       hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit',
+      minute: '2-digit',
       hour12: false 
     }).replace(/[\s,/:]/g, '-');
-    const count = audios.filter(a => a.timestamp > Date.now() - 1000).length + 1; // Count within same second
+    const count = audios.filter(a => a.timestamp > Date.now() - 60000).length + 1; // Count within same minute
     const filename = `tts-${dateStr}-${count}.${response.format}`;
     
     const newAudio: GeneratedAudio = {
@@ -291,7 +394,8 @@ sample({
 sample({
   clock: [generateTTSFx.doneData, generateTTSStreamFx.doneData],
   fn: (response) => {
-    const blob = new Blob([response.audio], { type: `audio/${response.format}` });
+    const mimeType = getAudioMimeType(response.format);
+    const blob = new Blob([response.audio], { type: mimeType });
     return URL.createObjectURL(blob);
   },
   target: $audioUrl,
@@ -305,6 +409,7 @@ sample({
   fn: (response) => ({
     audio: response.audio,
     filename: `tts-${Date.now()}.${response.format}`,
+    format: response.format,
   }),
   target: downloadAudioFx,
 });
@@ -318,8 +423,14 @@ sample({
 // Load initial voices
 sample({
   clock: ttsDialogOpened,
-  source: $selectedProvider,
+  source: $selectedModel,
   target: loadVoicesFx,
+});
+
+// Persist preferences
+persist({
+  store: $modelPreferences,
+  key: 'tts-model-preferences',
 });
 
 // Debug

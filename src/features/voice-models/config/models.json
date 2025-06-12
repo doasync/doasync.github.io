@@ -71,13 +71,14 @@
       "name": "GPT-4o Audio Preview",
       "provider": "voidai",
       "apiFormat": "openai",
+      "apiEndpoint": "chat/completions",
       "capabilities": {
         "tts": true,
         "stt": false,
         "audioChat": true
       },
       "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
-      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "formats": ["mp3", "wav", "opus", "flac", "pcm"],
       "description": "Audio generation in chat conversations"
     },
     {
@@ -85,13 +86,14 @@
       "name": "GPT-4o Audio Preview (Dec 2024)",
       "provider": "voidai",
       "apiFormat": "openai",
+      "apiEndpoint": "chat/completions",
       "capabilities": {
         "tts": true,
         "stt": false,
         "audioChat": true
       },
       "languages": ["en", "es", "fr", "de", "it", "pt", "pl", "ru", "zh", "ja", "ko"],
-      "formats": ["mp3", "opus", "aac", "flac", "wav", "pcm"],
+      "formats": ["mp3", "wav", "opus", "flac", "pcm"],
       "description": "Dated version of GPT-4o audio preview model"
     },
     {

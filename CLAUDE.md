@@ -118,3 +118,7 @@ sample({
 - Effector debug logs are enabled in development
 - Check browser console for detailed state flow
 - Use Effector DevTools browser extension for inspection
+
+## Development Advice
+
+- Always use build command to test and make sure everything is working properly

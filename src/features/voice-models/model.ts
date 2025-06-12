@@ -79,8 +79,15 @@ export const loadVoiceModelsFx = createEffect<void, VoiceModel[], Error>({
   handler: async () => {
     // Load models configuration and merge with voice data
     const models = modelsConfig.models.map(model => {
-      const provider = model.provider as 'voidai' | 'openai' | 'gemini';
-      const voiceData = voicesConfig[provider];
+      // Special handling for specific models
+      let voiceKey = model.provider as string;
+      
+      // ElevenLabs uses voidai provider but has its own voice set
+      if (model.id === 'elevenlabs') {
+        voiceKey = 'elevenlabs';
+      }
+      
+      const voiceData = voicesConfig[voiceKey as keyof typeof voicesConfig];
       
       const voices: VoiceInfo[] = (voiceData?.voices || []).map(v => ({
         ...v,

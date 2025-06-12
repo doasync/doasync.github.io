@@ -6,6 +6,8 @@ export interface VoiceOption {
   id: string;
   name: string;
   provider: VoiceProvider;
+  gender?: 'male' | 'female' | 'neutral';
+  style?: string[];
   description?: string;
   previewUrl?: string;
   tags?: string[];

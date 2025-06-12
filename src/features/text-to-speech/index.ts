@@ -16,6 +16,8 @@ export {
   $generatedAudios,
   $isStreaming,
   $streamingAudioUrl,
+  $modelPreferences,
+  $supportedFormats,
   
   // Events
   textChanged,

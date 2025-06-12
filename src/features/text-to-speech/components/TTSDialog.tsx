@@ -31,6 +31,7 @@ import { useUnit } from 'effector-react';
 import {
   $ttsState,
   $generatedAudios,
+  $supportedFormats,
   textChanged,
   voiceSelected,
   formatSelected,
@@ -40,17 +41,38 @@ import {
   generateTTSStreamClicked,
   downloadRequested,
   previewRequested,
+  clearError,
   ttsDialogClosed,
   ttsDialogOpened,
   deleteAudio,
   $isStreaming,
 } from '../model';
-import { $availableVoices, $ttsModels, loadVoiceModels } from '../../voice-models';
+import { $ttsModels, loadVoiceModels } from '../../voice-models';
 import { $selectedModelInfo } from '../../models-select';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 
-import type { GeneratedAudio } from '../types';
+import type { GeneratedAudio, AudioFormat } from '../types';
+
+// Get proper MIME type for audio format
+const getAudioMimeType = (format: AudioFormat): string => {
+  switch (format) {
+    case 'mp3':
+      return 'audio/mpeg';
+    case 'wav':
+      return 'audio/wav';
+    case 'aac':
+      return 'audio/aac';
+    case 'opus':
+      return 'audio/opus';
+    case 'flac':
+      return 'audio/flac';
+    case 'pcm':
+      return 'audio/wav'; // PCM data is typically in WAV container
+    default:
+      return 'audio/mpeg'; // fallback
+  }
+};
 
 interface TTSDialogProps {
   open: boolean;
@@ -166,7 +188,7 @@ function AudioGenerationItem({ audio, index }: AudioGenerationItemProps) {
           minWidth: '280px',
         }}
       >
-        <source src={audio.url} type={`audio/${audio.format}`} />
+        <source src={audio.url} type={getAudioMimeType(audio.format)} />
         Your browser does not support the audio element.
       </audio>
     </Box>
@@ -176,10 +198,11 @@ function AudioGenerationItem({ audio, index }: AudioGenerationItemProps) {
 export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
   const ttsState = useUnit($ttsState);
   const generatedAudios = useUnit($generatedAudios);
-  const availableVoices = useUnit($availableVoices);
+  const { availableVoices } = ttsState;
   const ttsModels = useUnit($ttsModels);
   const selectedModelInfo = useUnit($selectedModelInfo);
   const isStreaming = useUnit($isStreaming);
+  const supportedFormats = useUnit($supportedFormats);
   
   const [localText, setLocalText] = useState(initialText);
   const [enableStreaming, setEnableStreaming] = useState(false);
@@ -326,12 +349,11 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
                 onChange={handleFormatChange}
                 label="Format"
               >
-                <MenuItem value="mp3">MP3</MenuItem>
-                <MenuItem value="wav">WAV</MenuItem>
-                <MenuItem value="opus">OPUS</MenuItem>
-                <MenuItem value="aac">AAC</MenuItem>
-                <MenuItem value="flac">FLAC</MenuItem>
-                <MenuItem value="pcm">PCM</MenuItem>
+                {supportedFormats.map((format) => (
+                  <MenuItem key={format} value={format}>
+                    {format.toUpperCase()}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
@@ -363,7 +385,7 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
 
           {/* Error */}
           {ttsState.error && (
-            <Alert severity="error" onClose={() => {}}>
+            <Alert severity="error" onClose={() => clearError()}>
               {ttsState.error}
             </Alert>
           )}
