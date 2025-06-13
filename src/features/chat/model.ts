@@ -71,6 +71,10 @@ export const editMessage = chatDomain.event<{
   newContent: string;
 }>("editMessage");
 export const deleteMessage = chatDomain.event<string>("deleteMessage");
+export const deleteAttachment = chatDomain.event<{
+  messageId: string;
+  attachmentIndex: number;
+}>("deleteAttachment");
 export const messageRetry = chatDomain.event<Message>("messageRetry");
 export const initialChatSaveNeeded = chatDomain.event<void>(
   "initialChatSaveNeeded"
@@ -580,6 +584,33 @@ $messages
     )
   )
   .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
+  .on(deleteAttachment, (list, { messageId, attachmentIndex }) =>
+    list.map((msg) => {
+      if (msg.id !== messageId) return msg;
+      
+      // Only process messages with array content (multimodal messages)
+      if (typeof msg.content === 'string') return msg;
+      
+      // Remove the attachment at the specified index
+      const newContent = msg.content.filter((_, index) => index !== attachmentIndex);
+      
+      // If removing the attachment leaves only text content, convert to string
+      if (newContent.length === 1 && newContent[0].type === 'text') {
+        return {
+          ...msg,
+          content: newContent[0].text,
+          attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
+        };
+      }
+      
+      // Otherwise keep as array
+      return {
+        ...msg,
+        content: newContent,
+        attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
+      };
+    })
+  )
   .on(
     streamInitiatedWithTarget,
     (messages, { targetMessageId, shouldAddNewMessage }) => {

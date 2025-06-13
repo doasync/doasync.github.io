@@ -30,6 +30,7 @@ export {
   messageSent,
   editMessage, // Event triggered by MessageItem after confirming edit
   deleteMessage, // Event triggered by MessageItem
+  deleteAttachment, // Event to delete specific attachments from messages
   messageRetry, // Event triggered by MessageItem (takes Message object)
   setPreventScroll,
   generateResponseClicked, // <-- Export the new event for the UI
