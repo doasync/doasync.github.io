@@ -16,273 +16,214 @@ import {
   Chip,
   Alert,
   LinearProgress,
+  IconButton,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
 } from "@mui/material";
 import {
-  $selectedImageGenModel,
-  $imageGenerationSettings,
-  $isGeneratingImage,
-  $imageGenerationError,
-  $availableImageGenModels,
-  $selectedImageGenModelInfo,
+  Download as DownloadIcon,
+  Send as SendIcon,
+  Delete as DeleteIcon,
+  Fullscreen as FullscreenIcon,
+} from "@mui/icons-material";
+import {
+  $imageGenerationState,
+  dialogOpened,
+  dialogClosed,
+  promptChanged,
   imageGenModelSelected,
   updateImageGenSettings,
   generateImage,
-  generateImageFx,
+  removeGeneratedImage,
+  sendImageToChat,
   type ImageGenerationParams,
 } from "@/features/image-generation";
 import { $apiKey } from "@/features/chat-settings";
 
 interface ImageGenerationDialogProps {
-  open: boolean;
-  onClose: () => void;
   initialPrompt?: string;
 }
 
 export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
-  open,
-  onClose,
   initialPrompt = "",
 }) => {
-  const [
-    selectedModel,
-    settings,
-    isGenerating,
-    error,
-    availableModels,
-    modelInfo,
-    apiKey,
-  ] = useUnit([
-    $selectedImageGenModel,
-    $imageGenerationSettings,
-    $isGeneratingImage,
-    $imageGenerationError,
-    $availableImageGenModels,
-    $selectedImageGenModelInfo,
-    $apiKey,
-  ]);
+  const [state, apiKey] = useUnit([$imageGenerationState, $apiKey]);
 
-  const [prompt, setPrompt] = useState(initialPrompt);
-  const [generatedImages, setGeneratedImages] = useState<
-    Array<{ url?: string; b64_json?: string }>
-  >([]);
-
+  // Open dialog when component mounts and close when unmounts
   React.useEffect(() => {
-    setPrompt(initialPrompt);
-  }, [initialPrompt]);
-
-  // Reset generated images when dialog opens
-  React.useEffect(() => {
-    if (open) {
-      setGeneratedImages([]);
-    }
-  }, [open]);
-
-  // Subscribe to generation results
-  React.useEffect(() => {
-    const unsubscribe = generateImageFx.done.watch(({ result }) => {
-      setGeneratedImages(result.data);
-    });
-
+    dialogOpened();
     return () => {
-      unsubscribe();
+      dialogClosed();
     };
   }, []);
+
+  // Set initial prompt
+  React.useEffect(() => {
+    if (initialPrompt) {
+      promptChanged(initialPrompt);
+    }
+  }, [initialPrompt]);
 
   const handleModelChange = (modelId: string) => {
     imageGenModelSelected(modelId);
   };
 
-  const handleSettingChange = (key: keyof typeof settings, value: any) => {
+  const handleSettingChange = (
+    key: keyof typeof state.settings,
+    value: any
+  ) => {
     updateImageGenSettings({ [key]: value });
   };
 
+  const handlePromptChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    promptChanged(event.target.value);
+  };
+
   const handleGenerate = () => {
-    if (!prompt.trim() || !apiKey) return;
+    if (!state.prompt.trim() || !apiKey) return;
 
     const params: ImageGenerationParams = {
-      prompt: prompt.trim(),
-      model: selectedModel,
-      size: settings.size,
-      quality: settings.quality,
-      style: settings.style,
-      n: settings.n,
+      prompt: state.prompt.trim(),
+      model: state.selectedModel,
+      size: state.settings.size,
+      quality: state.settings.quality,
+      style: state.settings.style,
+      n: state.settings.n,
     };
 
     generateImage(params);
   };
 
   const handleClose = () => {
-    if (!isGenerating) {
-      onClose();
-      // Reset state when closing
-      setGeneratedImages([]);
-      setPrompt(initialPrompt);
+    if (!state.isGenerating) {
+      dialogClosed();
     }
   };
 
-  const isFormValid = prompt.trim().length > 0 && !!apiKey;
-  const promptLength = prompt.length;
-  const maxPromptLength = modelInfo?.maxPromptLength || 1000;
+  const handleSendToChat = (imageId: string) => {
+    sendImageToChat(imageId);
+    // Close dialog after sending to chat
+    dialogClosed();
+  };
+
+  const handleRemoveImage = (imageId: string) => {
+    removeGeneratedImage(imageId);
+  };
+
+  const openImageInNewTab = (imageUrl: string) => {
+    window.open(imageUrl, "_blank");
+  };
+
+  const downloadImage = (imageUrl: string, fileName: string) => {
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const isFormValid = state.prompt.trim().length > 0 && !!apiKey;
+  const promptLength = state.prompt.length;
+  const maxPromptLength = state.modelInfo?.maxPromptLength || 1000;
   const isPromptTooLong = promptLength > maxPromptLength;
 
   return (
     <Dialog
-      open={open}
+      open={state.isDialogOpen}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { minHeight: 400 },
+        sx: { minHeight: 600, maxHeight: "90vh" },
       }}
     >
-      <DialogTitle>Generate Images</DialogTitle>
+      <DialogTitle>
+        Generate Images
+        {state.generatedImages.length > 0 && (
+          <Typography variant="caption" sx={{ ml: 2, color: "text.secondary" }}>
+            {state.generatedImages.length} image
+            {state.generatedImages.length !== 1 ? "s" : ""} in history
+          </Typography>
+        )}
+      </DialogTitle>
 
-      <DialogContent>
-        {isGenerating ? (
-          // Loading state
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              py: 4,
-              gap: 2,
-            }}
-          >
-            <LinearProgress sx={{ width: "100%", mb: 2 }} />
-            <Typography>Generating your image...</Typography>
-            <Typography variant="body2" color="text.secondary">
-              This may take a few moments
-            </Typography>
-          </Box>
-        ) : generatedImages.length > 0 ? (
-          // Results view
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 1 }}>
-            {generatedImages.map((image, index) => {
-              const imageUrl =
-                image.url ||
-                (image.b64_json
-                  ? `data:image/png;base64,${image.b64_json}`
-                  : "");
+      <DialogContent
+        sx={{ display: "flex", flexDirection: "column", gap: 2, py: 2 }}
+      >
+        {/* Generation Form */}
+        <Box sx={{ pt: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+          {/* Error Alert */}
+          {state.error && <Alert severity="error">{state.error}</Alert>}
 
-              return (
-                <Box key={index}>
-                  <img
-                    src={imageUrl}
-                    alt={`Generated image ${index + 1}`}
-                    style={{
-                      width: "100%",
-                      maxWidth: "100%",
-                      height: "auto",
-                      borderRadius: 4,
-                    }}
-                  />
-                  <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = imageUrl;
-                        link.download = `generated-image-${Date.now()}.png`;
-                        link.click();
-                      }}
-                    >
-                      Download
-                    </Button>
-                  </Box>
-                </Box>
-              );
-            })}
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => {
-                setGeneratedImages([]);
-                setPrompt("");
-              }}
+          {/* No API Key Alert */}
+          {!apiKey && (
+            <Alert severity="warning">
+              Please set your API key in Chat Settings to generate images.
+            </Alert>
+          )}
+
+          {/* Model Selection */}
+          <FormControl fullWidth>
+            <InputLabel>Image Generation Model</InputLabel>
+            <Select
+              value={state.selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              disabled={state.isGenerating}
+              label="Image Generation Model"
             >
-              Generate Another Image
-            </Button>
-          </Box>
-        ) : (
-          // Form view
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 1 }}>
-            {/* Error Alert */}
-            {error && (
-              <Alert
-                severity="error"
-                onClose={() => {
-                  /* Clear error */
-                }}
-              >
-                {error}
-              </Alert>
-            )}
+              {state.availableModels.map((model: any) => (
+                <MenuItem key={model.id} value={model.id}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Typography variant="body2">{model.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {model.provider} • Max {model.maxImages} image
+                      {model.maxImages > 1 ? "s" : ""}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            {/* No API Key Alert */}
-            {!apiKey && (
-              <Alert severity="warning">
-                Please set your API key in Chat Settings to generate images.
-              </Alert>
-            )}
+          {/* Prompt Input */}
+          <TextField
+            label="Image Prompt"
+            placeholder="Describe the image you want to generate..."
+            multiline
+            rows={3}
+            value={state.prompt}
+            onChange={handlePromptChange}
+            disabled={state.isGenerating}
+            fullWidth
+            error={isPromptTooLong}
+            helperText={
+              isPromptTooLong
+                ? `Prompt too long: ${promptLength}/${maxPromptLength} characters`
+                : `${promptLength}/${maxPromptLength} characters`
+            }
+          />
 
-            {/* Model Selection */}
-            <FormControl fullWidth>
-              <InputLabel>Image Generation Model</InputLabel>
-              <Select
-                value={selectedModel}
-                onChange={(e) => handleModelChange(e.target.value)}
-                disabled={isGenerating}
-                label="Image Generation Model"
-              >
-                {availableModels.map((model: any) => (
-                  <MenuItem key={model.id} value={model.id}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <Typography variant="body2">{model.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {model.provider} • Max {model.maxImages} image
-                        {model.maxImages > 1 ? "s" : ""}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Prompt Input */}
-            <TextField
-              label="Image Prompt"
-              placeholder="Describe the image you want to generate..."
-              multiline
-              rows={3}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={isGenerating}
-              fullWidth
-              error={isPromptTooLong}
-              helperText={
-                isPromptTooLong
-                  ? `Prompt too long: ${promptLength}/${maxPromptLength} characters`
-                  : `${promptLength}/${maxPromptLength} characters`
-              }
-            />
-
+          {/* Settings Row */}
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             {/* Size Selection */}
-            <FormControl fullWidth>
-              <InputLabel>Image Size</InputLabel>
+            <FormControl sx={{ minWidth: 120, flex: 1 }}>
+              <InputLabel>Size</InputLabel>
               <Select
-                value={settings.size}
+                value={state.settings.size}
                 onChange={(e) => handleSettingChange("size", e.target.value)}
-                disabled={isGenerating}
-                label="Image Size"
+                disabled={state.isGenerating}
+                label="Size"
               >
-                {modelInfo?.supportedSizes.map((size: string) => (
+                {state.supportedSizes.map((size: string) => (
                   <MenuItem key={size} value={size}>
                     {size}
                   </MenuItem>
@@ -291,15 +232,15 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
             </FormControl>
 
             {/* Quality Selection */}
-            <FormControl fullWidth>
+            <FormControl sx={{ minWidth: 120, flex: 1 }}>
               <InputLabel>Quality</InputLabel>
               <Select
-                value={settings.quality}
+                value={state.settings.quality}
                 onChange={(e) => handleSettingChange("quality", e.target.value)}
-                disabled={isGenerating}
+                disabled={state.isGenerating}
                 label="Quality"
               >
-                {modelInfo?.supportedQualities.map((quality: string) => (
+                {state.supportedQualities.map((quality: string) => (
                   <MenuItem key={quality} value={quality}>
                     {quality}
                   </MenuItem>
@@ -308,120 +249,154 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
             </FormControl>
 
             {/* Style Selection (if supported) */}
-            {modelInfo?.supportedStyles &&
-              modelInfo.supportedStyles.length > 0 && (
-                <FormControl fullWidth>
-                  <InputLabel>Style</InputLabel>
-                  <Select
-                    value={settings.style || ""}
-                    onChange={(e) =>
-                      handleSettingChange("style", e.target.value)
-                    }
-                    disabled={isGenerating}
-                    label="Style"
-                  >
-                    {modelInfo.supportedStyles.map((style: string) => (
-                      <MenuItem key={style} value={style}>
-                        {style}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-
-            {/* Number of Images */}
-            {modelInfo && modelInfo.maxImages > 1 && (
-              <FormControl fullWidth>
-                <InputLabel>Number of Images</InputLabel>
+            {state.supportedStyles.length > 0 && (
+              <FormControl sx={{ minWidth: 120, flex: 1 }}>
+                <InputLabel>Style</InputLabel>
                 <Select
-                  value={settings.n}
-                  onChange={(e) =>
-                    handleSettingChange("n", Number(e.target.value))
-                  }
-                  disabled={isGenerating}
-                  label="Number of Images"
+                  value={state.settings.style || ""}
+                  onChange={(e) => handleSettingChange("style", e.target.value)}
+                  disabled={state.isGenerating}
+                  label="Style"
                 >
-                  {Array.from(
-                    { length: modelInfo.maxImages },
-                    (_, i) => i + 1
-                  ).map((num) => (
-                    <MenuItem key={num} value={num}>
-                      {num}
+                  {state.supportedStyles.map((style: string) => (
+                    <MenuItem key={style} value={style}>
+                      {style}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             )}
+          </Box>
 
-            {/* Model Info */}
-            {modelInfo && (
-              <Box
-                sx={{ p: 2, backgroundColor: "action.hover", borderRadius: 1 }}
-              >
-                <Typography variant="subtitle2" gutterBottom>
-                  Model Information
-                </Typography>
-                <Box
-                  sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}
-                >
-                  <Chip
-                    label={`${modelInfo.provider}`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={`Max: ${modelInfo.maxImages} image${
-                      modelInfo.maxImages > 1 ? "s" : ""
-                    }`}
-                    size="small"
-                    variant="outlined"
-                  />
-                  {modelInfo.supportsEditing && (
-                    <Chip
-                      label="Supports Editing"
-                      size="small"
-                      variant="outlined"
-                      color="success"
-                    />
-                  )}
-                  {modelInfo.supportsVariations && (
-                    <Chip
-                      label="Supports Variations"
-                      size="small"
-                      variant="outlined"
-                      color="success"
-                    />
-                  )}
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Max prompt length:{" "}
-                  {modelInfo.maxPromptLength.toLocaleString()} characters
-                </Typography>
-              </Box>
+          {/* Generate Button */}
+          <Button
+            onClick={handleGenerate}
+            variant="contained"
+            disabled={!isFormValid || isPromptTooLong || state.isGenerating}
+            fullWidth
+            sx={{ py: 1.5 }}
+          >
+            {state.isGenerating ? (
+              <>
+                <LinearProgress sx={{ width: 100, mr: 2 }} />
+                Generating...
+              </>
+            ) : (
+              "Generate Image"
             )}
+          </Button>
+        </Box>
+
+        {/* Generated Images History */}
+        {state.generatedImages.length > 0 && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Generated Images ({state.generatedImages.length})
+            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gap: 2,
+                maxHeight: "400px",
+                overflowY: "auto",
+              }}
+            >
+              {state.generatedImages
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map((image) => {
+                  const imageUrl =
+                    image.url ||
+                    (image.b64_json
+                      ? `data:image/png;base64,${image.b64_json}`
+                      : "");
+
+                  return (
+                    <Card key={image.id} sx={{ height: "fit-content" }}>
+                      <CardMedia
+                        component="img"
+                        image={imageUrl}
+                        alt={`Generated: ${image.prompt.substring(0, 50)}...`}
+                        sx={{
+                          height: 200,
+                          objectFit: "cover",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => openImageInNewTab(imageUrl)}
+                      />
+                      <CardContent sx={{ pb: 1 }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          "
+                          {image.prompt.length > 80
+                            ? image.prompt.substring(0, 80) + "..."
+                            : image.prompt}
+                          "
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {image.model} • {image.parameters?.size} •{" "}
+                          {new Date(image.timestamp).toLocaleString()}
+                        </Typography>
+                      </CardContent>
+                      <CardActions
+                        sx={{ pt: 0, justifyContent: "space-between" }}
+                      >
+                        <Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => openImageInNewTab(imageUrl)}
+                            title="Open in new tab"
+                          >
+                            <FullscreenIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              downloadImage(
+                                imageUrl,
+                                `generated-image-${image.id}.png`
+                              )
+                            }
+                            title="Download"
+                          >
+                            <DownloadIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                        <Box>
+                          <Button
+                            size="small"
+                            startIcon={<SendIcon />}
+                            onClick={() => handleSendToChat(image.id)}
+                            variant="outlined"
+                            sx={{ mr: 1 }}
+                          >
+                            Send to Chat
+                          </Button>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveImage(image.id)}
+                            title="Delete"
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </CardActions>
+                    </Card>
+                  );
+                })}
+            </Box>
           </Box>
         )}
       </DialogContent>
 
       <DialogActions>
-        {generatedImages.length > 0 ? (
-          // Results actions
-          <Button onClick={handleClose}>Close</Button>
-        ) : (
-          // Form actions
-          <>
-            <Button onClick={handleClose} disabled={isGenerating}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleGenerate}
-              variant="contained"
-              disabled={!isFormValid || isPromptTooLong || isGenerating}
-            >
-              {isGenerating ? "Generating..." : "Generate Image"}
-            </Button>
-          </>
-        )}
+        <Button onClick={handleClose} disabled={state.isGenerating}>
+          Close
+        </Button>
       </DialogActions>
     </Dialog>
   );

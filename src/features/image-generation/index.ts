@@ -14,16 +14,27 @@ export {
   $currentModelSupportedSizes,
   $currentModelSupportedQualities,
   $currentModelSupportedStyles,
+  $isDialogOpen,
+  $imagePrompt,
+  $imageGenerationState,
   
   // Events
+  dialogOpened,
+  dialogClosed,
+  promptChanged,
   imageGenModelSelected,
   generateImage,
   updateImageGenSettings,
   clearGeneratedImages,
   removeGeneratedImage,
+  sendImageToChat,
   
   // Effects
   generateImageFx,
+  loadGeneratedImagesFx,
+  saveGeneratedImagesFx,
+  clearGeneratedImagesFx,
+  removeGeneratedImageFx,
 } from "./model";
 
 export {

@@ -1,6 +1,7 @@
-import { createDomain, sample } from "effector";
+import { createDomain, sample, combine } from "effector";
 import { debug } from "patronum/debug";
 import { persist } from "effector-storage/local";
+import { spread } from "patronum/spread";
 import { $apiKey, $providerApiUrl } from "@/features/chat-settings";
 import { buildImageGenerationsUrl } from "@/features/api-config";
 import { 
@@ -21,10 +22,22 @@ export const $selectedImageGenModel = imageGenerationDomain.store<string>(
   { name: "selectedImageGenModel" }
 );
 
-// Store for generated images
+// Dialog state management
+export const $isDialogOpen = imageGenerationDomain.store<boolean>(
+  false,
+  { name: "isDialogOpen" }
+);
+
+// Store for generated images (now persistent)
 export const $generatedImages = imageGenerationDomain.store<GeneratedImage[]>(
   [], 
   { name: "generatedImages" }
+);
+
+// Store for current prompt in dialog
+export const $imagePrompt = imageGenerationDomain.store<string>(
+  "",
+  { name: "imagePrompt" }
 );
 
 // Loading state for image generation
@@ -108,6 +121,13 @@ sample({
 
 // --- Events ---
 
+// Dialog state events
+export const dialogOpened = imageGenerationDomain.event<void>("dialogOpened");
+export const dialogClosed = imageGenerationDomain.event<void>("dialogClosed");
+
+// Prompt management
+export const promptChanged = imageGenerationDomain.event<string>("promptChanged");
+
 // User selects an image generation model
 export const imageGenModelSelected = imageGenerationDomain.event<string>("imageGenModelSelected");
 
@@ -122,13 +142,94 @@ export const updateImageGenSettings = imageGenerationDomain.event<Partial<{
   n: number;
 }>>("updateImageGenSettings");
 
-// Clear generated images
+// History management events
 export const clearGeneratedImages = imageGenerationDomain.event<void>("clearGeneratedImages");
-
-// Remove a specific generated image
 export const removeGeneratedImage = imageGenerationDomain.event<string>("removeGeneratedImage");
 
+// Send to chat functionality
+export const sendImageToChat = imageGenerationDomain.event<string>("sendImageToChat");
+
 // --- Effects ---
+
+// Load generated images history from localStorage
+export const loadGeneratedImagesFx = imageGenerationDomain.effect<void, GeneratedImage[]>({
+  name: "loadGeneratedImagesFx",
+  handler: async () => {
+    try {
+      const stored = localStorage.getItem('generatedImagesHistory');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Validate the structure
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => 
+            item && 
+            typeof item === 'object' && 
+            typeof item.id === 'string' &&
+            typeof item.prompt === 'string' &&
+            typeof item.model === 'string' &&
+            typeof item.timestamp === 'number'
+          );
+        }
+      }
+      return [];
+    } catch (error) {
+      console.warn('Failed to load generated images from localStorage:', error);
+      return [];
+    }
+  },
+});
+
+// Save generated image to localStorage
+export const saveGeneratedImageFx = imageGenerationDomain.effect<GeneratedImage, void>({
+  name: "saveGeneratedImageFx",
+  handler: async (image) => {
+    try {
+      const current = $generatedImages.getState();
+      const updated = [...current, image];
+      localStorage.setItem('generatedImagesHistory', JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Failed to save generated image to localStorage:', error);
+    }
+  },
+});
+
+// Remove generated image from localStorage
+export const removeGeneratedImageFx = imageGenerationDomain.effect<string, void>({
+  name: "removeGeneratedImageFx", 
+  handler: async (imageId) => {
+    try {
+      const current = $generatedImages.getState();
+      const updated = current.filter(img => img.id !== imageId);
+      localStorage.setItem('generatedImagesHistory', JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Failed to remove generated image from localStorage:', error);
+    }
+  },
+});
+
+// Save all generated images to localStorage
+export const saveGeneratedImagesFx = imageGenerationDomain.effect<GeneratedImage[], void>({
+  name: "saveGeneratedImagesFx",
+  handler: async (images) => {
+    try {
+      localStorage.setItem('generatedImagesHistory', JSON.stringify(images));
+    } catch (error) {
+      console.warn('Failed to save generated images to localStorage:', error);
+    }
+  },
+});
+
+// Clear all generated images from localStorage
+export const clearGeneratedImagesFx = imageGenerationDomain.effect<void, void>({
+  name: "clearGeneratedImagesFx",
+  handler: async () => {
+    try {
+      localStorage.removeItem('generatedImagesHistory');
+    } catch (error) {
+      console.warn('Failed to clear generated images from localStorage:', error);
+    }
+  },
+});
 
 // Image generation effect
 export const generateImageFx = imageGenerationDomain.effect<
@@ -214,6 +315,14 @@ export const generateImageFx = imageGenerationDomain.effect<
 
 // --- Store Updates ---
 
+// Dialog state management
+$isDialogOpen
+  .on(dialogOpened, () => true)
+  .on(dialogClosed, () => false);
+
+// Prompt management
+$imagePrompt.on(promptChanged, (_, prompt) => prompt);
+
 // Update selected model
 $selectedImageGenModel.on(imageGenModelSelected, (_, modelId) => modelId);
 
@@ -287,7 +396,16 @@ $isGeneratingImage
   .reset(generateImageFx.finally);
 
 
-// Enhanced image generation to include metadata - append to existing images
+// Load images from localStorage when dialog opens
+sample({
+  clock: dialogOpened,
+  target: loadGeneratedImagesFx,
+});
+
+// Update store when images are loaded
+$generatedImages.on(loadGeneratedImagesFx.doneData, (_, loadedImages) => loadedImages);
+
+// Enhanced image generation to include metadata and save to localStorage
 sample({
   clock: generateImageFx.done,
   source: $generatedImages,
@@ -314,21 +432,40 @@ sample({
   target: $generatedImages,
 });
 
+// Save all images to localStorage after generation
+sample({
+  clock: $generatedImages,
+  target: saveGeneratedImagesFx,
+});
+
 // Handle errors
 $imageGenerationError
   .on(generateImageFx.failData, (_, error) => error.message)
   .reset(generateImageFx);
 
-// Clear generated images
+// Clear generated images from both store and localStorage
+sample({
+  clock: clearGeneratedImages,
+  target: clearGeneratedImagesFx,
+});
+
 $generatedImages.reset(clearGeneratedImages);
 
-// Remove specific image
+// Remove specific image from both store and localStorage
+sample({
+  clock: removeGeneratedImage,
+  target: removeGeneratedImageFx,
+});
+
 $generatedImages.on(removeGeneratedImage, (images, imageId) =>
   images.filter(img => img.id !== imageId)
 );
 
 // Clear errors when starting new generation
 $imageGenerationError.reset(generateImage);
+
+// Send image to chat functionality
+// This will be connected externally to avoid circular dependencies
 
 // --- Sample Connections ---
 
@@ -379,6 +516,33 @@ export const $currentModelSupportedStyles = $selectedImageGenModelInfo.map(
   (modelInfo) => modelInfo?.supportedStyles || []
 );
 
+// Combined state for easy consumption in components
+export const $imageGenerationState = combine({
+  // Dialog state
+  isDialogOpen: $isDialogOpen,
+  prompt: $imagePrompt,
+  
+  // Generation state
+  isGenerating: $isGeneratingImage,
+  error: $imageGenerationError,
+  
+  // Model and settings
+  selectedModel: $selectedImageGenModel,
+  modelInfo: $selectedImageGenModelInfo,
+  settings: $imageGenerationSettings,
+  availableModels: $availableImageGenModels,
+  
+  // History
+  generatedImages: $generatedImages,
+  
+  // Capabilities
+  supportsEditing: $currentModelSupportsEditing,
+  supportsVariations: $currentModelSupportsVariations,
+  supportedSizes: $currentModelSupportedSizes,
+  supportedQualities: $currentModelSupportedQualities,
+  supportedStyles: $currentModelSupportedStyles,
+});
+
 // --- Persistence ---
 
 persist({ store: $selectedImageGenModel, key: "selectedImageGenModel" });
@@ -395,14 +559,25 @@ debug(
   $imageGenerationSettings,
   $imageGenerationSettingsPerModel,
   $selectedImageGenModelInfo,
+  $isDialogOpen,
+  $imagePrompt,
+  $imageGenerationState,
   
   // Events
+  dialogOpened,
+  dialogClosed,
+  promptChanged,
   imageGenModelSelected,
   generateImage,
   updateImageGenSettings,
   clearGeneratedImages,
   removeGeneratedImage,
+  sendImageToChat,
   
   // Effects
-  generateImageFx
+  generateImageFx,
+  loadGeneratedImagesFx,
+  saveGeneratedImagesFx,
+  clearGeneratedImagesFx,
+  removeGeneratedImageFx
 );

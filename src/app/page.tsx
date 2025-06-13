@@ -54,6 +54,7 @@ import MessageItem from "@/components/MessageItem";
 import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
 import AttachmentMenu from "@/components/AttachmentMenu";
 import ImageGenerationDialog from "@/components/ImageGenerationDialog";
+import { dialogOpened as openImageGenerationDialog } from "@/features/image-generation";
 import Drawer from "@mui/material/Drawer";
 import ChatHistoryContent from "@/components/ChatHistoryContent";
 import ChatSettingsContent from "@/components/ChatSettingsContent";
@@ -177,7 +178,7 @@ export default function HomePage() {
 
   const [historySearchTerm, setHistorySearchTerm] = React.useState("");
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
-  const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
+  // Image generation dialog is now managed by its own state
   const [ttsDialogOpen, setTtsDialogOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
@@ -677,7 +678,7 @@ export default function HomePage() {
               {/* Consolidated Attachment Menu - positioned on the far left */}
               <AttachmentMenu
                 disabled={isGenerating}
-                onImageGenerationClick={() => setImageGenDialogOpen(true)}
+                onImageGenerationClick={() => openImageGenerationDialog()}
                 onRecordingStateChange={setIsRecording}
                 onTTSClick={() => setTtsDialogOpen(true)}
               />
@@ -806,10 +807,7 @@ export default function HomePage() {
         />
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
-      <ImageGenerationDialog
-        open={imageGenDialogOpen}
-        onClose={() => setImageGenDialogOpen(false)}
-      />
+      <ImageGenerationDialog />
       <TTSDialog
         open={ttsDialogOpen}
         onClose={() => setTtsDialogOpen(false)}

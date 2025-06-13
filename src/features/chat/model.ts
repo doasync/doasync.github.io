@@ -45,6 +45,8 @@ import {
   generateImageFx,
   $selectedImageGenModel,
   $imageGenerationSettings,
+  $generatedImages,
+  sendImageToChat,
   isImageGenerationCommand,
   parseImageGenerationCommand,
   type ImageGenerationParams
@@ -111,6 +113,21 @@ const finalizePendingMessage = chatDomain.event<void>("finalizePendingMessage");
 
 // Image generation events
 export const imageGenerationRequested = chatDomain.event<string>("imageGenerationRequested");
+
+// Event to add generated image to chat
+export const addGeneratedImageToChat = chatDomain.event<{
+  imageId: string;
+  url?: string;
+  b64_json?: string;
+  prompt: string;
+  model: string;
+  parameters?: {
+    size?: string;
+    quality?: string;
+    style?: string;
+    n?: number;
+  };
+}>("addGeneratedImageToChat");
 
 // Internal Events
 const messageRetryInitiated = chatDomain.event<MessageRetryInitiatedPayload>(
@@ -578,6 +595,47 @@ $activePendingMultimodalMessage.on(deleteAttachment, (currentPending, { messageI
   };
 });
 
+// Handle adding generated image to chat
+$activePendingMultimodalMessage.on(addGeneratedImageToChat, (currentPending, imageData) => {
+  // Create generated image content part
+  const generatedImagePart: GeneratedImageContentPart = {
+    type: "generated_image",
+    generated_image: {
+      url: imageData.url,
+      b64_json: imageData.b64_json,
+      prompt: imageData.prompt,
+      model: imageData.model,
+      parameters: imageData.parameters,
+    },
+  };
+
+  // Create or update pending message
+  if (!currentPending) {
+    // Create new pending message with the generated image
+    return {
+      id: crypto.randomUUID(),
+      role: "user" as const,
+      content: [generatedImagePart],
+      timestamp: Date.now(),
+      status: "pending" as const,
+      attachments: [],
+    };
+  } else {
+    // Add to existing pending message
+    const existingContent = Array.isArray(currentPending.content) 
+      ? currentPending.content 
+      : currentPending.content 
+        ? [{ type: "text" as const, text: currentPending.content }]
+        : [];
+    
+    return {
+      ...currentPending,
+      content: [...existingContent, generatedImagePart],
+      timestamp: Date.now(), // Update timestamp to latest
+    };
+  }
+});
+
 // Sync $messages store with active pending message
 $messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
   const activePending = $activePendingMultimodalMessage.getState();
@@ -593,6 +651,38 @@ $messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
     msg.role === 'user' && 
     Array.isArray(msg.content) &&
     msg.content.some(part => part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document')
+  );
+  
+  if (existingPendingIndex >= 0) {
+    // Replace existing pending message
+    const updatedMessages = [...messages];
+    updatedMessages[existingPendingIndex] = activePending;
+    return updatedMessages;
+  } else {
+    // Add new pending message
+    return [...messages, activePending];
+  }
+});
+
+// Sync $messages when a generated image is added to pending message
+$messages.on(addGeneratedImageToChat, (messages, imageData) => {
+  const activePending = $activePendingMultimodalMessage.getState();
+  
+  if (!activePending) {
+    return messages;
+  }
+  
+  // Find and replace existing pending message, or add new one
+  const existingPendingIndex = messages.findIndex(msg => 
+    msg.status === 'pending' && 
+    msg.role === 'user' && 
+    Array.isArray(msg.content) &&
+    msg.content.some(part => 
+      part.type === 'image_url' || 
+      part.type === 'input_audio' || 
+      part.type === 'document' ||
+      part.type === 'generated_image'
+    )
   );
   
   if (existingPendingIndex >= 0) {
@@ -740,6 +830,28 @@ sample({
     return imageGenParams;
   },
   target: generateImageFx,
+});
+
+// Handle sending generated image to chat
+sample({
+  clock: sendImageToChat,
+  source: $generatedImages,
+  fn: (generatedImages, imageId) => {
+    const image = generatedImages.find(img => img.id === imageId);
+    if (!image) {
+      throw new Error(`Generated image with ID ${imageId} not found`);
+    }
+    
+    return {
+      imageId: image.id,
+      url: image.url,
+      b64_json: image.b64_json,
+      prompt: image.prompt,
+      model: image.model,
+      parameters: image.parameters,
+    };
+  },
+  target: addGeneratedImageToChat,
 });
 
 
@@ -1505,6 +1617,7 @@ debug(
   mainInputFocused,
   filesSelected,
   imageGenerationRequested,
+  addGeneratedImageToChat,
 
   // Internal events
   userMessageCreated,
