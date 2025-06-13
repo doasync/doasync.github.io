@@ -1,9 +1,9 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 1.9
-**Date:** 2025-06-08
+**Version:** 2.0
+**Date:** 2025-06-13
 **Author:** doasync
-**Status:** Updated with Real-Time Streaming capabilities
+**Status:** Updated with Standalone Transcription Dialog
 
 ---
 
@@ -22,7 +22,9 @@ This document outlines the requirements for a static, adaptive web application d
 - Offer robust chat message interactions including copy, **editing of both user and model messages**, delete, retry with resubmission, **and the ability to stop ongoing message generation.**
 - **Render rich content within chat messages**, including Markdown formatting, syntax-highlighted code blocks, LaTeX math equations, and Mermaid diagrams.
 - Provide essential configuration options for the current chat session (API key, temperature, system prompt) stored locally.
-- Support client-side file attachment (text/images) for multimodal interaction where supported by the model.
+- Support client-side file attachment (text, images, and audio) for multimodal interaction.
+- **Enable standalone audio transcription via a dedicated dialog.**
+- **Enable standalone text-to-speech generation via a dedicated dialog.**
 - Ensure a seamless experience across desktop and mobile devices, including persistent side drawers on desktop.
 - **Persist in-progress message drafts per chat session with debounce, restoring drafts on reload.**
 - **Provide real-time resource usage insights (tokens, cost, storage).**
@@ -93,7 +95,7 @@ Users who need a web-based interface to interact with various LLM APIs via the V
 #### 4.4. Message Input Area (Bottom)
 
 - **4.4.1. Text Input:** Multiline, resizes vertically.
-- **4.4.2. Attach File Button:** (Not Implemented)
+- **4.4.2. Attach File Button:** Provides access to file uploads and audio tools.
 - **4.4.3. Send Button:**
   - Sends on click or Enter.
   - **If input empty & last message is user, triggers Generate flow, which streams the response (see above).**
@@ -169,6 +171,33 @@ Users who need a web-based interface to interact with various LLM APIs via the V
   - Preserves input if expanded.
   - Handles "Explain" flow immediately if already open.
 - **Improves workflow by enabling quick, contextual queries without cluttering main chat.**
+
+#### 4.10. Standalone Transcription Dialog (New)
+
+- **Provides a dedicated interface for transcribing audio files without affecting the current chat conversation.**
+- **Access:**
+  - Opened via the attachment menu (📎 → "Transcribe Audio").
+- **Features:**
+
+  - **File Input**: Supports drag-and-drop or file picker for audio files (up to 25MB).
+  - **Client-Side Analysis**: Displays the audio file's size, duration, format, and sample rate before transcription.
+  - **Audio Preview**: Includes a native HTML `<audio>` player to preview the uploaded file.
+  - **Model & Format Selection**: Allows users to choose a transcription model and a response format (`json`, `text`, `srt`, `vtt`), with options filtered by model compatibility.
+  - **Context Prompt**: Users can provide text prompts to improve accuracy.
+  - **Transcription History**: Displays a list of completed transcriptions with metadata (audio duration, text size) and provides actions to download, copy, or paste the result.
+  - **Workflow**: Pasting a transcription into the chat input automatically closes the dialog, allowing the user to review and send the message manually.
+
+  #### 4.11. Standalone Text-to-Speech (TTS) Dialog (New)
+
+  - **Provides a dedicated interface for converting text into speech without affecting the current chat conversation.**
+  - **Access:**
+    - Opened via the attachment menu (📎 → "Text to Speech").
+  - **Features:**
+    - **Text Input**: A multi-line text area for input, with a character counter (up to 4000 characters).
+    - **Dynamic Model & Voice Selection**: Allows users to choose a TTS model and then a corresponding voice. The list of available voices is dynamically updated based on the selected model.
+    - **Format Selection**: A dropdown allows users to select the desired audio output format (e.g., `mp3`, `wav`), with options filtered by the selected model's capabilities.
+    - **Model-Specific Options**: Includes a field for "Voice Instructions" that is only enabled for specific models like `gpt-4o-mini-tts`.
+    - **Generation History**: Displays a list of previously generated audio files, with metadata (model, voice, format, size) and provides actions to download or preview the audio.
 
 ---
 

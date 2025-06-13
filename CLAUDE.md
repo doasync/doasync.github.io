@@ -31,14 +31,21 @@ The codebase follows a feature-oriented structure where each feature is self-con
 
 ```
 src/features/
-├── chat/           # Main chat logic and UI
-├── chat-history/   # Chat persistence with IndexedDB
-├── chat-settings/  # User preferences and API key
-├── chat-stream/    # SSE streaming implementation
-├── mini-chat/      # Contextual mini chat overlay
-├── models-select/  # LLM model selection
-├── ui-state/       # Global UI state (dialogs, snackbars)
-└── usage-info/     # Token counting and usage metrics
+├── api-config/        # API configuration management
+├── audio-chat/        # Audio conversation features
+├── chat/              # Main chat logic and UI
+├── chat-history/      # Chat persistence with IndexedDB
+├── chat-settings/     # User preferences and API key
+├── chat-stream/       # SSE streaming implementation
+├── document-processing/ # File upload and document handling
+├── image-generation/  # AI image generation features
+├── mini-chat/         # Contextual mini chat overlay
+├── models-select/     # LLM model selection with auto-capabilities
+├── speech-to-text/    # STT transcription services
+├── text-to-speech/    # TTS generation services
+├── ui-state/          # Global UI state (dialogs, snackbars)
+├── usage-info/        # Token counting and usage metrics
+└── voice-models/      # Voice and audio model configuration
 ```
 
 Each feature follows this pattern:
@@ -75,19 +82,26 @@ sample({
 
 ### Key Implementation Notes
 
-1. **Chat Streaming**: The `chat-stream` feature is stateless and reusable. It manages SSE connections with proper cleanup via AbortController.
+1. **API Integration**: The app integrates with unified API for LLM interactions, with automatic model capability detection for vision, audio, and other features.
 
-2. **Message Handling**: Messages support rich content including Markdown, LaTeX math (KaTeX), code highlighting (Prism), and Mermaid diagrams.
+2. **Chat Streaming**: The `chat-stream` feature is stateless and reusable. It manages SSE connections with proper cleanup via AbortController for real-time responses.
 
-3. **Storage**:
+3. **Multimodal Support**: Messages support text, images, and file attachments. Vision models are automatically selected when images are attached via the `autoSelectModelForCapabilities` system.
+
+4. **Message Handling**: Messages support rich content including Markdown, LaTeX math (KaTeX), code highlighting (Prism), and Mermaid diagrams.
+
+5. **Storage**:
 
    - Chat history uses IndexedDB with the `idb` library
    - Settings and API key use LocalStorage
    - Auto-save is debounced to prevent excessive writes
+   - Message drafts are persisted per chat session
 
-4. **API Integration**: All LLM calls go through API endpoint with OpenAI-compatible format.
+6. **API Integration**: All LLM calls go through an API provider endpoint with OpenAI-compatible format. The app supports multiple providers (OpenAI, Anthropic, Google, etc.) through VoidAI, for example.
 
-5. **Static Export**: The app is configured for static export (`output: 'export'`), meaning no server-side rendering.
+7. **Audio Features**: Standalone STT (Speech-to-Text) and TTS (Text-to-Speech) dialogs provide transcription and voice generation without affecting main chat.
+
+8. **Static Export**: The app is configured for static export (`output: 'export'`), meaning no server-side rendering.
 
 ### Development Guidelines
 
@@ -113,12 +127,48 @@ sample({
 - Streaming logic is in `src/features/chat-stream/model.ts`
 - UI components are in `src/components/MessageItem.tsx`
 
+**Working with multimodal features:**
+
+- Image attachments: `src/components/ImageAttachmentInput.tsx`
+- Document processing: `src/features/document-processing/`
+- Audio transcription: `src/features/speech-to-text/`
+- Text-to-speech: `src/features/text-to-speech/`
+
+**Model capabilities and selection:**
+
+- Model detection logic in `src/features/models-select/model.ts`
+- Auto-selection based on capabilities (vision, audio, etc.)
+- Voice model configuration in `src/features/voice-models/`
+
 **Debugging state:**
 
 - Effector debug logs are enabled in development
 - Check browser console for detailed state flow
 - Use Effector DevTools browser extension for inspection
 
+### File Processing
+
+The app supports various file types through the document-processing feature:
+
+- **PDF**: Uses `pdfjs-dist` (worker file is copied to public during build)
+- **DOCX**: Uses `mammoth` for conversion
+- **Text files**: Direct text extraction (MD, TXT, HTML)
+
+The app supports uploading various file types:
+
+- **Images**: JPG, PNG, GIF, WebP
+- **Audio**: MP3, WAV, FLAC, M4A...
+- **Documents**: PDF, DOCX, MD, TXT, HTML
+- **Recordings**: Voice recording via browser
+
+### API Integration Details
+
+- **Primary API**: VoidAI unified endpoint
+- **Authentication**: User-provided API keys stored in LocalStorage
+- **Streaming**: Server-Sent Events with `eventsource-parser`
+- **Rate Limiting**: Handled by the service
+- **Error Handling**: Graceful fallbacks and user-friendly error messages
+
 ## Development Advice
 
-- Always use build command to test and make sure everything is working properly
+- Always run `npm run build` to test static export compatibility

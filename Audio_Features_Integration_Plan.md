@@ -82,13 +82,13 @@ graph TB
 
 | Feature          | VoidAI                                                                                              | Gemini                                                   |
 | ---------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Voices           | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse                            | 30+ voices (Aoede, Charon, Circe, Kore, Fenrir, etc.)   |
-| Formats          | MP3, OPUS, AAC, FLAC, WAV, PCM (varies by model)                                                   | WAV only                                                 |
+| Voices           | alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse                            | 30+ voices (Aoede, Charon, Circe, Kore, Fenrir, etc.)    |
+| Formats          | MP3, OPUS, AAC, FLAC, WAV, PCM (varies by model)                                                    | WAV only                                                 |
 | Models           | tts-1, tts-1-hd, gpt-4o-mini-tts, elevenlabs, gpt-4o-audio-preview, gpt-4o-audio-preview-2024-12-17 | gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts |
 | API Endpoint     | /audio/speech (except gpt-4o-audio models use /chat/completions)                                    | /audio/speech (hybrid format)                            |
-| Instructions     | ✅ Supported (gpt-4o-mini-tts only)                                                                | ❌ Not supported                                         |
-| Speed Control    | 0.25-4.0 (tts-1, tts-1-hd only)                                                                    | ❌ Not supported                                         |
-| Multi-speaker    | ❌ Not implemented                                                                                  | ❌ Not implemented (single speaker only)                |
+| Instructions     | ✅ Supported (gpt-4o-mini-tts only)                                                                 | ❌ Not supported                                         |
+| Speed Control    | 0.25-4.0 (tts-1, tts-1-hd only)                                                                     | ❌ Not supported                                         |
+| Multi-speaker    | ❌ Not implemented                                                                                  | ❌ Not implemented (single speaker only)                 |
 | Special Features | ElevenLabs: emotion & accent control, GPT-4o-mini: voice instructions                               | Hybrid API format support                                |
 
 ### 2.4 State Model (Actual Implementation)
@@ -154,91 +154,115 @@ interface GeneratedAudio {
 
 ## 3. Speech-to-Text (STT) Feature
 
-### 3.1 User Experience
+### 3.1 User Experience (Actual Implementation)
 
-Users can transcribe audio files through:
+Users can transcribe audio files via a dedicated **Standalone Transcription Dialog**, which provides a comprehensive and robust user experience.
 
-- Drag-and-drop audio files onto chat input
-- Click attachment button and select audio file
-- Paste audio file from clipboard
+- **Access Point**: The dialog is opened via the attachment menu (📎 → "Transcribe Audio").
+- **File Input & Analysis**:
+  - Supports drag-and-drop and a standard file picker.
+  - Enforces a 25MB file size limit and validates file types (`mp3`, `mp4`, `wav`, etc.).
+  - **Client-Side Analysis**: Before transcription, the UI displays the audio file's **size, format, duration, and sample rate**.
+  - **Audio Preview**: An integrated HTML `<audio>` player allows users to preview the uploaded file.
+- **Transcription Configuration**:
+  - **Model Selection**: Dropdown to choose between `whisper-1`, `gpt-4o-mini-transcribe`, etc.
+  - **Response Format**: Users can select the output format (`json`, `text`, `srt`, `vtt`, `verbose_json`), with options dynamically filtered based on model compatibility. Preferences are saved to `localStorage` on a per-model basis.
+  - **Context Prompt**: A text area allows users to provide hints and jargon to improve accuracy.
+- **Process & Results**:
+  - A loading indicator is shown during transcription.
+  - The dialog displays a history of completed transcriptions.
+  - **Result Cards**: Each card shows the **audio duration**, the size of the **generated text**, and the raw API response (e.g., JSON, SRT).
+  - **Actions**: Users can **download** the raw response, **copy** the text, or **paste the text** into the main chat input, which then closes the dialog.
 
-The transcription process shows:
+### 3.2 Architecture (Actual Implementation)
 
-- Upload progress indicator
-- Audio waveform visualization
-- Transcription progress bar
-- Option to insert transcribed text or create new message
-- Language detection indicator
-
-### 3.2 Architecture
+The architecture follows a modular, feature-based structure, mirroring the TTS implementation.
 
 ```mermaid
 graph TB
     subgraph "UI Layer"
-        AudioUpload[Audio Upload Component]
-        TranscriptionProgress[Progress Component]
-        WaveformViz[Waveform Visualizer]
+        TranscriptionDialog[TranscriptionDialog Component]
+        AttachmentMenu[Attachment Menu Option]
+        AudioPlayer[Native Audio Player]
+        ResultCard[Transcription Result Card]
     end
 
-    subgraph "State Management"
-        $sttFile[$$sttFile Store]
-        $sttProgress[$$sttProgress Store]
-        $sttResult[$$sttResult Store]
-        $sttLanguage[$$sttLanguage Store]
+    subgraph "State Management (Effector)"
+        $sttState[$$sttState Store]
         transcribeAudioFx[transcribeAudioFx Effect]
+        dialogOpened[dialogOpened Event]
+        dialogClosed[dialogClosed Event]
+        pasteTranscriptionToChat[pasteTranscriptionToChat Event]
     end
 
     subgraph "API Layer"
         STTAdapter[STT API Adapter]
         VoidAISTT[VoidAI STT Handler]
-        OpenAISTT[OpenAI STT Handler]
-        GeminiSTT[Gemini STT Handler]
     end
 
-    AudioUpload --> $sttFile
-    AudioUpload --> transcribeAudioFx
+    AttachmentMenu --> dialogOpened
+    TranscriptionDialog --> $sttState
+    TranscriptionDialog --> transcribeAudioFx
     transcribeAudioFx --> STTAdapter
     STTAdapter --> VoidAISTT
-    STTAdapter --> OpenAISTT
-    STTAdapter --> GeminiSTT
+    pasteTranscriptionToChat --> dialogClosed
 ```
 
-### 3.3 Provider Capabilities Matrix
+### 3.3 Provider Capabilities Matrix (Actual Implementation)
 
-| Feature   | VoidAI                                               | Gemini               |
-| --------- | ---------------------------------------------------- | -------------------- |
-| Models    | whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe | Via multimodal input |
-| Streaming | No                                                   | No                   |
-| Languages | Multiple                                             | Auto-detect          |
-| Formats   | Common audio formats                                 | Common audio formats |
-| Max Size  | 25MB                                                 | Provider limits      |
+| Feature          | VoidAI (OpenAI Compatible)                                       |
+| ---------------- | ---------------------------------------------------------------- |
+| Models           | `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`       |
+| Streaming        | ❌ Not implemented                                               |
+| Translation      | ❌ Not implemented (scoped out)                                  |
+| Response Formats | `json`, `text`, `srt`, `vtt`, `verbose_json` (filtered by model) |
+| Max File Size    | 25MB (enforced client-side)                                      |
 
-### 3.4 State Model
+### 3.4 State Model (Actual Implementation)
+
+The Effector state model in `features/speech-to-text/model.ts` manages the entire feature lifecycle.
 
 ```typescript
-// Features/speech-to-text/model.ts structure
-interface STTState {
-  file: File | null
-  progress: number
-  isTranscribing: boolean
-  result: string | null
-  language: string | null
-  error: string | null
-  provider: 'voidai' | 'openai' | 'gemini'
+// features/speech-to-text/types.ts
+export interface TranscriptionResult {
+  id: string;
+  text: string;
+  rawResponse: string;
+  fileName: string;
+  fileSize: number;
+  audioDuration?: number; // Duration in seconds
+  textSize: number; // Size of transcribed text in bytes
+  model: string;
+  prompt?: string;
+  timestamp: number;
+  responseFormat: ResponseFormat;
 }
 
+export interface STTState {
+  isDialogOpen: boolean;
+  file: File | null;
+  audioDuration?: number;
+  selectedModel: string;
+  prompt: string;
+  isLoading: boolean;
+  validationError: string | null;
+  transcriptionHistory: TranscriptionResult[];
+  // ...and more
+}
+
+// features/speech-to-text/model.ts
 // Events
-- audioFileDropped: Handle file drop
-- transcriptionStarted: Begin transcription
-- progressUpdated: Update progress
-- transcriptionCompleted: Process result
-- insertToChat: Add to current message
-- createNewMessage: Create new chat message
+- dialogOpened: Triggered to show the dialog.
+- dialogClosed: Triggered to hide the dialog.
+- fileSelected: Handles new file input and validation.
+- modelChanged: Updates the selected transcription model.
+- responseFormatChanged: Updates and persists the selected format.
+- pasteTranscriptionToChat: Pastes text to chat input and closes the dialog.
 
 // Effects
-- transcribeAudioFx: Call STT API
-- detectLanguageFx: Identify audio language
-- processAudioFileFx: Validate and prepare file
+- transcribeAudioFx: Manages the `multipart/form-data` API call to VoidAI.
+- loadTranscriptionHistoryFx: Loads past results from localStorage.
+- saveTranscriptionFx: Saves a new result to localStorage.
 ```
 
 ## 4. Audio Input/Output in Chat
@@ -435,9 +459,14 @@ src/features/
 │   ├── types.ts            # TypeScript interfaces
 │   ├── api.ts              # Unified API adapter with hybrid format
 │   └── components/
-│       ├── TTSDialog.tsx   # Main TTS UI dialog
-│       └── VoiceSelector.tsx # Voice selection component
-├── speech-to-text/          ❌ Not implemented
+|       ├── TTSDialog.tsx   # Main TTS UI dialog
+|       └── VoiceSelector.tsx # Voice selection component
+├── speech-to-text/          ✅ Fully implemented
+|   ├── model.ts            # STT state management
+|   ├── api.ts              # API adapter for VoidAI
+|   ├── types.ts            # TypeScript interfaces
+|   └── components/
+|       └── TranscriptionDialog.tsx # Main STT UI dialog
 ├── audio-chat/              ❌ Not implemented
 └── voice-models/            ✅ Implemented
     ├── model.ts            # Voice model loading and state
@@ -520,10 +549,19 @@ graph LR
 
 ```typescript
 // Unified API adapter in api.ts
-const getProviderConfig = (model: string, text: string, voice: string, format: AudioFormat, speed?: number, instructions?: string) => {
-  const isGeminiModel = model.includes('gemini');
-  const isGPT4oAudioModel = model === 'gpt-4o-audio-preview' || model === 'gpt-4o-audio-preview-2024-12-17';
-  
+const getProviderConfig = (
+  model: string,
+  text: string,
+  voice: string,
+  format: AudioFormat,
+  speed?: number,
+  instructions?: string
+) => {
+  const isGeminiModel = model.includes("gemini");
+  const isGPT4oAudioModel =
+    model === "gpt-4o-audio-preview" ||
+    model === "gpt-4o-audio-preview-2024-12-17";
+
   if (isGPT4oAudioModel) {
     // Use chat completions endpoint
     return {
@@ -532,8 +570,8 @@ const getProviderConfig = (model: string, text: string, voice: string, format: A
         model,
         modalities: ["text", "audio"],
         audio: { voice, format },
-        messages: [{ role: "user", content: text }]
-      }
+        messages: [{ role: "user", content: text }],
+      },
     };
   } else if (isGeminiModel) {
     // Hybrid format for Gemini
@@ -541,24 +579,34 @@ const getProviderConfig = (model: string, text: string, voice: string, format: A
       endpoint: `${providerUrl}/audio/speech`,
       body: {
         // OpenAI format
-        model, input: text, voice, response_format: format,
+        model,
+        input: text,
+        voice,
+        response_format: format,
         // Gemini format
         contents: [{ parts: [{ text }] }],
         generationConfig: {
           responseModalities: ["AUDIO"],
           speechConfig: {
             voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voice }
-            }
-          }
-        }
-      }
+              prebuiltVoiceConfig: { voiceName: voice },
+            },
+          },
+        },
+      },
     };
   } else {
     // Standard OpenAI format
     return {
       endpoint: `${providerUrl}/audio/speech`,
-      body: { model, input: text, voice, response_format: format, speed, instructions }
+      body: {
+        model,
+        input: text,
+        voice,
+        response_format: format,
+        speed,
+        instructions,
+      },
     };
   }
 };
@@ -688,11 +736,17 @@ Attachment Menu (📎):
 9. ✅ Fixed error message close button functionality
 10. ✅ Added streaming toggle (falls back to regular generation)
 
-### Phase 3: STT Feature ❌ (Not Implemented)
+### Phase 3: STT Feature ✅ (Completed)
 
-1. ❌ Speech-to-text module not created
-2. ❌ No audio upload functionality
-3. ❌ No transcription UI
+1. ✅ **Feature Module**: Created a self-contained module at `src/features/speech-to-text/`.
+2. ✅ **Transcription Dialog**: Built a comprehensive `TranscriptionDialog` component with robust state management via Effector.
+3. ✅ **File Handling**: Implemented file selection (drag-and-drop, picker), validation (size, type), and client-side audio analysis to display duration, format, and sample rate.
+4. ✅ **Audio Preview**: Integrated a native HTML `<audio>` player for file previews.
+5. ✅ **Dynamic Configuration**: Added model and response format selectors, with options filtered by model capabilities and preferences saved to local storage.
+6. ✅ **API Integration**: Successfully integrated with the VoidAI `/v1/audio/transcriptions` endpoint.
+7. ✅ **Result Handling**: Implemented a history of transcription results with display of audio duration, text size, and the raw API response.
+8. ✅ **User Actions**: Added actions to download, copy, or paste the transcription into the main chat input.
+9. ✅ **State Management Refactoring**: Refactored the dialog's visibility logic to use a single source of truth in the Effector store, fixing a critical re-opening bug and removing anti-patterns.
 
 ### Phase 4: Audio Chat ❌ (Not Implemented)
 
@@ -764,7 +818,7 @@ Attachment Menu (📎):
   "input": "Hello, this is a test.",
   "voice": "Aoede",
   "response_format": "wav",
-  
+
   // Gemini-native fields
   "contents": [
     {
@@ -850,10 +904,9 @@ This document has been updated to reflect the actual TTS implementation complete
 
 ### Remaining Work:
 
-- Speech-to-Text (STT) feature not implemented
 - Audio chat integration not implemented
 - Speed control UI not added (backend support exists)
 - Context menu TTS option not implemented
 - Voice preview functionality not implemented
 
-The implementation demonstrates a solid foundation for audio features with clean architecture, good error handling, and excellent user experience. The hybrid API approach for Gemini models is particularly noteworthy as it allows seamless integration through the VoidAI proxy.
+The implementation demonstrates a solid foundation for audio features with clean architecture, good error handling, and excellent user experience. The hybrid API approach for Gemini models is particularly noteworthy as it allows seamless integration through the VoidAI proxy. The successful completion of the Standalone Transcription Dialog in Phase 3 provides another reusable architectural pattern for future features.
