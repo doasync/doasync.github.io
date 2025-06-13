@@ -106,6 +106,8 @@ export const FileAttachmentWrapper: React.FC<FileAttachmentWrapperProps> = ({
             alignItems: 'center',
             gap: 1,
             minWidth: 0, // Allow text truncation
+            flex: 1, // Take up available space
+            mr: 2, // Add margin right to create gap from action buttons
           }}
         >
           <IconComponent 

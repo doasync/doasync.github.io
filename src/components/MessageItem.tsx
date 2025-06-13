@@ -228,6 +228,31 @@ const formatDuration = (seconds: number | undefined): string => {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
+// Helper function to open images in new tab, handling data URLs properly
+const openImageInNewTab = async (imageUrl: string) => {
+  try {
+    if (imageUrl.startsWith('data:')) {
+      // Convert data URL to blob URL for better browser support
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const newWindow = window.open(blobUrl, '_blank');
+      
+      // Clean up blob URL after a delay to allow the window to load
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } else {
+      // Regular URL, open directly
+      window.open(imageUrl, '_blank');
+    }
+  } catch (error) {
+    console.error('Failed to open image:', error);
+    // Fallback: try opening the original URL anyway
+    window.open(imageUrl, '_blank');
+  }
+};
+
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   // Hooks
   const theme = useTheme(); // Get theme for palette access
@@ -539,7 +564,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                         {
                           icon: <FullscreenIcon fontSize="small" />,
                           label: "Open in new tab",
-                          onClick: () => window.open(imagePart.image_url.url, "_blank"),
+                          onClick: () => openImageInNewTab(imagePart.image_url.url),
                         },
                         {
                           icon: <DownloadIcon fontSize="small" />,
@@ -580,7 +605,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                             }}
                             onClick={() => {
                               // Open image in new tab
-                              window.open(imagePart.image_url.url, "_blank");
+                              openImageInNewTab(imagePart.image_url.url);
                             }}
                           />
                         </FileAttachmentWrapper>
@@ -706,7 +731,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                         {
                           icon: <FullscreenIcon fontSize="small" />,
                           label: "Open in new tab",
-                          onClick: () => window.open(imageUrl, "_blank"),
+                          onClick: () => openImageInNewTab(imageUrl),
                         },
                         {
                           icon: <DownloadIcon fontSize="small" />,
@@ -749,7 +774,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               },
                             }}
                             onClick={() => {
-                              window.open(imageUrl, "_blank");
+                              openImageInNewTab(imageUrl);
                             }}
                           />
                         </FileAttachmentWrapper>
