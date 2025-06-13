@@ -45,6 +45,7 @@ import {
   CircularProgress,
   Box,
   CardMedia,
+  Button,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -539,15 +540,38 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           />
         ) : (
           <Box sx={{ width: "100%" }}>
-            {/* Render images if present */}
+            {/* Render images, audio, and documents in their original content order */}
             {(() => {
-              const imageParts = getImageParts(message.content);
-              if (imageParts.length > 0) {
-                return (
-                  <Box sx={{ mb: imageParts.length > 0 ? 2 : 0 }}>
-                    {imageParts.map((imagePart, index) => {
-                      // Try to find corresponding attachment metadata
-                      const attachment = message.attachments?.[index];
+              if (typeof message.content === "string") {
+                return null;
+              }
+
+              const attachmentParts = message.content.filter(
+                (part) => part.type === "image_url" || part.type === "input_audio" || part.type === "document"
+              );
+
+              if (attachmentParts.length === 0) {
+                return null;
+              }
+
+              // Create attachment counters to map to the correct attachment metadata
+              let imageIndex = 0;
+              let audioIndex = 0;
+              let documentIndex = 0;
+
+              return (
+                <Box sx={{ mb: attachmentParts.length > 0 ? 2 : 0 }}>
+                  {attachmentParts.map((part, contentIndex) => {
+                    if (part.type === "image_url") {
+                      const imagePart = part as ImageContentPart;
+                      
+                      // Find corresponding attachment metadata
+                      const imageAttachments = message.attachments?.filter(
+                        (att) => att.type === "image"
+                      ) || [];
+                      const attachment = imageAttachments[imageIndex];
+                      const currentImageIndex = imageIndex;
+                      imageIndex++;
 
                       // Build metadata array
                       const metadata = [];
@@ -582,18 +606,28 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
                       return (
                         <FileAttachmentWrapper
-                          key={index}
+                          key={`image-${contentIndex}`}
                           type="image"
-                          fileName={attachment?.fileName || `Image ${index + 1}`}
+                          fileName={attachment?.fileName || `Image ${currentImageIndex + 1}`}
                           metadata={metadata}
                           actions={actions}
-                          onDelete={() => handleDeleteAttachment(index)}
-                          sx={index < imageParts.length - 1 ? { mb: 2 } : {}}
+                          onDelete={() => {
+                            // Calculate the actual attachment index for deletion
+                            const allAttachments = message.attachments || [];
+                            const targetAttachment = attachment;
+                            if (targetAttachment) {
+                              const attachmentIndex = allAttachments.findIndex(att => att.id === targetAttachment.id);
+                              if (attachmentIndex >= 0) {
+                                handleDeleteAttachment(attachmentIndex);
+                              }
+                            }
+                          }}
+                          sx={contentIndex < attachmentParts.length - 1 ? { mb: 2 } : {}}
                         >
                           <CardMedia
                             component="img"
                             image={imagePart.image_url.url}
-                            alt={`Attached image ${index + 1}`}
+                            alt={`Attached image ${currentImageIndex + 1}`}
                             sx={{
                               maxWidth: "100%",
                               maxHeight: 300,
@@ -610,25 +644,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                           />
                         </FileAttachmentWrapper>
                       );
-                    })}
-                  </Box>
-                );
-              }
-              return null;
-            })()}
-
-            {/* Render audio attachments if present */}
-            {(() => {
-              const audioParts = getAudioParts(message.content);
-              if (audioParts.length > 0) {
-                return (
-                  <Box sx={{ mb: audioParts.length > 0 ? 2 : 0 }}>
-                    {audioParts.map((audioPart, index) => {
-                      // Find corresponding attachment metadata by index
+                    } else if (part.type === "input_audio") {
+                      const audioPart = part as AudioContentPart;
+                      
+                      // Find corresponding attachment metadata
                       const audioAttachments = message.attachments?.filter(
                         (att) => att.type === "audio"
                       ) || [];
-                      const attachment = audioAttachments[index];
+                      const attachment = audioAttachments[audioIndex];
+                      const currentAudioIndex = audioIndex;
+                      audioIndex++;
 
                       // Reconstruct data URL from base64 data
                       const audioSrc = `data:${
@@ -665,13 +690,23 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
                       return (
                         <FileAttachmentWrapper
-                          key={index}
+                          key={`audio-${contentIndex}`}
                           type="audio"
-                          fileName={attachment?.fileName || `Audio ${index + 1}`}
+                          fileName={attachment?.fileName || `Audio ${currentAudioIndex + 1}`}
                           metadata={metadata}
                           actions={actions}
-                          onDelete={() => handleDeleteAttachment(index)}
-                          sx={index < audioParts.length - 1 ? { mb: 2 } : {}}
+                          onDelete={() => {
+                            // Calculate the actual attachment index for deletion
+                            const allAttachments = message.attachments || [];
+                            const targetAttachment = attachment;
+                            if (targetAttachment) {
+                              const attachmentIndex = allAttachments.findIndex(att => att.id === targetAttachment.id);
+                              if (attachmentIndex >= 0) {
+                                handleDeleteAttachment(attachmentIndex);
+                              }
+                            }
+                          }}
+                          sx={contentIndex < attachmentParts.length - 1 ? { mb: 2 } : {}}
                         >
                           <Box sx={{ p: 1 }}>
                             <audio
@@ -690,11 +725,117 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                           </Box>
                         </FileAttachmentWrapper>
                       );
-                    })}
-                  </Box>
-                );
-              }
-              return null;
+                    } else if (part.type === "document") {
+                      const documentPart = part as DocumentContentPart;
+                      
+                      // Find corresponding attachment metadata
+                      const documentAttachments = message.attachments?.filter(
+                        (att) => att.type === "document"
+                      ) || [];
+                      const attachment = documentAttachments[documentIndex];
+                      const currentDocumentIndex = documentIndex;
+                      documentIndex++;
+
+                      const documentId = `${message.id}-doc-${contentIndex}`;
+                      const DEFAULT_PREVIEW_LENGTH = 1000;
+                      const EXPAND_INCREMENT = 1000;
+
+                      const currentPreviewLength =
+                        documentPreviewLengths[documentId] ||
+                        DEFAULT_PREVIEW_LENGTH;
+                      const contentToShow = documentPart.document.text;
+                      const hasMoreContent = contentToShow && contentToShow.length > currentPreviewLength;
+
+                      const handleShowMore = () => {
+                        setDocumentPreviewLengths((prev) => ({
+                          ...prev,
+                          [documentId]: currentPreviewLength + EXPAND_INCREMENT,
+                        }));
+                      };
+
+                      // Build metadata array
+                      const metadata = [];
+                      if (attachment) {
+                        metadata.push(formatFileSize(attachment.size));
+                        metadata.push(`${documentPart.document.metadata.wordCount?.toLocaleString() || 0} words`);
+                        if (documentPart.document.metadata.pageCount) {
+                          metadata.push(`${documentPart.document.metadata.pageCount} pages`);
+                        }
+                      }
+
+                      // Define actions for document
+                      const actions = [
+                        {
+                          icon: <DownloadIcon fontSize="small" />,
+                          label: "Download document",
+                          onClick: () => {
+                            if (attachment?.extractedText) {
+                              const blob = new Blob([attachment.extractedText], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = attachment?.fileName || `document-${Date.now()}.txt`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }
+                          },
+                        },
+                      ];
+
+                      return (
+                        <FileAttachmentWrapper
+                          key={`document-${contentIndex}`}
+                          type="document"
+                          fileName={attachment?.fileName || `Document ${currentDocumentIndex + 1}`}
+                          metadata={metadata}
+                          actions={actions}
+                          onDelete={() => {
+                            // Calculate the actual attachment index for deletion
+                            const allAttachments = message.attachments || [];
+                            const targetAttachment = attachment;
+                            if (targetAttachment) {
+                              const attachmentIndex = allAttachments.findIndex(att => att.id === targetAttachment.id);
+                              if (attachmentIndex >= 0) {
+                                handleDeleteAttachment(attachmentIndex);
+                              }
+                            }
+                          }}
+                          sx={contentIndex < attachmentParts.length - 1 ? { mb: 2 } : {}}
+                        >
+                          <Box sx={{ p: 2 }}>
+                            <Typography
+                              variant="body2"
+                              component="div"
+                              sx={{
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                                maxHeight: "400px",
+                                overflow: "auto",
+                              }}
+                            >
+                              {contentToShow && contentToShow.length > currentPreviewLength
+                                ? contentToShow.substring(0, currentPreviewLength)
+                                : contentToShow}
+                            </Typography>
+                            {hasMoreContent && (
+                              <Button
+                                size="small"
+                                onClick={handleShowMore}
+                                sx={{ mt: 1 }}
+                              >
+                                Show More ({Math.min(EXPAND_INCREMENT, contentToShow.length - currentPreviewLength)} more characters)
+                              </Button>
+                            )}
+                          </Box>
+                        </FileAttachmentWrapper>
+                      );
+                    }
+                    return null;
+                  })}
+                </Box>
+              );
             })()}
 
             {/* Render generated images if present */}
@@ -787,141 +928,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               return null;
             })()}
 
-            {/* Render documents if present */}
-            {(() => {
-              const documentParts = getDocumentParts(message.content);
-              if (documentParts.length > 0) {
-                return (
-                  <Box sx={{ mb: documentParts.length > 0 ? 2 : 0 }}>
-                    {documentParts.map((documentPart, index) => {
-                      const documentId = `${message.id}-doc-${index}`;
-                      const DEFAULT_PREVIEW_LENGTH = 1000; // Start with reasonable truncation
-                      const EXPAND_INCREMENT = 1000; // Add 1000 chars each time
-
-                      const currentPreviewLength =
-                        documentPreviewLengths[documentId] ||
-                        DEFAULT_PREVIEW_LENGTH;
-                      const contentToShow = documentPart.document.text; // Always use text for consistent behavior
-                      const hasMoreContent = contentToShow && contentToShow.length > currentPreviewLength;
-
-                      const handleShowMore = () => {
-                        setDocumentPreviewLengths((prev) => ({
-                          ...prev,
-                          [documentId]: currentPreviewLength + EXPAND_INCREMENT,
-                        }));
-                      };
-
-                      // Build metadata array
-                      const metadata = [
-                        formatFileSize(documentPart.document.metadata.fileSize),
-                        `${documentPart.document.metadata.wordCount.toLocaleString()} words`,
-                      ];
-                      
-                      if (documentPart.document.metadata.pageCount) {
-                        metadata.push(`${documentPart.document.metadata.pageCount} pages`);
-                      }
-                      if (documentPart.document.metadata.title) {
-                        metadata.push(documentPart.document.metadata.title);
-                      }
-
-                      // Define actions for document
-                      const actions = [
-                        {
-                          icon: <ContentCopy fontSize="small" />,
-                          label: "Copy text content",
-                          onClick: () => {
-                            navigator.clipboard.writeText(documentPart.document.text);
-                            showSnackbar({
-                              message: "Document text copied to clipboard",
-                              severity: "success",
-                            });
-                          },
-                        },
-                      ];
-
-                      // Add HTML copy action for PDFs
-                      if (documentPart.document.previewHtml && 
-                          documentPart.document.metadata.mimeType === 'application/pdf') {
-                        actions.push({
-                          icon: <CodeIcon fontSize="small" />,
-                          label: "Copy HTML code",
-                          onClick: () => {
-                            navigator.clipboard.writeText(documentPart.document.previewHtml!);
-                            showSnackbar({
-                              message: "Document HTML code copied to clipboard",
-                              severity: "success",
-                            });
-                          },
-                        });
-                      }
-
-                      // Add expand action
-                      actions.push({
-                        icon: <ExpandMoreIcon fontSize="small" />,
-                        label: "Show more content",
-                        onClick: handleShowMore,
-                        disabled: !hasMoreContent,
-                      } as any);
-
-                      return (
-                        <FileAttachmentWrapper
-                          key={index}
-                          type="document"
-                          fileName={documentPart.document.metadata.fileName}
-                          metadata={metadata}
-                          actions={actions}
-                          onDelete={() => handleDeleteAttachment(index)}
-                          sx={index < documentParts.length - 1 ? { mb: 2 } : {}}
-                        >
-                          {/* Document Preview */}
-                          <Box
-                            sx={{
-                              maxHeight: 150,
-                              overflow: "auto",
-                              backgroundColor: theme.palette.background.paper,
-                              borderRadius: 1,
-                              p: 1,
-                              border: `1px solid ${theme.palette.divider}`,
-                              fontSize: "0.875rem",
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {documentPart.document.previewHtml ? (
-                              <Box
-                                component="pre"
-                                sx={{
-                                  fontFamily: "monospace",
-                                  whiteSpace: "pre-wrap",
-                                  fontSize: "0.75rem",
-                                  overflow: "auto",
-                                  margin: 0,
-                                }}
-                              >
-                                {/* Use the original text content instead of previewHtml for better control */}
-                                {documentPart.document.text.length > currentPreviewLength
-                                  ? `${documentPart.document.text.substring(0, currentPreviewLength)}...`
-                                  : documentPart.document.text}
-                              </Box>
-                            ) : (
-                              <Box
-                                sx={{
-                                  fontFamily: "monospace",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {documentPart.document.text}
-                              </Box>
-                            )}
-                          </Box>
-                        </FileAttachmentWrapper>
-                      );
-                    })}
-                  </Box>
-                );
-              }
-              return null;
-            })()}
-
+            {/* Documents are now rendered in the unified attachment section above */}
+            {/* Old document rendering section removed */}
+            {/* Documents are now handled in the unified content-order rendering above */}
+            {/* Documents are now handled in the unified content-order rendering above */}
             {/* Render text content */}
             <Typography
               // onDoubleClick={handleEditClick} // Allow double-click to edit

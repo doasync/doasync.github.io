@@ -230,57 +230,23 @@ const processFilesFx = chatDomain.effect<File[], Message>({
     const contentParts: MessageContentPart[] = [];
     const attachments: Attachment[] = [];
     
-    // Separate files by type
-    const imageFiles = files.filter(f => SUPPORTED_IMAGE_TYPES.includes(f.type));
-    const audioFiles = files.filter(f => SUPPORTED_AUDIO_TYPES.includes(f.type));
+    // Separate files by type for batch processing (documents need special handling)
     const documentFiles = files.filter(f => SUPPORTED_DOCUMENT_TYPES.includes(f.type));
     
-    // Process document files first using document processing feature
+    // Process document files and create a map for later lookup
+    const documentResultsMap = new Map<string, any>();
     if (documentFiles.length > 0) {
       try {
         const documentResults = await processDocumentsFx(documentFiles);
         
+        // Create a map of file name to result for later lookup
         for (let i = 0; i < documentFiles.length; i++) {
           const file = documentFiles[i];
           const result = documentResults[i];
-          
-          if (!result) continue;
-          
-          // Create document content part
-          contentParts.push({
-            type: "document",
-            document: {
-              text: result.extractedText,
-              previewHtml: result.previewHtml,
-              metadata: {
-                fileName: result.metadata.fileName,
-                fileSize: result.metadata.fileSize,
-                mimeType: result.metadata.mimeType,
-                wordCount: result.metadata.wordCount,
-                pageCount: result.metadata.pageCount,
-                title: result.metadata.title,
-                author: result.metadata.author,
-              }
-            }
-          });
-          
-          const attachment: Attachment = {
-            id: crypto.randomUUID(),
-            type: 'document',
-            fileName: file.name,
-            mimeType: file.type,
-            size: file.size,
-            extractedText: result.extractedText,
-            chunks: result.chunks,
-            metadata: {
-              wordCount: result.metadata.wordCount,
-              pageCount: result.metadata.pageCount,
-              title: result.metadata.title,
-              author: result.metadata.author,
-            }
-          };
-          
-          attachments.push(attachment);
+          if (result) {
+            // Use file name + size as key to handle duplicate names
+            documentResultsMap.set(`${file.name}_${file.size}`, result);
+          }
         }
       } catch (error) {
         console.error('Document processing failed:', error);
@@ -288,14 +254,14 @@ const processFilesFx = chatDomain.effect<File[], Message>({
       }
     }
     
-    // Process media files (images and audio)
-    const mediaFiles = [...imageFiles, ...audioFiles];
-    for (const file of mediaFiles) {
+    // Process all files in their original order (preserving user selection order)
+    for (const file of files) {
       const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
       const isAudio = SUPPORTED_AUDIO_TYPES.includes(file.type);
+      const isDocument = SUPPORTED_DOCUMENT_TYPES.includes(file.type);
       
       // Validate file
-      if (!isImage && !isAudio) {
+      if (!isImage && !isAudio && !isDocument) {
         throw new Error(`File "${file.name}" has unsupported type. Supported types: Images (JPEG, PNG, GIF, WebP), Audio (WAV, MP3, AIFF, AAC, OGG, FLAC, MP4, MPEG, MPGA, M4A, WEBM), or Documents (PDF, DOCX, TXT, MD, HTML)`);
       }
       
@@ -307,7 +273,55 @@ const processFilesFx = chatDomain.effect<File[], Message>({
         throw new Error(`Audio file "${file.name}" too large. Maximum size is 25MB.`);
       }
       
-      // Read file
+      // Handle document files (use pre-processed results)
+      if (isDocument) {
+        const resultKey = `${file.name}_${file.size}`;
+        const result = documentResultsMap.get(resultKey);
+        
+        if (!result) {
+          console.warn(`Document processing result not found for: ${file.name}`);
+          continue;
+        }
+        
+        // Create document content part
+        contentParts.push({
+          type: "document",
+          document: {
+            text: result.extractedText,
+            previewHtml: result.previewHtml,
+            metadata: {
+              fileName: result.metadata.fileName,
+              fileSize: result.metadata.fileSize,
+              mimeType: result.metadata.mimeType,
+              wordCount: result.metadata.wordCount,
+              pageCount: result.metadata.pageCount,
+              title: result.metadata.title,
+              author: result.metadata.author,
+            }
+          }
+        });
+        
+        const attachment: Attachment = {
+          id: crypto.randomUUID(),
+          type: 'document',
+          fileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          extractedText: result.extractedText,
+          chunks: result.chunks,
+          metadata: {
+            wordCount: result.metadata.wordCount,
+            pageCount: result.metadata.pageCount,
+            title: result.metadata.title,
+            author: result.metadata.author,
+          }
+        };
+        
+        attachments.push(attachment);
+        continue; // Skip to next file
+      }
+      
+      // Read file for media files (images and audio)
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         
