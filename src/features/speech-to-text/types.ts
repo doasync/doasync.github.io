@@ -26,6 +26,8 @@ export interface TranscriptionResult {
   rawResponse: string;  // Store the actual API response
   fileName: string;
   fileSize: number;
+  audioDuration?: number;  // Duration of the original audio in seconds
+  textSize: number;  // Size of the transcribed text in bytes
   model: string;
   prompt?: string;
   timestamp: number;
@@ -56,6 +58,7 @@ export interface STTModel {
 export interface STTState {
   // Current operation
   file: File | null;
+  audioDuration?: number;  // Duration of the selected audio file
   selectedModel: string;
   prompt: string;
   isLoading: boolean;

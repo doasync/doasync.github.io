@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -26,7 +26,7 @@ import {
   CardActions,
   Divider,
   Stack,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   Mic as MicIcon,
@@ -36,15 +36,16 @@ import {
   Delete as DeleteIcon,
   AudioFile as AudioFileIcon,
   Download as DownloadIcon,
-} from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
-import { useUnit } from 'effector-react';
+} from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import { useUnit } from "effector-react";
 import {
   $sttState,
   dialogOpened,
   dialogClosed,
   fileSelected,
   fileCleared,
+  audioDurationDetected,
   modelChanged,
   promptChanged,
   responseFormatChanged,
@@ -53,28 +54,18 @@ import {
   generateMessageClicked,
   deleteResultClicked,
   clearError,
-} from '../model';
-import { RESPONSE_FORMAT_OPTIONS } from '../api';
+} from "../model";
+import { RESPONSE_FORMAT_OPTIONS } from "../api";
 
-interface TranscriptionDialogProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps) {
+export function TranscriptionDialog() {
   const theme = useTheme();
   const state = useUnit($sttState);
 
-  React.useEffect(() => {
-    if (open) {
-      dialogOpened();
-    }
-  }, [open]);
 
   // Debug logging in development
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('TranscriptionDialog state:', {
+    if (process.env.NODE_ENV === "development") {
+      console.log("TranscriptionDialog state:", {
         transcriptionResultsCount: state.transcriptionResults.length,
         transcriptionResults: state.transcriptionResults,
         isLoading: state.isLoading,
@@ -85,7 +76,6 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
 
   const handleClose = () => {
     dialogClosed();
-    onClose();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,36 +90,36 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
+    const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const getMimeTypeDisplay = (mimeType: string) => {
     const mimeMap: Record<string, string> = {
-      'audio/mpeg': 'MP3',
-      'audio/mp3': 'MP3',
-      'audio/mp4': 'MP4',
-      'audio/mpeg4-generic': 'MP4',
-      'audio/x-mpeg': 'MPEG',
-      'audio/mpga': 'MPGA',
-      'audio/x-mpga': 'MPGA',
-      'audio/m4a': 'M4A',
-      'audio/x-m4a': 'M4A',
-      'audio/wav': 'WAV',
-      'audio/wave': 'WAV',
-      'audio/x-wav': 'WAV',
-      'audio/webm': 'WebM'
+      "audio/mpeg": "MP3",
+      "audio/mp3": "MP3",
+      "audio/mp4": "MP4",
+      "audio/mpeg4-generic": "MP4",
+      "audio/x-mpeg": "MPEG",
+      "audio/mpga": "MPGA",
+      "audio/x-mpga": "MPGA",
+      "audio/m4a": "M4A",
+      "audio/x-m4a": "M4A",
+      "audio/wav": "WAV",
+      "audio/wave": "WAV",
+      "audio/x-wav": "WAV",
+      "audio/webm": "WebM",
     };
-    return mimeMap[mimeType] || mimeType.replace('audio/', '').toUpperCase();
+    return mimeMap[mimeType] || mimeType.replace("audio/", "").toUpperCase();
   };
 
   // State for audio file analysis and player
@@ -156,18 +146,22 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
 
     const analyzeAudio = async () => {
       try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
         const arrayBuffer = await state.file!.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
+
         setAudioInfo({
           duration: audioBuffer.duration,
-          sampleRate: audioBuffer.sampleRate
+          sampleRate: audioBuffer.sampleRate,
         });
-        
+
+        // Report the audio duration to the state model
+        audioDurationDetected(audioBuffer.duration);
+
         audioContext.close();
       } catch (error) {
-        console.warn('Could not analyze audio file:', error);
+        console.warn("Could not analyze audio file:", error);
         setAudioInfo(null);
       }
     };
@@ -187,16 +181,16 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose} 
-      maxWidth="md" 
+    <Dialog
+      open={state.isDialogOpen}
+      onClose={handleClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
-          minHeight: '60vh',
-          maxHeight: '90vh',
-        }
+          minHeight: "60vh",
+          maxHeight: "90vh",
+        },
       }}
     >
       <DialogTitle>
@@ -221,12 +215,15 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
             </Typography>
             <Box
               sx={{
-                border: '2px dashed',
-                borderColor: state.fileValidation?.isValid === false ? 'error.main' : 'divider',
+                border: "2px dashed",
+                borderColor:
+                  state.fileValidation?.isValid === false
+                    ? "error.main"
+                    : "divider",
                 borderRadius: 1,
                 p: 3,
-                textAlign: 'center',
-                backgroundColor: state.file ? 'action.selected' : 'transparent',
+                textAlign: "center",
+                backgroundColor: state.file ? "action.selected" : "transparent",
               }}
             >
               {!state.file ? (
@@ -257,13 +254,13 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                       {state.file.name}
                     </Typography>
                   </Box>
-                  
+
                   {/* Audio Player */}
                   {audioUrl && (
                     <Box mb={1}>
-                      <audio 
-                        controls 
-                        style={{ width: '100%', maxWidth: '400px' }}
+                      <audio
+                        controls
+                        style={{ width: "100%", maxWidth: "400px" }}
                         preload="metadata"
                       >
                         <source src={audioUrl} type={state.file.type} />
@@ -271,15 +268,21 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                       </audio>
                     </Box>
                   )}
-                  
+
                   {/* File Information - Compact List */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
                     {formatFileSize(state.file.size)}
-                    {audioInfo?.duration && ` • Duration: ${formatDuration(audioInfo.duration)}`}
+                    {audioInfo?.duration &&
+                      ` • Duration: ${formatDuration(audioInfo.duration)}`}
                     {` • ${getMimeTypeDisplay(state.file.type)} Audio`}
-                    {audioInfo?.sampleRate && ` • ${(audioInfo.sampleRate / 1000).toFixed(1)} kHz`}
+                    {audioInfo?.sampleRate &&
+                      ` • ${(audioInfo.sampleRate / 1000).toFixed(1)} kHz`}
                   </Typography>
-                  
+
                   <Button
                     size="small"
                     onClick={() => {
@@ -296,7 +299,7 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 </Box>
               )}
             </Box>
-            
+
             {state.fileValidation && !state.fileValidation.isValid && (
               <Alert severity="error" sx={{ mt: 1 }}>
                 {state.fileValidation.error}
@@ -321,11 +324,13 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                     <MenuItem key={model.id} value={model.id}>
                       <Box>
                         <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="body2">
-                            {model.name}
-                          </Typography>
+                          <Typography variant="body2">{model.name}</Typography>
                           {model.hasLimitedParams && (
-                            <Chip label="Limited params" size="small" variant="outlined" />
+                            <Chip
+                              label="Limited params"
+                              size="small"
+                              variant="outlined"
+                            />
                           )}
                         </Box>
                         <Typography variant="caption" color="text.secondary">
@@ -337,14 +342,6 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                 </Select>
               </FormControl>
 
-              {state.currentModel?.hasLimitedParams && (
-                <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
-                  <Typography variant="body2">
-                    <strong>{state.currentModel.name}</strong> supports only basic parameters.
-                  </Typography>
-                </Alert>
-              )}
-
               <FormControl fullWidth>
                 <InputLabel>Response Format</InputLabel>
                 <Select
@@ -352,21 +349,20 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                   label="Response Format"
                   onChange={(e) => responseFormatChanged(e.target.value as any)}
                 >
-                  {RESPONSE_FORMAT_OPTIONS
-                    .filter(option => state.currentModel?.supportedResponseFormats.includes(option.value))
-                    .map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        <Box>
-                          <Typography variant="body2">
-                            {option.label}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {option.description}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
-                    ))
-                  }
+                  {RESPONSE_FORMAT_OPTIONS.filter((option) =>
+                    state.currentModel?.supportedResponseFormats.includes(
+                      option.value
+                    )
+                  ).map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box>
+                        <Typography variant="body2">{option.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.description}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
@@ -384,8 +380,8 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
 
           {/* Error Display */}
           {state.error && (
-            <Alert 
-              severity="error" 
+            <Alert
+              severity="error"
               action={
                 <IconButton
                   aria-label="close"
@@ -405,7 +401,12 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
           {state.isLoading && (
             <Box>
               <LinearProgress />
-              <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                align="center"
+                sx={{ mt: 1 }}
+              >
                 Transcribing audio...
               </Typography>
             </Box>
@@ -417,105 +418,144 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
               <Typography variant="subtitle1" gutterBottom>
                 Transcription Results ({state.transcriptionResults.length})
               </Typography>
-              <Stack spacing={2} sx={{ maxHeight: '400px', overflow: 'auto' }}>
+              <Stack spacing={2} sx={{ maxHeight: "400px", overflow: "auto" }}>
                 {state.transcriptionResults.map((result) => {
                   // Debug logging in development
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('Rendering transcription result:', result);
+                  if (process.env.NODE_ENV === "development") {
+                    console.log("Rendering transcription result...");
                   }
                   return (
-                    <Card 
-                      key={result.id} 
+                    <Card
+                      key={result.id}
                       variant="outlined"
-                      sx={{ 
-                        overflow: 'visible',
-                        '& .MuiCardContent-root': {
-                          paddingBottom: '8px',
+                      sx={{
+                        overflow: "visible",
+                        "& .MuiCardContent-root": {
+                          paddingBottom: "8px",
                         },
-                        '& .MuiCardActions-root': {
-                          paddingTop: '8px',
-                        }
+                        "& .MuiCardActions-root": {
+                          paddingTop: "8px",
+                        },
                       }}
                     >
                       <CardContent>
                         <Box mb={2}>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {result.fileName} • {result.model} • {formatTimestamp(result.timestamp)}
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
+                            {result.fileName} • {result.model} •{" "}
+                            {formatTimestamp(result.timestamp)}
                           </Typography>
                           <Box display="flex" gap={2} flexWrap="wrap">
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {result.wordCount} words
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatFileSize(result.fileSize)}
+                            {result.audioDuration && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Duration: {formatDuration(result.audioDuration)}
+                              </Typography>
+                            )}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {formatFileSize(result.textSize)}
                             </Typography>
-                            {result.duration && (
-                              <Typography variant="caption" color="text.secondary">
-                                {formatDuration(result.duration)}
-                              </Typography>
-                            )}
-                            {result.responseFormat && result.responseFormat !== 'json' && (
-                              <Typography variant="caption" color="text.secondary">
-                                Format: {result.responseFormat.toUpperCase()}
-                              </Typography>
-                            )}
+                            {result.responseFormat &&
+                              result.responseFormat !== "json" && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Format: {result.responseFormat.toUpperCase()}
+                                </Typography>
+                              )}
                           </Box>
                         </Box>
-                        
+
                         <TextField
                           multiline
                           fullWidth
                           value={result.rawResponse || result.text}
                           variant="outlined"
-                          rows={result.responseFormat === 'json' || result.responseFormat === 'verbose_json' ? 8 : 3}
+                          rows={
+                            result.responseFormat === "json" ||
+                            result.responseFormat === "verbose_json"
+                              ? 8
+                              : 3
+                          }
                           InputProps={{
                             readOnly: true,
                           }}
                           sx={{
-                            '& .MuiInputBase-input': {
-                              fontSize: '0.9rem',
+                            "& .MuiInputBase-input": {
+                              fontSize: "0.9rem",
                               lineHeight: 1.4,
-                              fontFamily: result.responseFormat === 'json' || result.responseFormat === 'verbose_json' 
-                                ? 'monospace' 
-                                : 'inherit',
-                            }
+                              fontFamily:
+                                result.responseFormat === "json" ||
+                                result.responseFormat === "verbose_json"
+                                  ? "monospace"
+                                  : "inherit",
+                            },
                           }}
                         />
                       </CardContent>
-                      
-                      <CardActions sx={{ justifyContent: 'space-between', pt: 1 }}>
+
+                      <CardActions
+                        sx={{ justifyContent: "space-between", pt: 1 }}
+                      >
                         <Box display="flex" gap={1}>
                           <Tooltip title="Copy">
                             <IconButton
                               size="small"
                               onClick={() => {
-                                const textToCopy = result.rawResponse || result.text;
-                                navigator.clipboard.writeText(textToCopy).catch(console.error);
+                                const textToCopy =
+                                  result.rawResponse || result.text;
+                                navigator.clipboard
+                                  .writeText(textToCopy)
+                                  .catch(console.error);
                               }}
                               color="primary"
                             >
                               <CopyIcon />
                             </IconButton>
                           </Tooltip>
-                          
+
                           <Tooltip title="Download">
                             <IconButton
                               size="small"
                               onClick={() => {
-                                const content = result.rawResponse || result.text;
+                                const content =
+                                  result.rawResponse || result.text;
                                 let extension: string;
-                                if (result.responseFormat === 'json' || result.responseFormat === 'verbose_json') {
-                                  extension = 'json';
-                                } else if (result.responseFormat === 'text') {
-                                  extension = 'txt';
+                                if (
+                                  result.responseFormat === "json" ||
+                                  result.responseFormat === "verbose_json"
+                                ) {
+                                  extension = "json";
+                                } else if (result.responseFormat === "text") {
+                                  extension = "txt";
                                 } else {
                                   extension = result.responseFormat; // srt, vtt
                                 }
-                                const blob = new Blob([content], { type: 'text/plain' });
+                                const blob = new Blob([content], {
+                                  type: "text/plain",
+                                });
                                 const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
+                                const a = document.createElement("a");
                                 a.href = url;
-                                a.download = `${result.fileName.replace(/\.[^/.]+$/, '')}_transcription.${extension}`;
+                                a.download = `${result.fileName.replace(
+                                  /\.[^/.]+$/,
+                                  ""
+                                )}_transcription.${extension}`;
                                 document.body.appendChild(a);
                                 a.click();
                                 document.body.removeChild(a);
@@ -526,8 +566,8 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                               <DownloadIcon />
                             </IconButton>
                           </Tooltip>
-                          
-                          <Tooltip title="Send to chat">
+
+                          <Tooltip title="Paste to chat">
                             <IconButton
                               size="small"
                               onClick={() => generateMessageClicked(result.id)}
@@ -537,7 +577,7 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
                             </IconButton>
                           </Tooltip>
                         </Box>
-                        
+
                         <Tooltip title="Delete">
                           <IconButton
                             size="small"
@@ -558,16 +598,14 @@ export function TranscriptionDialog({ open, onClose }: TranscriptionDialogProps)
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={handleClose}>
-          Cancel
-        </Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleTranscribe}
           disabled={!state.canTranscribe}
           startIcon={<MicIcon />}
         >
-          {state.isLoading ? 'Transcribing...' : 'Transcribe'}
+          {state.isLoading ? "Transcribing..." : "Transcribe"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -179,7 +179,6 @@ export default function HomePage() {
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   const [imageGenDialogOpen, setImageGenDialogOpen] = React.useState(false);
   const [ttsDialogOpen, setTtsDialogOpen] = React.useState(false);
-  const [sttDialogOpen, setSttDialogOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
     null
@@ -681,7 +680,6 @@ export default function HomePage() {
                 onImageGenerationClick={() => setImageGenDialogOpen(true)}
                 onRecordingStateChange={setIsRecording}
                 onTTSClick={() => setTtsDialogOpen(true)}
-                onSTTClick={() => setSttDialogOpen(true)}
               />
 
               {/* Text Input Field - flexible width between buttons */}
@@ -816,10 +814,7 @@ export default function HomePage() {
         open={ttsDialogOpen}
         onClose={() => setTtsDialogOpen(false)}
       />
-      <TranscriptionDialog
-        open={sttDialogOpen}
-        onClose={() => setSttDialogOpen(false)}
-      />
+      <TranscriptionDialog />
       <MiniChatToolbar />
       <MiniChatDialog />
       {/* <MiniChatFAB /> FAB is now rendered inside the scrollable area */}

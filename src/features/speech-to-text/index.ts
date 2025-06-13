@@ -40,7 +40,6 @@ export {
   saveTranscriptionFx,
   loadTranscriptionHistoryFx,
   deleteTranscriptionFx,
-  addToChatFx,
   loadResponseFormatsSettingsFx,
   saveResponseFormatSettingFx,
   

@@ -2,7 +2,7 @@ import { createDomain, createEffect, sample, combine, createEvent, createStore }
 import { debug } from 'patronum/debug';
 import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult, ResponseFormat } from './types';
 import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
-import { messageSent, messageTextChanged } from '../chat/model';
+import { messageTextChanged } from '../chat/model';
 
 const domain = createDomain('speech-to-text');
 
@@ -67,10 +67,14 @@ export const $canTranscribe = combine(
     Boolean(file && validation?.isValid && !loading)
 );
 
+// Store for audio duration
+export const $audioDuration = domain.createStore<number | null>(null);
+
 // Combined state for easy consumption
 export const $sttState = combine({
   // Current operation
   file: $sttFile,
+  audioDuration: $audioDuration,
   selectedModel: $sttModel,
   prompt: $sttPrompt,
   isLoading: $isLoading,
@@ -96,6 +100,7 @@ export const dialogClosed = domain.createEvent<void>();
 
 export const fileSelected = domain.createEvent<File>();
 export const fileCleared = domain.createEvent<void>();
+export const audioDurationDetected = domain.createEvent<number>();
 
 export const modelChanged = domain.createEvent<string>();
 export const promptChanged = domain.createEvent<string>();
@@ -187,13 +192,8 @@ export const deleteTranscriptionFx = createEffect<string, string, Error>({
   },
 });
 
-export const addToChatFx = createEffect<string, void, Error>({
-  handler: async (text) => {
-    // Set the message text and then send it as a new message to the main chat
-    messageTextChanged(text);
-    messageSent();
-  },
-});
+// Event for when user wants to paste transcription to chat
+export const pasteTranscriptionToChat = domain.createEvent<string>();
 
 // Store updates
 $isDialogOpen
@@ -202,6 +202,11 @@ $isDialogOpen
 
 $sttFile
   .on(fileSelected, (_, file) => file)
+  .on(fileCleared, () => null)
+  .reset(dialogClosed);
+
+$audioDuration
+  .on(audioDurationDetected, (_, duration) => duration)
   .on(fileCleared, () => null)
   .reset(dialogClosed);
 
@@ -262,16 +267,21 @@ sample({
 // Save successful transcription
 sample({
   clock: transcribeAudioFx.doneData,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat },
+  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat, audioDuration: $audioDuration },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt, responseFormat }, response): TranscriptionResult => {
+  fn: ({ file, model, prompt, responseFormat, audioDuration }, response): TranscriptionResult => {
     const wordCount = response.text.trim().split(/\s+/).length;
+    // Calculate text size in bytes
+    const textSize = new TextEncoder().encode(response.rawResponse || response.text).length;
+    
     return {
       id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: response.text,
       rawResponse: response.rawResponse,
       fileName: file!.name,
       fileSize: file!.size,
+      audioDuration: audioDuration || undefined,
+      textSize,
       model,
       prompt: prompt.trim() || undefined,
       timestamp: Date.now(),
@@ -308,7 +318,7 @@ sample({
     const result = results.find(r => r.id === id);
     return result!.text;
   },
-  target: addToChatFx,
+  target: pasteTranscriptionToChat,
 });
 
 // Delete transcription
@@ -328,6 +338,19 @@ sample({
   clock: dialogClosed,
   fn: () => null,
   target: $selectedResult,
+});
+
+// When user pastes transcription to chat:
+// 1. Update the chat message text
+sample({
+  clock: pasteTranscriptionToChat,
+  target: messageTextChanged,
+});
+
+// 2. Close the dialog
+sample({
+  clock: pasteTranscriptionToChat,
+  target: dialogClosed,
 });
 
 // Legacy compatibility - maintain existing API for backwards compatibility

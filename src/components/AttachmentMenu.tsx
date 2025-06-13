@@ -27,6 +27,7 @@ import {
   $currentModelSupportsAudio,
 } from "@/features/models-select";
 import { $selectedImageGenModel } from "@/features/image-generation";
+import { dialogOpened as sttDialogOpened } from "@/features/speech-to-text";
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
@@ -66,7 +67,6 @@ interface AttachmentMenuProps {
   onImageGenerationClick?: () => void;
   onRecordingStateChange?: (isRecording: boolean) => void;
   onTTSClick?: () => void;
-  onSTTClick?: () => void;
 }
 
 export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
@@ -74,7 +74,6 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   onImageGenerationClick,
   onRecordingStateChange,
   onTTSClick,
-  onSTTClick,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -444,7 +443,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
         <MenuItem
           onClick={() => {
             handleMenuClose();
-            onSTTClick?.();
+            sttDialogOpened();
           }}
           disabled={disabled || isProcessingFile}
         >
