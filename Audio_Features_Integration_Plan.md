@@ -265,112 +265,569 @@ export interface STTState {
 - saveTranscriptionFx: Saves a new result to localStorage.
 ```
 
-## 4. Audio Input/Output in Chat
+## 4. Audio Input/Output in Chat (Phase 4: Integrated Audio Chat)
 
 ### 4.1 User Experience
 
-Users can send and receive audio messages:
+This phase integrates audio capabilities directly into chat messages, providing ephemeral, on-demand transcription and text-to-speech without affecting the persistent chat history.
 
-- **Recording**: Click microphone button to record voice message
-- **Playback**: Audio messages show inline player with controls
-- **Transcription**: Option to show/hide transcript for audio messages
-- **Text-to-Speech**: Click speaker icon to hear any text message read aloud
-- **Transcription**: Option to show/hide transcript for audio messages
-- **Multi-modal**: Mix text and audio in same conversation
+#### 4.1.1 In-Message Text-to-Speech (TTS)
 
-Audio message UI includes:
+**Purpose**: Allow users to hear any text message read aloud using their preferred voice model.
 
-- Waveform visualization
-- Play/pause button
-- Progress bar with time
-- Speed control (1x, 1.5x, 2x)
-- Download button
-- Transcript toggle
+**UI Implementation**:
+
+- **Speaker Icon**: Every text-based message (user and assistant) displays a clickable speaker icon (🔊) in the message action toolbar
+- **Toggle Behavior**: The speaker icon acts as a toggle button:
+  - **Inactive State**: Shows as 🔊 (gray/muted color)
+  - **Loading State**: Shows spinner while generating audio
+  - **Active State**: Shows as 🔊 (highlighted/accent color) when audio player is visible
+- **Audio Player**: When activated, a temporary inline audio player appears directly below the text message
+- **Player Controls**: Native HTML5 audio controls with play/pause, progress bar, volume, download, and speed control
+
+**User Flow**:
+
+1. User clicks speaker icon on any text message
+2. System uses the pre-configured "In-Chat TTS Model" to generate audio from the message text
+3. Loading indicator appears on the speaker icon
+4. Generated audio player appears below the message with native controls
+5. User can toggle the player visibility by clicking the speaker icon again
+6. Audio is cached temporarily for the session (not persisted)
+
+#### 4.1.2 In-Message Transcription (STT)
+
+**Purpose**: Allow users to get text transcripts of audio messages using their preferred transcription model.
+
+**UI Implementation**:
+
+- **Transcribe Button**: Every audio message displays a "Transcribe" button (📝) in the message action toolbar
+- **Toggle Behavior**: The transcribe button acts as a toggle:
+  - **Inactive State**: Shows as "Transcribe" (📝)
+  - **Loading State**: Shows spinner while transcribing
+  - **Active State**: Shows as "Hide Transcript" when transcript is visible
+- **Transcript Display**: When activated, a temporary text block appears directly below the audio player
+- **Visual Distinction**: Transcript text has different styling (dashed border, muted background, "Temporary" badge)
+
+**User Flow**:
+
+1. User clicks "Transcribe" button on any audio message
+2. System uses the pre-configured "In-Chat Transcription Model" to transcribe the audio
+3. Loading indicator appears on the transcribe button
+4. Generated transcript appears below the audio player in a styled text block
+5. User can toggle transcript visibility by clicking the button again
+6. Transcript is cached temporarily for the session (not persisted)
+
+#### 4.1.3 Chat Settings Integration
+
+**New Model Selectors**: Two dedicated dropdowns added to the Chat Settings sidebar:
+
+1. **In-Chat TTS Model**:
+
+   - Dropdown selector for choosing the TTS model used for in-message audio generation
+   - Filtered to show only TTS-capable models ("/v1/audio/speech" endpoint)
+   - Persisted to localStorage as `inChatTtsModel`
+   - Default: `tts-1-hd`
+
+2. **In-Chat Transcription Model**:
+   - Dropdown selector for choosing the STT model used for in-message transcription
+   - Filtered to show only STT-capable models ("/v1/audio/transcriptions" endpoint and models with "audio" in the name)
+   - Persisted to localStorage as `inChatTranscriptionModel`
+   - Default: `whisper-1`
+
+#### 4.1.4 Visual Design Principles
+
+**Ephemeral Content Indication**:
+
+- Generated audio players and transcripts are visually distinct from permanent content
+- Use dashed borders, muted background colors, or subtle "Temporary" badges (choose what you think is right)
+- Different color scheme, if needed (e.g., blue-gray instead of primary colors)
+
+**Message Layout**:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Assistant:                                              │
+│ This is a sample text message that can be converted     │
+│ to audio using the speaker icon.                        │
+│                                                         │
+│ [💬] [📋] [🔊] [✏️] [🗑️]                                │
+│                                                         │
+│ ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐ │
+│ ┊ 🎵 Generated Audio (Temporary)                     ┊ │
+│ ┊ [▶️] ━━━━━━━━────────────── 0:05/0:12             ┊ │
+│ ┊ [1x ▼] [📥]                                       ┊ │
+│ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘ │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ User:                                                   │
+│ [🎵 Audio Message (0:45)]                               │
+│ [▶️] ━━━━━━━━────────────── 0:12/0:45                   │
+│ [1x ▼] [📥] [📝] [✏️] [🗑️]                              │
+│                                                         │
+│ ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐ │
+│ ┊ 📝 Transcript (Temporary)                          ┊ │
+│ ┊ "Hello, this is my audio message. I wanted to      ┊ │
+│ ┊ ask you about the integration plan..."             ┊ │
+│ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘ │
+└─────────────────────────────────────────────────────────┘
+```
 
 ### 4.2 Architecture
 
+The architecture maintains strict separation between persistent chat data and ephemeral audio enhancements, ensuring temporary content never pollutes the chat history or API calls.
+
 ```mermaid
 graph TB
-    subgraph "UI Layer"
-        AudioRecorder[Audio Recorder Component]
-        AudioPlayer[Audio Player Component]
-        AudioMessage[Audio Message Component]
+    subgraph "UI Layer - Message Components"
+        MessageItem[MessageItem Component]
+        TextMessage[Text Message Display]
+        AudioMessage[Audio Message Display]
+        SpeakerIcon[Speaker Icon Button]
+        TranscribeButton[Transcribe Button]
+        EphemeralAudioPlayer[Ephemeral Audio Player]
+        EphemeralTranscript[Ephemeral Transcript]
     end
 
-    subgraph "State Management"
-        $recording[$$recording Store]
-        $audioMessages[$$audioMessages Store]
-        $playbackState[$$playbackState Store]
-        recordAudioFx[recordAudioFx Effect]
-        processAudioResponseFx[processAudioResponseFx Effect]
+    subgraph "Ephemeral State Management"
+        $ephemeralData[$$ephemeralMessageData Store]
+        $inChatTtsModel[$$inChatTtsModel Store]
+        $inChatTranscriptionModel[$$inChatTranscriptionModel Store]
+
+        generateInMessageTTSFx[generateInMessageTTSFx Effect]
+        generateInMessageSTTFx[generateInMessageSTTFx Effect]
+
+        toggleMessageAudio[toggleMessageAudio Event]
+        toggleMessageTranscript[toggleMessageTranscript Event]
+        clearEphemeralData[clearEphemeralData Event]
     end
 
-    subgraph "Chat Integration"
-        ChatModel[Chat Model]
-        MessageStore[$$messages Store]
+    subgraph "Chat Settings Integration"
+        ChatSettings[Chat Settings Panel]
+        TTSModelSelector[In-Chat TTS Model Selector]
+        STTModelSelector[In-Chat STT Model Selector]
+        LocalStoragePrefs[localStorage Preferences]
     end
 
-    subgraph "API Layer"
-        AudioChatAdapter[Audio Chat Adapter]
-        VoidAIAudio[VoidAI Audio Handler]
-        OpenAIAudio[OpenAI Audio Handler]
+    subgraph "API Layer Reuse"
+        TTSAdapter[TTS API Adapter - Reused]
+        STTAdapter[STT API Adapter - Reused]
+        VoidAITTS[VoidAI TTS Handler]
+        VoidAISTT[VoidAI STT Handler]
     end
 
-    AudioRecorder --> $recording
-    AudioRecorder --> recordAudioFx
-    recordAudioFx --> ChatModel
-    ChatModel --> AudioChatAdapter
-    AudioMessage --> $playbackState
-    processAudioResponseFx --> $audioMessages
+    subgraph "Persistent Chat Data"
+        $messages[$$messages Store - Unchanged]
+        ChatHistory[Chat History - Unchanged]
+        MessageContent[Message Content - Unchanged]
+    end
+
+    %% UI Interactions
+    MessageItem --> TextMessage
+    MessageItem --> AudioMessage
+    TextMessage --> SpeakerIcon
+    AudioMessage --> TranscribeButton
+
+    %% Ephemeral State Flow
+    SpeakerIcon --> toggleMessageAudio
+    TranscribeButton --> toggleMessageTranscript
+    toggleMessageAudio --> $ephemeralData
+    toggleMessageTranscript --> $ephemeralData
+
+    %% API Effects
+    toggleMessageAudio --> generateInMessageTTSFx
+    toggleMessageTranscript --> generateInMessageSTTFx
+    generateInMessageTTSFx --> TTSAdapter
+    generateInMessageSTTFx --> STTAdapter
+
+    %% Settings Integration
+    ChatSettings --> TTSModelSelector
+    ChatSettings --> STTModelSelector
+    TTSModelSelector --> $inChatTtsModel
+    STTModelSelector --> $inChatTranscriptionModel
+    $inChatTtsModel --> LocalStoragePrefs
+    $inChatTranscriptionModel --> LocalStoragePrefs
+
+    %% Model Selection for Effects
+    $inChatTtsModel --> generateInMessageTTSFx
+    $inChatTranscriptionModel --> generateInMessageSTTFx
+
+    %% API Reuse
+    TTSAdapter --> VoidAITTS
+    STTAdapter --> VoidAISTT
+
+    %% Ephemeral Display
+    $ephemeralData --> EphemeralAudioPlayer
+    $ephemeralData --> EphemeralTranscript
+
+    %% Critical: No Connection to Persistent Data
+    $ephemeralData -.x $messages
+    $ephemeralData -.x ChatHistory
+    EphemeralAudioPlayer -.x MessageContent
+    EphemeralTranscript -.x MessageContent
+
+    %% Styling
+    classDef ephemeral fill:#e3f2fd,stroke:#1976d2,stroke-dasharray: 5 5
+    classDef persistent fill:#f3e5f5,stroke:#7b1fa2
+    classDef api fill:#e8f5e8,stroke:#388e3c
+    classDef settings fill:#fff3e0,stroke:#f57c00
+
+    class $ephemeralData,EphemeralAudioPlayer,EphemeralTranscript,generateInMessageTTSFx,generateInMessageSTTFx ephemeral
+    class $messages,ChatHistory,MessageContent persistent
+    class TTSAdapter,STTAdapter,VoidAITTS,VoidAISTT api
+    class ChatSettings,TTSModelSelector,STTModelSelector,LocalStoragePrefs settings
 ```
 
-### 4.3 Message Format Extension
+### 4.3 State Model
+
+#### 4.3.1 Ephemeral Data Store
+
+The core state management uses a dedicated Effector store that is completely separate from the persistent chat data:
 
 ```typescript
-// Extend existing message type
-interface AudioMessage extends Message {
-  type: "audio";
-  audio?: {
-    url: string;
-    duration: number;
-    format: string;
-    transcript?: string;
-    waveform?: number[];
+// src/features/audio-chat/types.ts
+interface EphemeralMessageData {
+  [messageId: string]: {
+    audio?: {
+      url: string;
+      isLoading: boolean;
+      isVisible: boolean;
+      model: string;
+      voice: string;
+      timestamp: number;
+    };
+    transcript?: {
+      text: string;
+      isLoading: boolean;
+      isVisible: boolean;
+      model: string;
+      format: string;
+      timestamp: number;
+    };
   };
 }
-```
 
-### 4.4 State Model
-
-```typescript
-// Features/audio-chat/model.ts structure
-interface AudioChatState {
-  isRecording: boolean
-  recordingDuration: number
-  audioBlob: Blob | null
-  playbackStates: Record<string, PlaybackState>
-  activePlayer: string | null
+interface InChatSettings {
+  ttsModel: string;
+  transcriptionModel: string;
 }
 
-interface PlaybackState {
-  isPlaying: boolean
-  currentTime: number
-  playbackRate: number
-}
+// src/features/audio-chat/model.ts
+const $ephemeralMessageData = createStore<EphemeralMessageData>({});
+const $inChatTtsModel = createStore<string>("tts-1-hd");
+const $inChatTranscriptionModel = createStore<string>("whisper-1");
 
-// Events
-- recordingStarted: Begin audio recording
-- recordingStopped: End recording
-- audioMessageSent: Send audio to chat
-- playbackToggled: Play/pause audio
-- playbackRateChanged: Change speed
-- transcriptToggled: Show/hide transcript
+// Public Events
+const toggleMessageAudio = createEvent<{
+  messageId: string;
+  messageText: string;
+}>();
+const toggleMessageTranscript = createEvent<{
+  messageId: string;
+  audioUrl: string;
+}>();
+const clearEphemeralData = createEvent<string>(); // Clear data for specific message
+const clearAllEphemeralData = createEvent<void>(); // Clear all temporary data
+
+// Internal Events
+const audioGenerationStarted = createEvent<{
+  messageId: string;
+  model: string;
+}>();
+const audioGenerationCompleted = createEvent<{
+  messageId: string;
+  audioUrl: string;
+}>();
+const audioGenerationFailed = createEvent<{
+  messageId: string;
+  error: string;
+}>();
+const transcriptionStarted = createEvent<{
+  messageId: string;
+  model: string;
+}>();
+const transcriptionCompleted = createEvent<{
+  messageId: string;
+  transcript: string;
+  format: string;
+}>();
+const transcriptionFailed = createEvent<{ messageId: string; error: string }>();
 
 // Effects
-- startRecordingFx: Access microphone
-- stopRecordingFx: Process recorded audio
-- sendAudioMessageFx: Upload and send audio
-- generateTranscriptFx: Create transcript for audio
+const generateInMessageTTSFx = createEffect<
+  { messageId: string; text: string; model: string },
+  { messageId: string; audioUrl: string }
+>();
+
+const generateInMessageSTTFx = createEffect<
+  { messageId: string; audioUrl: string; model: string },
+  { messageId: string; transcript: string; format: string }
+>();
+
+// Settings Effects
+const loadInChatSettingsFx = createEffect<void, InChatSettings>();
+const saveInChatTtsModelFx = createEffect<string, void>();
+const saveInChatTranscriptionModelFx = createEffect<string, void>();
+```
+
+#### 4.3.2 State Flow Logic
+
+```typescript
+// Toggle TTS Audio for Text Messages
+sample({
+  clock: toggleMessageAudio,
+  source: [$ephemeralMessageData, $inChatTtsModel],
+  fn: ([ephemeralData, ttsModel], { messageId, messageText }) => {
+    const currentData = ephemeralData[messageId]?.audio;
+
+    if (currentData?.isVisible) {
+      // Hide existing audio
+      return { messageId, action: "hide" as const };
+    } else if (currentData?.url) {
+      // Show existing audio
+      return { messageId, action: "show" as const };
+    } else {
+      // Generate new audio
+      return {
+        messageId,
+        action: "generate" as const,
+        text: messageText,
+        model: ttsModel,
+      };
+    }
+  },
+  target: [audioToggleProcessor],
+});
+
+// Process audio toggle actions
+sample({
+  clock: audioToggleProcessor,
+  filter: (action) => action.action === "generate",
+  fn: ({ messageId, text, model }) => ({ messageId, text, model }),
+  target: generateInMessageTTSFx,
+});
+
+// Toggle STT Transcript for Audio Messages
+sample({
+  clock: toggleMessageTranscript,
+  source: [$ephemeralMessageData, $inChatTranscriptionModel],
+  fn: ([ephemeralData, sttModel], { messageId, audioUrl }) => {
+    const currentData = ephemeralData[messageId]?.transcript;
+
+    if (currentData?.isVisible) {
+      return { messageId, action: "hide" as const };
+    } else if (currentData?.text) {
+      return { messageId, action: "show" as const };
+    } else {
+      return {
+        messageId,
+        action: "generate" as const,
+        audioUrl,
+        model: sttModel,
+      };
+    }
+  },
+  target: [transcriptToggleProcessor],
+});
+
+// Update ephemeral store for TTS completion
+sample({
+  clock: audioGenerationCompleted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, audioUrl }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      audio: {
+        url: audioUrl,
+        isLoading: false,
+        isVisible: true,
+        model: "current-model", // From context
+        voice: "current-voice", // From context
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+// Update ephemeral store for STT completion
+sample({
+  clock: transcriptionCompleted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, transcript, format }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      transcript: {
+        text: transcript,
+        isLoading: false,
+        isVisible: true,
+        model: "current-model", // From context
+        format,
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+```
+
+### 4.4 Implementation Strategy
+
+#### 4.4.1 Component Integration
+
+**MessageItem Component Updates**:
+
+```typescript
+// src/components/MessageItem.tsx additions
+const EphemeralAudioPlayer = ({ messageId, audioData }) => {
+  if (!audioData?.isVisible) return null;
+
+  return (
+    <Box
+      sx={{
+        border: "1px dashed #ccc",
+        borderRadius: 1,
+        p: 1,
+        mt: 1,
+        backgroundColor: "#f8f9fa",
+        position: "relative",
+      }}
+    >
+      <Typography variant="caption" color="text.secondary">
+        🎵 Generated Audio (Temporary)
+      </Typography>
+      <audio controls src={audioData.url} style={{ width: "100%", mt: 1 }} />
+    </Box>
+  );
+};
+
+const EphemeralTranscript = ({ messageId, transcriptData }) => {
+  if (!transcriptData?.isVisible) return null;
+
+  return (
+    <Box
+      sx={{
+        border: "1px dashed #ccc",
+        borderRadius: 1,
+        p: 1,
+        mt: 1,
+        backgroundColor: "#f0f4f8",
+        fontStyle: "italic",
+      }}
+    >
+      <Typography variant="caption" color="text.secondary">
+        📝 Transcript (Temporary)
+      </Typography>
+      <Typography variant="body2" sx={{ mt: 1 }}>
+        "{transcriptData.text}"
+      </Typography>
+    </Box>
+  );
+};
+```
+
+**Settings Panel Updates**:
+
+```typescript
+// src/components/ChatSettings.tsx additions
+<FormControl fullWidth sx={{ mb: 2 }}>
+  <InputLabel>In-Chat TTS Model</InputLabel>
+  <Select
+    value={inChatTtsModel}
+    onChange={handleTtsModelChange}
+    label="In-Chat TTS Model"
+  >
+    {ttsModels.map((model) => (
+      <MenuItem key={model.id} value={model.id}>
+        {model.name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
+<FormControl fullWidth sx={{ mb: 2 }}>
+  <InputLabel>In-Chat Transcription Model</InputLabel>
+  <Select
+    value={inChatTranscriptionModel}
+    onChange={handleSTTModelChange}
+    label="In-Chat Transcription Model"
+  >
+    {sttModels.map((model) => (
+      <MenuItem key={model.id} value={model.id}>
+        {model.name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+```
+
+#### 4.4.2 API Integration
+
+The implementation reuses existing TTS and STT API adapters from Phases 2 and 3:
+
+```typescript
+// src/features/audio-chat/model.ts
+generateInMessageTTSFx.use(async ({ messageId, text, model }) => {
+  // Reuse TTS API from src/features/text-to-speech/api.ts
+  const audioBlob = await generateTTSAPI({
+    text,
+    model,
+    voice: getDefaultVoiceForModel(model),
+    format: "mp3",
+  });
+
+  const audioUrl = URL.createObjectURL(audioBlob);
+  return { messageId, audioUrl };
+});
+
+generateInMessageSTTFx.use(async ({ messageId, audioUrl, model }) => {
+  // Convert URL to File for STT API
+  const response = await fetch(audioUrl);
+  const audioBlob = await response.blob();
+  const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mp3" });
+
+  // Reuse STT API from src/features/speech-to-text/api.ts
+  const result = await transcribeAudioAPI({
+    file: audioFile,
+    model,
+    responseFormat: "text",
+  });
+
+  return { messageId, transcript: result.text, format: "text" };
+});
+```
+
+#### 4.4.3 Memory Management
+
+**Critical**: Proper cleanup of temporary audio URLs to prevent memory leaks:
+
+```typescript
+// Cleanup when component unmounts or chat changes
+const cleanupEphemeralData = createEvent<void>();
+
+sample({
+  clock: cleanupEphemeralData,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData) => {
+    // Revoke all blob URLs
+    Object.values(ephemeralData).forEach((messageData) => {
+      if (messageData.audio?.url) {
+        URL.revokeObjectURL(messageData.audio.url);
+      }
+    });
+    return {};
+  },
+  target: $ephemeralMessageData,
+});
+
+// Auto-cleanup after 1 hour
+const autoCleanupFx = createEffect(() => {
+  setTimeout(() => {
+    cleanupEphemeralData();
+  }, 60 * 60 * 1000); // 1 hour
+});
 ```
 
 ## 5. Voice Model Selection
@@ -467,7 +924,13 @@ src/features/
 |   ├── types.ts            # TypeScript interfaces
 |   └── components/
 |       └── TranscriptionDialog.tsx # Main STT UI dialog
-├── audio-chat/              ❌ Not implemented
+├── audio-chat/              ❌ Planned (Phase 4)
+│   ├── model.ts            # Ephemeral state for in-message TTS/STT
+│   ├── types.ts            # EphemeralMessageData interfaces
+│   ├── index.ts            # Public exports
+│   └── components/
+│       ├── EphemeralAudioPlayer.tsx # Temporary audio player
+│       └── EphemeralTranscript.tsx  # Temporary transcript display
 └── voice-models/            ✅ Implemented
     ├── model.ts            # Voice model loading and state
     ├── index.ts            # Public exports
@@ -748,11 +1211,34 @@ Attachment Menu (📎):
 8. ✅ **User Actions**: Added actions to download, copy, or paste the transcription into the main chat input.
 9. ✅ **State Management Refactoring**: Refactored the dialog's visibility logic to use a single source of truth in the Effector store, fixing a critical re-opening bug and removing anti-patterns.
 
-### Phase 4: Audio Chat ❌ (Not Implemented)
+### Phase 4: Integrated Audio Chat ❌ (Planned - Not Implemented)
 
-1. ❌ Audio recording not implemented
-2. ❌ Audio messages not integrated into chat
-3. ❌ No audio playback in messages
+**Scope**: In-message ephemeral TTS and STT features with strict separation from persistent chat data.
+
+**Planned Implementation**:
+
+1. ❌ **Ephemeral State Management**: Create `$ephemeralMessageData` store separate from `$messages`
+2. ❌ **In-Message TTS**: Add speaker icons to text messages that generate temporary audio players
+3. ❌ **In-Message STT**: Add transcribe buttons to audio messages that generate temporary transcripts
+4. ❌ **Chat Settings Integration**: Add "In-Chat TTS Model" and "In-Chat Transcription Model" selectors
+5. ❌ **MessageItem Component Updates**: Integrate `EphemeralAudioPlayer` and `EphemeralTranscript` components
+6. ❌ **API Integration**: Reuse existing TTS/STT adapters from Phases 2 and 3
+7. ❌ **Memory Management**: Implement proper cleanup of temporary blob URLs
+8. ❌ **Visual Distinction**: Style temporary content with dashed borders and "Temporary" badges
+
+**Key Architectural Constraints**:
+
+- **Ephemeral Data Only**: Generated TTS audio and STT transcripts must NOT be saved to IndexedDB
+- **API Isolation**: Temporary content must NOT be sent to chat completions endpoint
+- **State Separation**: Use dedicated stores separate from `$messages` and chat history
+- **Memory Safety**: Implement blob URL cleanup to prevent memory leaks
+
+**Dependencies**:
+
+- ✅ Phase 2 (TTS Feature) - Completed - API adapters available for reuse
+- ✅ Phase 3 (STT Feature) - Completed - API adapters available for reuse
+- ❌ `audio-chat` feature module - Not created
+- ❌ MessageItem component updates - Not implemented
 
 ### Phase 5: Voice Models ✅ (Completed)
 

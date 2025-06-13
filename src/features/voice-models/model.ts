@@ -74,6 +74,19 @@ export const defaultSpeedChanged = domain.createEvent<number>();
 export const autoTranscribeToggled = domain.createEvent();
 export const loadVoiceModels = domain.createEvent();
 
+// Helper functions
+export const getDefaultVoiceForModel = (modelId: string): string => {
+  const models = $voiceModels.getState();
+  const model = models.find(m => m.id === modelId);
+  
+  if (!model || model.voices.length === 0) {
+    return 'nova'; // Fallback to 'nova' if model not found or no voices
+  }
+  
+  // Return the first voice as default
+  return model.voices[0].id;
+};
+
 // Effects
 export const loadVoiceModelsFx = createEffect<void, VoiceModel[], Error>({
   handler: async () => {

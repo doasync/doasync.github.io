@@ -1,5 +1,4 @@
 // Extended types for audio message support
-import { AudioMessageData } from '../audio-chat/types';
 import { Message, AudioContentPart, MessageContentPart } from './types';
 
 // Extended audio content part with playback data
@@ -39,7 +38,6 @@ export type ExtendedMessageContentPart =
 // Extended message type with audio support
 export interface AudioMessage extends Omit<Message, 'content'> {
   content: string | ExtendedMessageContentPart[];
-  audioData?: AudioMessageData; // Legacy support
 }
 
 // Helper type guards

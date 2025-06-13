@@ -27,6 +27,13 @@ import {
   $autoTitleModelId,
   autoTitleModelSelected,
 } from "@/features/models-select/model";
+import {
+  $inChatTtsModel,
+  $inChatTranscriptionModel,
+  setInChatTtsModel,
+  setInChatTranscriptionModel,
+} from "@/features/audio-chat";
+import { $ttsModels, $sttModels } from "@/features/voice-models";
 import Autocomplete from "@mui/material/Autocomplete";
 
 interface ChatSettingsPanelProps {
@@ -71,9 +78,29 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
     $availableModels,
   ]);
 
+  // Audio chat model selections
+  const [inChatTtsModel, inChatTranscriptionModel, ttsModels, sttModels] =
+    useUnit([
+      $inChatTtsModel,
+      $inChatTranscriptionModel,
+      $ttsModels,
+      $sttModels,
+    ]);
+
   const selectedAutoTitleModel = React.useMemo(
     () => availableModels.find((m) => m.id === autoTitleModelId) ?? null,
     [availableModels, autoTitleModelId]
+  );
+
+  // Audio chat model options
+  const selectedTtsModel = React.useMemo(
+    () => ttsModels.find((m) => m.id === inChatTtsModel) ?? null,
+    [ttsModels, inChatTtsModel]
+  );
+
+  const selectedSttModel = React.useMemo(
+    () => sttModels.find((m) => m.id === inChatTranscriptionModel) ?? null,
+    [sttModels, inChatTranscriptionModel]
   );
 
   // Effect to sync local switch state with persisted Effector state *after* hydration
@@ -194,7 +221,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
       </Box>
 
       {/* Show "Show only free models" toggle only for OpenRouter */}
-      {providerApiUrl.includes('openrouter.ai') && (
+      {providerApiUrl.includes("openrouter.ai") && (
         <Box sx={{ px: 2 }}>
           <FormControlLabel
             control={
@@ -218,7 +245,7 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
         <MiniChatModelSelector />
       </Box>
 
-      <Box sx={{ px: 2, pb: 2, pt: 1 }}>
+      <Box sx={{ px: 2, pb: 2 }}>
         <Autocomplete
           size="small"
           options={availableModels}
@@ -248,6 +275,54 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
             <TextField
               {...params}
               label="AutoTitle Model"
+              variant="outlined"
+              fullWidth
+            />
+          )}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+        />
+      </Box>
+
+      {/* In-Chat TTS Model Selector */}
+      <Box sx={{ px: 2, pb: 2 }}>
+        <Autocomplete
+          size="small"
+          options={ttsModels}
+          getOptionLabel={(option) => option.name || option.id}
+          value={selectedTtsModel}
+          onChange={(_, newValue) => {
+            if (newValue) {
+              setInChatTtsModel(newValue.id);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="In-Chat TTS Model"
+              variant="outlined"
+              fullWidth
+            />
+          )}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+        />
+      </Box>
+
+      {/* In-Chat Transcription Model Selector */}
+      <Box sx={{ px: 2, pb: 1 }}>
+        <Autocomplete
+          size="small"
+          options={sttModels}
+          getOptionLabel={(option) => option.name || option.id}
+          value={selectedSttModel}
+          onChange={(_, newValue) => {
+            if (newValue) {
+              setInChatTranscriptionModel(newValue.id);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="In-Chat Transcription Model"
               variant="outlined"
               fullWidth
             />

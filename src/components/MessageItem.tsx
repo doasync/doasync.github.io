@@ -24,6 +24,15 @@ import {
   GeneratedImageContentPart,
   DocumentContentPart,
 } from "@/features/chat";
+import {
+  $ephemeralMessageData,
+  toggleMessageAudio,
+  toggleMessageTranscript,
+} from "@/features/audio-chat";
+import { 
+  EphemeralAudioPlayer, 
+  EphemeralTranscript 
+} from "@/features/audio-chat/components";
 import { useTheme } from "@mui/material/styles"; // Import useTheme
 import {
   Typography,
@@ -47,6 +56,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import DocumentIcon from "@mui/icons-material/Description";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import TranscribeIcon from "@mui/icons-material/TextFields";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface MessageItemProps {
@@ -220,6 +231,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isGenerating = useUnit($isGenerating);
   const retryingMessageId = useUnit($retryingMessageId);
   const globalEditingMessageId = useUnit($editingMessageId); // Get global state
+  const ephemeralMessageData = useUnit($ephemeralMessageData); // Get ephemeral audio data
   const [isHovered, setIsHovered] = useState(false);
   const [isGoingToDelete, setIsGoingToDelete] = useState(false);
   const [isGoingToRetry, setIsGoingToRetry] = useState(false);
@@ -252,6 +264,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isMediaOnlyMessage =
     isImageOnlyMessage || isAudioOnlyMessage || isGeneratedImageOnlyMessage;
   const isPending = message.status === "pending";
+  
+  // Ephemeral Audio Data
+  const ephemeralData = ephemeralMessageData[message.id];
+  const hasTextContent = extractTextContent(message.content).trim().length > 0;
+  const hasAudioContent = getAudioParts(message.content).length > 0;
 
   // Event Handlers
   const handleEditClick = () => {
@@ -327,6 +344,28 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       message: "Long press to regenerate a message.",
       severity: "info",
     });
+  };
+
+  // Ephemeral Audio Handlers
+  const handleToggleAudio = () => {
+    const textContent = extractTextContent(message.content);
+    if (textContent.trim()) {
+      toggleMessageAudio({
+        messageId: message.id,
+        messageText: textContent,
+      });
+    }
+  };
+
+  const handleToggleTranscript = () => {
+    const audioParts = getAudioParts(message.content);
+    if (audioParts.length > 0) {
+      const audioSrc = `data:${message.attachments?.[0]?.mimeType || "audio/mp3"};base64,${audioParts[0].input_audio.data}`;
+      toggleMessageTranscript({
+        messageId: message.id,
+        audioUrl: audioSrc,
+      });
+    }
   };
 
   const handleCopyTextClick = () => {
@@ -954,6 +993,34 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               {/* Ensure MarkdownRenderer is wrapped correctly */}
               <MarkdownRenderer content={extractTextContent(message.content)} />
             </Typography>
+
+            {/* Ephemeral Audio Player for text messages */}
+            {hasTextContent && ephemeralData?.audio && (
+              <EphemeralAudioPlayer
+                messageId={message.id}
+                audioData={ephemeralData.audio}
+                onError={(error) => {
+                  showSnackbar({
+                    message: error,
+                    severity: "error",
+                  });
+                }}
+              />
+            )}
+
+            {/* Ephemeral Transcript for audio messages */}
+            {hasAudioContent && ephemeralData?.transcript && (
+              <EphemeralTranscript
+                messageId={message.id}
+                transcriptData={ephemeralData.transcript}
+                onError={(error) => {
+                  showSnackbar({
+                    message: error,
+                    severity: "error",
+                  });
+                }}
+              />
+            )}
           </Box>
         )}
         {/* Loading spinner during retry or for placeholder */}
@@ -1049,6 +1116,43 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 <ContentCopyIcon fontSize="small" />
               </IconButton>
             )}
+            
+            {/* Speaker Button - only show for text messages */}
+            {hasTextContent && !isImageOnlyMessage && (
+              <IconButton
+                aria-label="text-to-speech"
+                size="small"
+                color={ephemeralData?.audio?.isVisible ? "primary" : "inherit"}
+                onClick={handleToggleAudio}
+                title={ephemeralData?.audio?.isVisible ? "Hide Audio" : "Generate Audio"}
+                disabled={isRetryingThisMessage || ephemeralData?.audio?.isLoading}
+              >
+                {ephemeralData?.audio?.isLoading ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <VolumeUpIcon fontSize="small" />
+                )}
+              </IconButton>
+            )}
+
+            {/* Transcribe Button - only show for audio messages */}
+            {hasAudioContent && (
+              <IconButton
+                aria-label="transcribe"
+                size="small"
+                color={ephemeralData?.transcript?.isVisible ? "primary" : "inherit"}
+                onClick={handleToggleTranscript}
+                title={ephemeralData?.transcript?.isVisible ? "Hide Transcript" : "Generate Transcript"}
+                disabled={isRetryingThisMessage || ephemeralData?.transcript?.isLoading}
+              >
+                {ephemeralData?.transcript?.isLoading ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <TranscribeIcon fontSize="small" />
+                )}
+              </IconButton>
+            )}
+            
             {/* Edit Button - only show for non-image-only messages */}
             {!isImageOnlyMessage && (
               <IconButton

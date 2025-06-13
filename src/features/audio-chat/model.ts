@@ -1,252 +1,597 @@
-import { createDomain, createEffect, sample, combine } from 'effector';
+/**
+ * Ephemeral Audio Chat Feature
+ * 
+ * CRITICAL: This module manages TEMPORARY audio data only.
+ * Generated TTS audio and STT transcripts are session-only and must NEVER:
+ * - Be saved to IndexedDB 
+ * - Be sent to chat completions API
+ * - Be persisted beyond the current session
+ */
+
+import { createStore, createEvent, createEffect, sample, createDomain } from 'effector';
 import { debug } from 'patronum/debug';
-import { AudioChatState, AudioMessageData, AudioRecordingState, PlaybackState } from './types';
-import { startRecording, stopRecording, processAudioBlob } from './utils/audio-processing';
+import { persist } from 'effector-storage/local';
+import type { 
+  EphemeralMessageData, 
+  InChatSettings, 
+  ToggleMessageAudioPayload, 
+  ToggleMessageTranscriptPayload,
+  AudioGenerationPayload,
+  TranscriptionPayload,
+  AudioGenerationResult,
+  TranscriptionResult,
+  AudioGenerationError,
+  TranscriptionError,
+  AudioToggleAction,
+  TranscriptToggleAction
+} from './types';
 
-const domain = createDomain('audio-chat');
+// Create domain for audio chat
+const audioChatDomain = createDomain('audio-chat');
 
-// Stores
-export const $isRecording = domain.createStore<boolean>(false);
-export const $recordingDuration = domain.createStore<number>(0);
-export const $audioBlob = domain.createStore<Blob | null>(null);
-export const $recordingWaveform = domain.createStore<number[]>([]);
-export const $playbackStates = domain.createStore<Record<string, PlaybackState>>({});
-export const $activePlayer = domain.createStore<string | null>(null);
-export const $audioChatError = domain.createStore<string | null>(null);
+// =====================================================================
+// EPHEMERAL DATA STORES (Session-only, never persisted)
+// =====================================================================
 
-export const $recordingState = combine({
-  isRecording: $isRecording,
-  recordingDuration: $recordingDuration,
-  audioBlob: $audioBlob,
-  waveform: $recordingWaveform,
+/**
+ * Core ephemeral data store - contains temporary audio/transcript data
+ * CRITICAL: This store is deliberately NOT persisted to avoid pollution of chat history
+ */
+export const $ephemeralMessageData = audioChatDomain.createStore<EphemeralMessageData>({});
+
+// =====================================================================
+// SETTINGS STORES (Persisted to localStorage only)
+// =====================================================================
+
+/**
+ * In-Chat TTS Model selection (persisted to localStorage)
+ */
+export const $inChatTtsModel = audioChatDomain.createStore<string>('tts-1-hd');
+
+/**
+ * In-Chat Transcription Model selection (persisted to localStorage)
+ */
+export const $inChatTranscriptionModel = audioChatDomain.createStore<string>('whisper-1');
+
+// Persist settings to localStorage (NOT IndexedDB)
+persist({ 
+  store: $inChatTtsModel, 
+  key: 'inChatTtsModel'
 });
 
-export const $audioChatState = combine({
-  recording: $recordingState,
-  playbackStates: $playbackStates,
-  activePlayer: $activePlayer,
-  error: $audioChatError,
+persist({ 
+  store: $inChatTranscriptionModel, 
+  key: 'inChatTranscriptionModel'
 });
 
-// Events
-export const recordingStarted = domain.createEvent();
-export const recordingStopped = domain.createEvent();
-export const recordingCancelled = domain.createEvent();
-export const audioMessageSent = domain.createEvent<Blob>();
-export const playbackToggled = domain.createEvent<string>();
-export const playbackRateChanged = domain.createEvent<{ id: string; rate: number }>();
-export const playbackTimeUpdated = domain.createEvent<{ id: string; time: number }>();
-export const playbackEnded = domain.createEvent<string>();
-export const transcriptToggled = domain.createEvent<string>();
-export const waveformUpdated = domain.createEvent<number[]>();
-export const clearAudioError = domain.createEvent();
-export const recordingDurationTick = domain.createEvent();
+// =====================================================================
+// PUBLIC EVENTS
+// =====================================================================
 
-// Effects
-export const startRecordingFx = createEffect<void, MediaRecorder, Error>({
-  handler: startRecording,
-});
+/**
+ * Toggle TTS audio for a text message
+ */
+export const toggleMessageAudio = audioChatDomain.createEvent<ToggleMessageAudioPayload>();
 
-export const stopRecordingFx = createEffect<MediaRecorder, Blob, Error>({
-  handler: stopRecording,
-});
+/**
+ * Toggle STT transcript for an audio message  
+ */
+export const toggleMessageTranscript = audioChatDomain.createEvent<ToggleMessageTranscriptPayload>();
 
-export const processAudioBlobFx = createEffect<Blob, AudioMessageData, Error>({
-  handler: processAudioBlob,
-});
+/**
+ * Clear ephemeral data for a specific message
+ */
+export const clearEphemeralData = audioChatDomain.createEvent<string>();
 
-export const generateTranscriptFx = createEffect<Blob, string, Error>({
-  handler: async (audioBlob) => {
-    // This will use the STT feature to generate transcript
-    // For now, return placeholder
-    return 'Audio transcript will be generated here';
-  },
-});
+/**
+ * Clear all ephemeral data (e.g., on chat change)
+ */
+export const clearAllEphemeralData = audioChatDomain.createEvent<void>();
 
-// Recording state management
-$isRecording
-  .on(startRecordingFx.done, () => true)
-  .on([stopRecordingFx.done, recordingCancelled], () => false);
+/**
+ * Update in-chat TTS model selection
+ */
+export const setInChatTtsModel = audioChatDomain.createEvent<string>();
 
-// Recording duration timer
-let recordingInterval: NodeJS.Timeout | null = null;
+/**
+ * Update in-chat transcription model selection
+ */
+export const setInChatTranscriptionModel = audioChatDomain.createEvent<string>();
 
-$recordingDuration
-  .on(recordingDurationTick, (duration) => duration + 0.1)
-  .reset([recordingStarted, recordingCancelled]);
+// =====================================================================
+// INTERNAL EVENTS
+// =====================================================================
 
-sample({
-  clock: recordingStarted,
-  fn: () => {
-    // Start recording duration timer
-    recordingInterval = setInterval(() => {
-      recordingDurationTick();
-    }, 100);
-  },
-});
+/**
+ * Internal event for processing audio toggle actions
+ */
+const audioToggleProcessed = audioChatDomain.createEvent<AudioToggleAction>();
 
-sample({
-  clock: [recordingStopped, recordingCancelled],
-  fn: () => {
-    // Stop recording duration timer
-    if (recordingInterval) {
-      clearInterval(recordingInterval);
-      recordingInterval = null;
-    }
-  },
-});
+/**
+ * Internal event for processing transcript toggle actions
+ */
+const transcriptToggleProcessed = audioChatDomain.createEvent<TranscriptToggleAction>();
 
-// Audio blob management
-$audioBlob
-  .on(stopRecordingFx.doneData, (_, blob) => blob)
-  .reset([recordingStarted, audioMessageSent, recordingCancelled]);
+/**
+ * Internal events for audio generation lifecycle
+ */
+const audioGenerationStarted = audioChatDomain.createEvent<{ messageId: string; model: string }>();
+const audioGenerationCompleted = audioChatDomain.createEvent<AudioGenerationResult>();
+const audioGenerationFailed = audioChatDomain.createEvent<AudioGenerationError>();
 
-// Waveform updates
-$recordingWaveform
-  .on(waveformUpdated, (_, waveform) => waveform)
-  .reset([recordingStarted, recordingCancelled]);
+/**
+ * Internal events for transcription lifecycle
+ */
+const transcriptionStarted = audioChatDomain.createEvent<{ messageId: string; model: string }>();
+const transcriptionCompleted = audioChatDomain.createEvent<TranscriptionResult>();
+const transcriptionFailed = audioChatDomain.createEvent<TranscriptionError>();
 
-// Error handling
-$audioChatError
-  .on(startRecordingFx.fail, (_, { error }) => error.message)
-  .on(stopRecordingFx.fail, (_, { error }) => error.message)
-  .on(processAudioBlobFx.fail, (_, { error }) => error.message)
-  .reset(clearAudioError);
+// =====================================================================
+// EFFECTS (API Integration)
+// =====================================================================
 
-// Start recording
-sample({
-  clock: recordingStarted,
-  target: startRecordingFx,
-});
+/**
+ * Generate TTS audio for in-message use
+ * Reuses existing TTS API adapter from text-to-speech feature
+ */
+export const generateInMessageTTSFx = createEffect<AudioGenerationPayload, AudioGenerationResult>();
 
-// Stop recording and get blob
-let mediaRecorder: MediaRecorder | null = null;
+/**
+ * Generate STT transcript for in-message use
+ * Reuses existing STT API adapter from speech-to-text feature
+ */
+export const generateInMessageSTTFx = createEffect<TranscriptionPayload, TranscriptionResult>();
 
-startRecordingFx.doneData.watch((recorder) => {
-  mediaRecorder = recorder;
-});
+// =====================================================================
+// API INTEGRATION IMPLEMENTATIONS
+// =====================================================================
 
-sample({
-  clock: recordingStopped,
-  source: startRecordingFx.doneData,
-  filter: Boolean,
-  fn: () => mediaRecorder!,
-  target: stopRecordingFx,
-});
+/**
+ * TTS Effect Implementation
+ * Reuses the existing TTS API from text-to-speech feature
+ */
+generateInMessageTTSFx.use(async ({ messageId, text, model }) => {
+  try {
+    // Import TTS API from existing feature
+    const { generateSpeech } = await import('../text-to-speech/api');
+    const { getDefaultVoiceForModel } = await import('../voice-models');
 
-// Cancel recording
-sample({
-  clock: recordingCancelled,
-  fn: () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      mediaRecorder = null;
-    }
-  },
-});
+    // Get default voice for the selected model
+    const voice = getDefaultVoiceForModel(model) || 'nova';
 
-// Process audio blob when ready to send
-sample({
-  clock: audioMessageSent,
-  target: processAudioBlobFx,
-});
+    // Generate audio using existing TTS API
+    const ttsResult = await generateSpeech({
+      text,
+      model,
+      voice,
+      format: 'mp3' as const,
+      speed: 1.0,
+    });
 
-// Playback state management
-export const initializePlayback = domain.createEvent<{ id: string; duration: number }>();
+    // Create blob from ArrayBuffer
+    const audioBlob = new Blob([ttsResult.audio], { type: 'audio/mp3' });
+    
+    // Create blob URL for temporary use
+    const audioUrl = URL.createObjectURL(audioBlob);
 
-$playbackStates.on(initializePlayback, (states, { id, duration }) => ({
-  ...states,
-  [id]: {
-    isPlaying: false,
-    currentTime: 0,
-    playbackRate: 1,
-    duration,
-  },
-}));
-
-$playbackStates.on(playbackToggled, (states, id) => {
-  const state = states[id];
-  if (!state) return states;
-  
-  return {
-    ...states,
-    [id]: {
-      ...state,
-      isPlaying: !state.isPlaying,
-    },
-  };
-});
-
-$playbackStates.on(playbackRateChanged, (states, { id, rate }) => {
-  const state = states[id];
-  if (!state) return states;
-  
-  return {
-    ...states,
-    [id]: {
-      ...state,
-      playbackRate: rate,
-    },
-  };
-});
-
-$playbackStates.on(playbackTimeUpdated, (states, { id, time }) => {
-  const state = states[id];
-  if (!state) return states;
-  
-  return {
-    ...states,
-    [id]: {
-      ...state,
-      currentTime: time,
-    },
-  };
-});
-
-$playbackStates.on(playbackEnded, (states, id) => {
-  const state = states[id];
-  if (!state) return states;
-  
-  return {
-    ...states,
-    [id]: {
-      ...state,
-      isPlaying: false,
-      currentTime: 0,
-    },
-  };
-});
-
-// Active player management
-$activePlayer
-  .on(playbackToggled, (current, id) => {
-    const state = $playbackStates.getState()[id];
-    return state?.isPlaying ? id : null;
-  })
-  .on(playbackEnded, (current, id) => current === id ? null : current);
-
-// Stop other players when a new one starts
-sample({
-  clock: playbackToggled,
-  source: { active: $activePlayer, states: $playbackStates },
-  filter: ({ states }, id) => states[id]?.isPlaying === false,
-  fn: ({ active }) => {
-    if (active) {
-      // Stop the currently playing audio
-      const states = $playbackStates.getState();
-      if (states[active]?.isPlaying) {
-        return active;
-      }
-    }
-    return null;
-  },
-}).watch((activeId) => {
-  if (activeId) {
-    playbackToggled(activeId);
+    return {
+      messageId,
+      audioUrl,
+      voice,
+    };
+  } catch (error) {
+    console.error('TTS generation failed:', error);
+    throw new Error(error instanceof Error ? error.message : 'TTS generation failed');
   }
 });
 
-// Debug
+/**
+ * STT Effect Implementation
+ * Reuses the existing STT API from speech-to-text feature
+ */
+generateInMessageSTTFx.use(async ({ messageId, audioUrl, model }) => {
+  try {
+    // Import STT API from existing feature
+    const { transcribeAudio } = await import('../speech-to-text/api');
+
+    // Convert blob URL to File object for STT API
+    const response = await fetch(audioUrl);
+    const audioBlob = await response.blob();
+    const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mp3' });
+
+    // Transcribe audio using existing STT API
+    const result = await transcribeAudio({
+      file: audioFile,
+      model,
+      responseFormat: 'text' as const,
+      prompt: '', // No context prompt for in-message transcription
+    });
+
+    return {
+      messageId,
+      transcript: result.text || result.toString(),
+      format: 'text',
+    };
+  } catch (error) {
+    console.error('Transcription failed:', error);
+    throw new Error(error instanceof Error ? error.message : 'Transcription failed');
+  }
+});
+
+/**
+ * Load in-chat settings from localStorage
+ */
+export const loadInChatSettingsFx = createEffect<void, InChatSettings>();
+
+/**
+ * Save TTS model selection to localStorage
+ */
+export const saveInChatTtsModelFx = createEffect<string, void>();
+
+/**
+ * Save transcription model selection to localStorage
+ */
+export const saveInChatTranscriptionModelFx = createEffect<string, void>();
+
+// =====================================================================
+// STATE FLOW LOGIC
+// =====================================================================
+
+// Update settings stores
+$inChatTtsModel.on(setInChatTtsModel, (_, model) => model);
+$inChatTranscriptionModel.on(setInChatTranscriptionModel, (_, model) => model);
+
+// Process TTS toggle requests
+sample({
+  clock: toggleMessageAudio,
+  source: [$ephemeralMessageData, $inChatTtsModel],
+  fn: ([ephemeralData, ttsModel], { messageId, messageText }) => {
+    const currentData = (ephemeralData as EphemeralMessageData)[messageId]?.audio;
+    
+    if (currentData?.isVisible) {
+      // Hide existing audio
+      return { type: 'hide' as const, messageId };
+    } else if (currentData?.url && !currentData.error) {
+      // Show existing audio (if no error)
+      return { type: 'show' as const, messageId };
+    } else {
+      // Generate new audio
+      return { 
+        type: 'generate' as const, 
+        messageId, 
+        text: messageText, 
+        model: ttsModel as string 
+      };
+    }
+  },
+  target: audioToggleProcessed,
+});
+
+// Process STT toggle requests
+sample({
+  clock: toggleMessageTranscript,
+  source: [$ephemeralMessageData, $inChatTranscriptionModel],
+  fn: ([ephemeralData, sttModel], { messageId, audioUrl }) => {
+    const currentData = (ephemeralData as EphemeralMessageData)[messageId]?.transcript;
+    
+    if (currentData?.isVisible) {
+      // Hide existing transcript
+      return { type: 'hide' as const, messageId };
+    } else if (currentData?.text && !currentData.error) {
+      // Show existing transcript (if no error)
+      return { type: 'show' as const, messageId };
+    } else {
+      // Generate new transcript
+      return { 
+        type: 'generate' as const, 
+        messageId, 
+        audioUrl, 
+        model: sttModel as string 
+      };
+    }
+  },
+  target: transcriptToggleProcessed,
+});
+
+// Handle audio toggle actions
+sample({
+  clock: audioToggleProcessed,
+  filter: (action) => action.type === 'generate',
+  fn: (action) => {
+    if (action.type === 'generate') {
+      return { messageId: action.messageId, text: action.text, model: action.model };
+    }
+    throw new Error('Invalid action type');
+  },
+  target: generateInMessageTTSFx,
+});
+
+// Handle transcript toggle actions
+sample({
+  clock: transcriptToggleProcessed,
+  filter: (action) => action.type === 'generate',
+  fn: (action) => {
+    if (action.type === 'generate') {
+      return { messageId: action.messageId, audioUrl: action.audioUrl, model: action.model };
+    }
+    throw new Error('Invalid action type');
+  },
+  target: generateInMessageSTTFx,
+});
+
+// Update ephemeral store for show/hide actions
+sample({
+  clock: audioToggleProcessed,
+  source: $ephemeralMessageData,
+  filter: (_, action) => action.type === 'show' || action.type === 'hide',
+  fn: (ephemeralData, action) => {
+    const messageData = ephemeralData[action.messageId];
+    if (!messageData?.audio) return ephemeralData;
+
+    return {
+      ...ephemeralData,
+      [action.messageId]: {
+        ...messageData,
+        audio: {
+          ...messageData.audio,
+          isVisible: action.type === 'show',
+        },
+      },
+    };
+  },
+  target: $ephemeralMessageData,
+});
+
+sample({
+  clock: transcriptToggleProcessed,
+  source: $ephemeralMessageData,
+  filter: (_, action) => action.type === 'show' || action.type === 'hide',
+  fn: (ephemeralData, action) => {
+    const messageData = ephemeralData[action.messageId];
+    if (!messageData?.transcript) return ephemeralData;
+
+    return {
+      ...ephemeralData,
+      [action.messageId]: {
+        ...messageData,
+        transcript: {
+          ...messageData.transcript,
+          isVisible: action.type === 'show',
+        },
+      },
+    };
+  },
+  target: $ephemeralMessageData,
+});
+
+// Handle TTS generation start
+sample({
+  clock: generateInMessageTTSFx,
+  source: $inChatTtsModel,
+  fn: (model, { messageId }) => ({ messageId, model }),
+  target: audioGenerationStarted,
+});
+
+// Handle STT generation start
+sample({
+  clock: generateInMessageSTTFx,
+  source: $inChatTranscriptionModel,
+  fn: (model, { messageId }) => ({ messageId, model }),
+  target: transcriptionStarted,
+});
+
+// Update ephemeral store for generation start (loading state)
+sample({
+  clock: audioGenerationStarted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, model }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      audio: {
+        url: '',
+        isLoading: true,
+        isVisible: true,
+        model,
+        voice: '', // Will be filled on completion
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+sample({
+  clock: transcriptionStarted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, model }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      transcript: {
+        text: '',
+        isLoading: true,
+        isVisible: true,
+        model,
+        format: 'text',
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+// Handle successful generation completion
+sample({
+  clock: generateInMessageTTSFx.doneData,
+  target: audioGenerationCompleted,
+});
+
+sample({
+  clock: generateInMessageSTTFx.doneData,
+  target: transcriptionCompleted,
+});
+
+// Handle generation failures
+sample({
+  clock: generateInMessageTTSFx.fail,
+  fn: ({ params, error }) => ({ 
+    messageId: params.messageId, 
+    error: error.message || 'TTS generation failed' 
+  }),
+  target: audioGenerationFailed,
+});
+
+sample({
+  clock: generateInMessageSTTFx.fail,
+  fn: ({ params, error }) => ({ 
+    messageId: params.messageId, 
+    error: error.message || 'Transcription failed' 
+  }),
+  target: transcriptionFailed,
+});
+
+// Update ephemeral store for successful completion
+sample({
+  clock: audioGenerationCompleted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, audioUrl, voice }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      audio: {
+        ...ephemeralData[messageId]?.audio!,
+        url: audioUrl,
+        isLoading: false,
+        voice,
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+sample({
+  clock: transcriptionCompleted,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, transcript, format }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      transcript: {
+        ...ephemeralData[messageId]?.transcript!,
+        text: transcript,
+        isLoading: false,
+        format,
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+// Update ephemeral store for failures
+sample({
+  clock: audioGenerationFailed,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, error }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      audio: {
+        ...ephemeralData[messageId]?.audio!,
+        isLoading: false,
+        error,
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+sample({
+  clock: transcriptionFailed,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, { messageId, error }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...ephemeralData[messageId],
+      transcript: {
+        ...ephemeralData[messageId]?.transcript!,
+        isLoading: false,
+        error,
+        timestamp: Date.now(),
+      },
+    },
+  }),
+  target: $ephemeralMessageData,
+});
+
+// Clear ephemeral data
+sample({
+  clock: clearEphemeralData,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData, messageId) => {
+    const { [messageId]: removed, ...rest } = ephemeralData;
+    
+    // Clean up blob URLs to prevent memory leaks
+    if (removed?.audio?.url) {
+      URL.revokeObjectURL(removed.audio.url);
+    }
+    
+    return rest;
+  },
+  target: $ephemeralMessageData,
+});
+
+// Clear all ephemeral data
+sample({
+  clock: clearAllEphemeralData,
+  source: $ephemeralMessageData,
+  fn: (ephemeralData) => {
+    // Clean up all blob URLs to prevent memory leaks
+    Object.values(ephemeralData).forEach(messageData => {
+      if (messageData.audio?.url) {
+        URL.revokeObjectURL(messageData.audio.url);
+      }
+    });
+    
+    return {};
+  },
+  target: $ephemeralMessageData,
+});
+
+// =====================================================================
+// MEMORY MANAGEMENT
+// =====================================================================
+
+/**
+ * Auto-cleanup effect to prevent memory leaks
+ * Cleans up ephemeral data older than 1 hour
+ */
+const autoCleanupFx = createEffect(() => {
+  const ephemeralData = $ephemeralMessageData.getState();
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  
+  Object.entries(ephemeralData).forEach(([messageId, data]) => {
+    const audioOld = data.audio && data.audio.timestamp < oneHourAgo;
+    const transcriptOld = data.transcript && data.transcript.timestamp < oneHourAgo;
+    
+    if (audioOld || transcriptOld) {
+      clearEphemeralData(messageId);
+    }
+  });
+});
+
+// Run auto-cleanup every 30 minutes
+setInterval(() => {
+  autoCleanupFx();
+}, 30 * 60 * 1000);
+
+// =====================================================================
+// DEBUGGING
+// =====================================================================
+
 if (process.env.NODE_ENV === 'development') {
-  debug(domain);
+  debug(audioChatDomain);
 }

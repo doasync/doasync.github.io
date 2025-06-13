@@ -28,6 +28,9 @@ export {
   // Effects
   loadVoiceModelsFx,
   previewVoiceFx,
+  
+  // Helper functions
+  getDefaultVoiceForModel,
 } from './model';
 
 export type {
