@@ -145,6 +145,16 @@ export const formatMessagesForAPI = (
             part.document.metadata &&
             typeof part.document.metadata.fileName === "string"
           ) {
+            // For HTML and PDF files, check if we have original HTML content to send
+            const isHtmlFile = part.document.metadata.mimeType === 'text/html' || 
+                              part.document.metadata.mimeType === 'application/xhtml+xml';
+            const isPdfFile = part.document.metadata.mimeType === 'application/pdf';
+            
+            // Use original HTML content if available for HTML/PDF files, otherwise use extracted text
+            const contentToSend = (isHtmlFile || isPdfFile) && 'originalContent' in part.document && part.document.originalContent
+              ? part.document.originalContent
+              : part.document.text;
+            
             // Create a text part with document content and metadata
             const documentHeader =
               `--- Document: ${part.document.metadata.fileName} ---\n` +
@@ -163,7 +173,7 @@ export const formatMessagesForAPI = (
 
             const convertedTextPart = {
               type: "text" as const,
-              text: documentHeader + part.document.text,
+              text: documentHeader + contentToSend,
             };
             console.log("Converted document to text part:", convertedTextPart);
             transformedContentParts.push(convertedTextPart);

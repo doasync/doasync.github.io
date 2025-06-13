@@ -40,7 +40,8 @@ export class HTMLProcessor implements DocumentProcessor {
       extractedText,
       metadata,
       chunks,
-      previewHtml: this.generatePreviewHtml(cleanHtml)
+      previewHtml: this.generatePreviewHtml(cleanHtml),
+      originalContent: cleanHtml // Store original sanitized HTML content
     };
   }
 

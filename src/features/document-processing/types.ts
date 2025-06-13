@@ -11,6 +11,7 @@ export interface DocumentProcessingResult {
   metadata: DocumentMetadata;
   chunks?: TextChunk[];
   previewHtml?: string;
+  originalContent?: string; // Store original HTML content for HTML files
 }
 
 export interface DocumentMetadata {

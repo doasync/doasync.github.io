@@ -46,6 +46,7 @@ export interface DocumentContentPart {
   document: {
     text: string;
     previewHtml?: string; // HTML preview with preserved formatting
+    originalContent?: string; // Original HTML content for HTML files
     metadata: {
       fileName: string;
       fileSize: number;
@@ -70,6 +71,7 @@ export interface Attachment {
   dataUrl?: string; // Base64 data URL for preview/sending
   previewUrl?: string; // Object URL for efficient preview
   extractedText?: string; // For documents
+  originalContent?: string; // For HTML files - stores original HTML content
   chunks?: TextChunk[]; // For large documents
   metadata?: {
     dimensions?: { width: number; height: number };

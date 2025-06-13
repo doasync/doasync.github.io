@@ -66,7 +66,8 @@ export class PDFProcessor implements DocumentProcessor {
       extractedText,
       metadata,
       chunks,
-      previewHtml: fullHtml || this.generateFallbackPreviewHtml(extractedText)
+      previewHtml: fullHtml || this.generateFallbackPreviewHtml(extractedText),
+      originalContent: fullHtml || this.generateFallbackPreviewHtml(extractedText) // Store HTML representation for "Copy Code"
     };
     } catch (error) {
       console.error('PDF processing error:', error);

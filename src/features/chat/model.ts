@@ -289,6 +289,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
           document: {
             text: result.extractedText,
             previewHtml: result.previewHtml,
+            originalContent: result.originalContent, // Include original HTML content if available
             metadata: {
               fileName: result.metadata.fileName,
               fileSize: result.metadata.fileSize,
@@ -308,6 +309,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
           mimeType: file.type,
           size: file.size,
           extractedText: result.extractedText,
+          originalContent: result.originalContent, // Store original HTML content if available
           chunks: result.chunks,
           metadata: {
             wordCount: result.metadata.wordCount,
@@ -530,6 +532,52 @@ $activePendingMultimodalMessage.on(mergeFilesIntoPendingMessage, (currentPending
 // Clear the active pending message
 $activePendingMultimodalMessage.on(clearActivePendingMessage, () => null);
 
+// Handle message deletion for pending messages
+$activePendingMultimodalMessage.on(deleteMessage, (currentPending, messageId) => {
+  // If the deleted message is the active pending message, clear it
+  if (currentPending && currentPending.id === messageId) {
+    return null;
+  }
+  return currentPending;
+});
+
+// Handle attachment deletion within the active pending message
+$activePendingMultimodalMessage.on(deleteAttachment, (currentPending, { messageId, attachmentIndex }) => {
+  // Only process if this deletion affects the current pending message
+  if (!currentPending || currentPending.id !== messageId) {
+    return currentPending;
+  }
+  
+  // Only process messages with array content (multimodal messages)
+  if (typeof currentPending.content === 'string') {
+    return currentPending;
+  }
+  
+  // Remove the attachment at the specified index
+  const newContent = currentPending.content.filter((_, index) => index !== attachmentIndex);
+  
+  // If removing the attachment leaves only text content, convert to string
+  if (newContent.length === 1 && newContent[0].type === 'text') {
+    return {
+      ...currentPending,
+      content: newContent[0].text,
+      attachments: currentPending.attachments?.filter((_, index) => index !== attachmentIndex),
+    };
+  }
+  
+  // If no content left, clear the entire pending message
+  if (newContent.length === 0) {
+    return null;
+  }
+  
+  // Otherwise keep as array
+  return {
+    ...currentPending,
+    content: newContent,
+    attachments: currentPending.attachments?.filter((_, index) => index !== attachmentIndex),
+  };
+});
+
 // Sync $messages store with active pending message
 $messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
   const activePending = $activePendingMultimodalMessage.getState();
@@ -570,6 +618,59 @@ $messages.on(clearActivePendingMessage, (messages) => {
     }
     return true;
   });
+});
+
+// Sync $messages when $activePendingMultimodalMessage changes due to deletion
+$messages.on(deleteMessage, (messages, messageId) => {
+  // Check if the deleted message was a pending message
+  const deletedMessage = messages.find(msg => msg.id === messageId);
+  if (deletedMessage && deletedMessage.status === 'pending') {
+    // If the deleted pending message was the active one, we need to keep stores in sync
+    // The $activePendingMultimodalMessage handler above already cleared it
+    // This ensures $messages reflects the same state
+  }
+  return messages.filter((msg) => msg.id !== messageId);
+});
+
+// Sync $messages when an attachment is deleted from the active pending message
+$messages.on(deleteAttachment, (messages, { messageId, attachmentIndex }) => {
+  return messages.map((msg) => {
+    if (msg.id !== messageId) return msg;
+    
+    // Get the updated state from $activePendingMultimodalMessage to stay in sync
+    const activePending = $activePendingMultimodalMessage.getState();
+    
+    // If this is the active pending message and it was cleared due to attachment deletion
+    if (msg.status === 'pending' && activePending === null && msg.id === messageId) {
+      // The message should be removed entirely
+      return null;
+    }
+    
+    // If this is the active pending message and it was updated
+    if (msg.status === 'pending' && activePending && msg.id === activePending.id) {
+      // Use the updated pending message from the active store
+      return activePending;
+    }
+    
+    // For non-pending messages, use the original logic
+    if (typeof msg.content === 'string') return msg;
+    
+    const newContent = msg.content.filter((_, index) => index !== attachmentIndex);
+    
+    if (newContent.length === 1 && newContent[0].type === 'text') {
+      return {
+        ...msg,
+        content: newContent[0].text,
+        attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
+      };
+    }
+    
+    return {
+      ...msg,
+      content: newContent,
+      attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
+    };
+  }).filter(msg => msg !== null); // Remove null entries (cleared pending messages)
 });
 
 // Trigger file processing when files are selected
@@ -665,41 +766,34 @@ $messages
       msg.id === messageId
         ? {
             ...msg,
-            content: newContent,
+            content: msg.content && Array.isArray(msg.content)
+              ? // For multimodal messages, preserve all non-text parts and update/add text part
+                (() => {
+                  // Filter out existing text parts
+                  const nonTextParts = msg.content.filter(part => part.type !== 'text');
+                  
+                  // Add the new text content if not empty
+                  const newTextPart: TextContentPart = {
+                    type: 'text',
+                    text: newContent.trim()
+                  };
+                  
+                  // If there's text content, include it; otherwise just return non-text parts
+                  return newContent.trim() 
+                    ? [newTextPart, ...nonTextParts]
+                    : nonTextParts;
+                })()
+              : // For text-only messages, just replace with new text
+                newContent,
             isEdited: true,
             originalContent: msg.content,
+            // Preserve attachments array - critical for UI rendering
+            attachments: msg.attachments,
           }
         : msg
     )
   )
-  .on(deleteMessage, (list, id) => list.filter((msg) => msg.id !== id))
-  .on(deleteAttachment, (list, { messageId, attachmentIndex }) =>
-    list.map((msg) => {
-      if (msg.id !== messageId) return msg;
-      
-      // Only process messages with array content (multimodal messages)
-      if (typeof msg.content === 'string') return msg;
-      
-      // Remove the attachment at the specified index
-      const newContent = msg.content.filter((_, index) => index !== attachmentIndex);
-      
-      // If removing the attachment leaves only text content, convert to string
-      if (newContent.length === 1 && newContent[0].type === 'text') {
-        return {
-          ...msg,
-          content: newContent[0].text,
-          attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
-        };
-      }
-      
-      // Otherwise keep as array
-      return {
-        ...msg,
-        content: newContent,
-        attachments: msg.attachments?.filter((_, index) => index !== attachmentIndex),
-      };
-    })
-  )
+  // deleteMessage and deleteAttachment handlers moved to separate .on() calls above for better sync
   .on(
     streamInitiatedWithTarget,
     (messages, { targetMessageId, shouldAddNewMessage }) => {

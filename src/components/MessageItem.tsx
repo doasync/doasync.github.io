@@ -743,6 +743,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                       const currentPreviewLength =
                         documentPreviewLengths[documentId] ||
                         DEFAULT_PREVIEW_LENGTH;
+                      
+                      // Always show extracted text in preview for readability
                       const contentToShow = documentPart.document.text;
                       const hasMoreContent = contentToShow && contentToShow.length > currentPreviewLength;
 
@@ -753,18 +755,81 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                         }));
                       };
 
-                      // Build metadata array
+                      // Build metadata array with optimal information hierarchy
                       const metadata = [];
                       if (attachment) {
+                        // Start with file type for immediate recognition
+                        metadata.push(getFileTypeDescription(attachment.mimeType));
                         metadata.push(formatFileSize(attachment.size));
-                        metadata.push(`${documentPart.document.metadata.wordCount?.toLocaleString() || 0} words`);
-                        if (documentPart.document.metadata.pageCount) {
-                          metadata.push(`${documentPart.document.metadata.pageCount} pages`);
+                        
+                        // Add content metrics
+                        const wordCount = documentPart.document.metadata.wordCount;
+                        if (wordCount && wordCount > 0) {
+                          metadata.push(`${wordCount.toLocaleString()} words`);
+                        }
+                        
+                        const pageCount = documentPart.document.metadata.pageCount;
+                        if (pageCount && pageCount > 0) {
+                          metadata.push(`${pageCount} page${pageCount > 1 ? 's' : ''}`);
                         }
                       }
 
                       // Define actions for document
                       const actions = [
+                        // Copy Text button for all documents
+                        {
+                          icon: <ContentCopyIcon fontSize="small" />,
+                          label: "Copy text",
+                          onClick: () => {
+                            if (attachment?.extractedText) {
+                              navigator.clipboard.writeText(attachment.extractedText)
+                                .then(() => {
+                                  showSnackbar({
+                                    message: "Document text copied to clipboard",
+                                    severity: "success",
+                                  });
+                                })
+                                .catch((err) => {
+                                  console.error("Failed to copy text:", err);
+                                  showSnackbar({
+                                    message: "Failed to copy text to clipboard",
+                                    severity: "error",
+                                  });
+                                });
+                            }
+                          },
+                        },
+                        // Copy Code button for HTML and PDF files
+                        ...((attachment?.mimeType === 'text/html' || 
+                            attachment?.mimeType === 'application/xhtml+xml' ||
+                            attachment?.mimeType === 'application/pdf') && attachment?.originalContent
+                          ? [{
+                              icon: <CodeIcon fontSize="small" />,
+                              label: attachment?.mimeType === 'application/pdf' ? "Copy HTML representation" : "Copy HTML code",
+                              onClick: () => {
+                                if (attachment?.originalContent) {
+                                  navigator.clipboard.writeText(attachment.originalContent)
+                                    .then(() => {
+                                      const message = attachment?.mimeType === 'application/pdf' 
+                                        ? "PDF HTML representation copied to clipboard"
+                                        : "HTML code copied to clipboard";
+                                      showSnackbar({
+                                        message,
+                                        severity: "success",
+                                      });
+                                    })
+                                    .catch((err) => {
+                                      console.error("Failed to copy HTML content:", err);
+                                      showSnackbar({
+                                        message: "Failed to copy HTML content to clipboard",
+                                        severity: "error",
+                                      });
+                                    });
+                                }
+                              },
+                            }] 
+                          : []
+                        ),
                         {
                           icon: <DownloadIcon fontSize="small" />,
                           label: "Download document",
@@ -802,17 +867,52 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                               }
                             }
                           }}
-                          sx={contentIndex < attachmentParts.length - 1 ? { mb: 2 } : {}}
+                          sx={contentIndex < attachmentParts.length - 1 ? { mb: 1 } : {}}
                         >
-                          <Box sx={{ p: 2 }}>
+                          <Box 
+                            sx={{ 
+                              p: 0.75,
+                              maxHeight: "150px", 
+                              overflow: "auto",
+                              backgroundColor: theme.palette.background.default,
+                              border: `1px solid ${theme.palette.divider}`,
+                              borderRadius: 1
+                            }}
+                          >
                             <Typography
                               variant="body2"
                               component="div"
                               sx={{
                                 whiteSpace: "pre-wrap",
                                 wordBreak: "break-word",
-                                maxHeight: "400px",
-                                overflow: "auto",
+                                fontSize: "0.8rem",
+                                lineHeight: 1.3,
+                                fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+                                color: theme.palette.text.primary,
+                                margin: 0,
+                                "& code": {
+                                  backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#1e1e1e',
+                                  color: '#d4d4d4',
+                                  padding: "1px 3px",
+                                  borderRadius: "3px",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 500
+                                },
+                                "& pre": {
+                                  backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#1e1e1e',
+                                  color: '#d4d4d4',
+                                  padding: "6px 8px",
+                                  borderRadius: "4px",
+                                  overflow: "auto",
+                                  fontSize: "0.75rem",
+                                  margin: "4px 0",
+                                  border: `1px solid ${theme.palette.divider}`,
+                                  "& code": {
+                                    backgroundColor: "transparent",
+                                    padding: 0,
+                                    borderRadius: 0
+                                  }
+                                }
                               }}
                             >
                               {contentToShow && contentToShow.length > currentPreviewLength
@@ -822,10 +922,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                             {hasMoreContent && (
                               <Button
                                 size="small"
+                                variant="text"
                                 onClick={handleShowMore}
-                                sx={{ mt: 1 }}
+                                sx={{ 
+                                  mt: 0.5,
+                                  fontSize: "0.75rem",
+                                  padding: "2px 6px",
+                                  minHeight: "auto",
+                                  textTransform: "none"
+                                }}
                               >
-                                Show More ({Math.min(EXPAND_INCREMENT, contentToShow.length - currentPreviewLength)} more characters)
+                                Show More ({Math.min(EXPAND_INCREMENT, contentToShow.length - currentPreviewLength)} chars)
                               </Button>
                             )}
                           </Box>
