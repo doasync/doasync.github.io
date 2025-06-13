@@ -624,10 +624,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
                 return (
                   <Box sx={{ mb: audioParts.length > 0 ? 2 : 0 }}>
                     {audioParts.map((audioPart, index) => {
-                      // Try to find corresponding attachment metadata
-                      const attachment = message.attachments?.find(
+                      // Find corresponding attachment metadata by index
+                      const audioAttachments = message.attachments?.filter(
                         (att) => att.type === "audio"
-                      );
+                      ) || [];
+                      const attachment = audioAttachments[index];
 
                       // Reconstruct data URL from base64 data
                       const audioSrc = `data:${

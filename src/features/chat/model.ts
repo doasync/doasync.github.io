@@ -104,6 +104,11 @@ export const assistantResponseCompleted = chatDomain.event<void>(
 // File attachment events
 export const filesSelected = chatDomain.event<File[]>("filesSelected");
 
+// Events for single pending message management
+const mergeFilesIntoPendingMessage = chatDomain.event<Message>("mergeFilesIntoPendingMessage");
+const clearActivePendingMessage = chatDomain.event<void>("clearActivePendingMessage");
+const finalizePendingMessage = chatDomain.event<void>("finalizePendingMessage");
+
 // Image generation events
 export const imageGenerationRequested = chatDomain.event<string>("imageGenerationRequested");
 
@@ -193,10 +198,15 @@ export const $isMainInputFocused = chatDomain
   .store<boolean>(false, { name: "$isMainInputFocused" })
   .on(mainInputFocused, (_, isFocused) => isFocused); // Corrected payload destructuring
 
+// Store for the single active pending multimodal message
+export const $activePendingMultimodalMessage = chatDomain.store<Message | null>(null, {
+  name: "$activePendingMultimodalMessage",
+});
+
 // --- Effects ---
 
-// File processing effect - now creates messages directly
-const processFilesFx = chatDomain.effect<File[], Message[]>({
+// File processing effect - creates a single message with all selected files
+const processFilesFx = chatDomain.effect<File[], Message>({
   name: "processFilesFx",
   handler: async (files: File[]) => {
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB for audio, 20MB for images
@@ -217,7 +227,8 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
       'application/xhtml+xml'
     ];
     
-    const messages: Message[] = [];
+    const contentParts: MessageContentPart[] = [];
+    const attachments: Attachment[] = [];
     
     // Separate files by type
     const imageFiles = files.filter(f => SUPPORTED_IMAGE_TYPES.includes(f.type));
@@ -236,8 +247,7 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
           if (!result) continue;
           
           // Create document content part
-          
-          const content: MessageContentPart[] = [{
+          contentParts.push({
             type: "document",
             document: {
               text: result.extractedText,
@@ -252,7 +262,7 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
                 author: result.metadata.author,
               }
             }
-          }];
+          });
           
           const attachment: Attachment = {
             id: crypto.randomUUID(),
@@ -270,16 +280,7 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
             }
           };
           
-          const message: Message = {
-            id: crypto.randomUUID(),
-            role: "user",
-            content,
-            timestamp: Date.now(),
-            status: "pending",
-            attachments: [attachment]
-          };
-          
-          messages.push(message);
+          attachments.push(attachment);
         }
       } catch (error) {
         console.error('Document processing failed:', error);
@@ -306,7 +307,7 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         throw new Error(`Audio file "${file.name}" too large. Maximum size is 25MB.`);
       }
       
-      // Read file and create message
+      // Read file
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         
@@ -321,9 +322,6 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         reader.readAsDataURL(file);
       });
       
-      let content: MessageContentPart[];
-      let attachment: Attachment;
-      
       if (isImage) {
         // Get image dimensions
         const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
@@ -337,16 +335,16 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
           img.src = dataUrl;
         });
         
-        // Create image content
-        content = [{
+        // Create image content part
+        contentParts.push({
           type: "image_url",
           image_url: {
             url: dataUrl,
             detail: "auto"
           }
-        }];
+        });
         
-        attachment = {
+        const attachment: Attachment = {
           id: crypto.randomUUID(),
           type: 'image',
           fileName: file.name,
@@ -357,21 +355,35 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
             dimensions: dimensions.width > 0 ? dimensions : undefined
           }
         };
+        
+        attachments.push(attachment);
       } else {
         // Audio file
-        // Get audio duration with improved handling for different formats
+        // Get audio duration with improved handling for different formats and proper isolation
         const duration = await new Promise<number | undefined>((resolve) => {
           const audio = new Audio();
           let resolved = false;
+          let timeoutId: NodeJS.Timeout;
+          
+          const cleanup = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            audio.onloadedmetadata = null;
+            audio.oncanplaythrough = null;
+            audio.ondurationchange = null;
+            audio.onerror = null;
+            audio.src = '';
+            audio.load(); // Clear the audio element
+          };
           
           const resolveWithValue = (value: number | undefined, source: string) => {
             if (!resolved) {
               resolved = true;
+              cleanup();
               if (value && isFinite(value) && !isNaN(value) && value > 0) {
-                console.log(`Audio duration extracted from ${source}:`, value);
+                console.log(`[${file.name}] Audio duration extracted from ${source}:`, value);
                 resolve(value);
               } else {
-                console.log(`Invalid duration from ${source}:`, value);
+                console.log(`[${file.name}] Invalid duration from ${source}:`, value);
                 resolve(undefined);
               }
             }
@@ -379,34 +391,34 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
           
           // Multiple event handlers for different browsers/formats
           audio.onloadedmetadata = () => {
-            console.log("Audio metadata loaded, duration:", audio.duration);
+            console.log(`[${file.name}] Audio metadata loaded, duration:`, audio.duration);
             resolveWithValue(audio.duration, 'loadedmetadata');
           };
           
           audio.oncanplaythrough = () => {
-            console.log("Audio can play through, duration:", audio.duration);
+            console.log(`[${file.name}] Audio can play through, duration:`, audio.duration);
             resolveWithValue(audio.duration, 'canplaythrough');
           };
           
           audio.ondurationchange = () => {
-            console.log("Audio duration changed:", audio.duration);
+            console.log(`[${file.name}] Audio duration changed:`, audio.duration);
             resolveWithValue(audio.duration, 'durationchange');
           };
           
           audio.onerror = (e) => {
-            console.log("Audio loading error:", e);
+            console.log(`[${file.name}] Audio loading error:`, e);
             resolveWithValue(undefined, 'error');
           };
           
           // Shorter timeout for better UX
-          setTimeout(() => {
-            console.log("Audio duration extraction timeout for format:", file.type);
+          timeoutId = setTimeout(() => {
+            console.log(`[${file.name}] Audio duration extraction timeout for format:`, file.type);
             resolveWithValue(undefined, 'timeout');
           }, 3000);
           
-          // Set source and preload
+          // Set source and preload - create unique data URL for this specific audio element
           audio.preload = 'metadata';
-          audio.src = dataUrl;
+          audio.src = dataUrl; // Each audio element gets its own dataUrl from the file iteration
           audio.load();
         });
         
@@ -424,16 +436,16 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
         };
         const format = formatMap[file.type] || 'mp3';
         
-        // Create audio content
-        content = [{
+        // Create audio content part
+        contentParts.push({
           type: "input_audio",
           input_audio: {
             data: dataUrl.split(',')[1], // Remove data URL prefix
             format: format as any
           }
-        }];
+        });
         
-        attachment = {
+        const attachment: Attachment = {
           id: crypto.randomUUID(),
           type: 'audio',
           fileName: file.name,
@@ -444,21 +456,22 @@ const processFilesFx = chatDomain.effect<File[], Message[]>({
             duration
           }
         };
+        
+        attachments.push(attachment);
       }
-      
-      const message: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content,
-        timestamp: Date.now(),
-        status: "pending", // Mark as pending until sent with text
-        attachments: [attachment]
-      };
-      
-      messages.push(message);
     }
     
-    return messages;
+    // Create single message with all attachments
+    const message: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: contentParts,
+      timestamp: Date.now(),
+      status: "pending", // Mark as pending until sent with text
+      attachments
+    };
+    
+    return message;
   },
 });
 
@@ -478,13 +491,83 @@ $isProcessingFile
   .on(processFilesFx, () => true)
   .reset(processFilesFx.finally);
 
-// Add image messages directly to messages store
-$messages.on(processFilesFx.doneData, (messages, newImageMessages) => [...messages, ...newImageMessages]);
+// Handle merging files into the active pending message
+$activePendingMultimodalMessage.on(mergeFilesIntoPendingMessage, (currentPending, newFileMessage) => {
+  if (!currentPending) {
+    // No existing pending message, use the new one
+    return newFileMessage;
+  }
+  
+  // Merge attachments and content from new message into existing pending message
+  const existingContent = Array.isArray(currentPending.content) ? currentPending.content : [];
+  const newContent = Array.isArray(newFileMessage.content) ? newFileMessage.content : [];
+  
+  const mergedContent = [...existingContent, ...newContent];
+  const mergedAttachments = [...(currentPending.attachments || []), ...(newFileMessage.attachments || [])];
+  
+  return {
+    ...currentPending,
+    content: mergedContent,
+    attachments: mergedAttachments,
+    timestamp: Date.now(), // Update timestamp to latest
+  };
+});
+
+// Clear the active pending message
+$activePendingMultimodalMessage.on(clearActivePendingMessage, () => null);
+
+// Sync $messages store with active pending message
+$messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
+  const activePending = $activePendingMultimodalMessage.getState();
+  
+  if (!activePending) {
+    // This shouldn't happen, but handle gracefully
+    return [...messages, newFileMessage];
+  }
+  
+  // Find and replace existing pending message, or add new one
+  const existingPendingIndex = messages.findIndex(msg => 
+    msg.status === 'pending' && 
+    msg.role === 'user' && 
+    Array.isArray(msg.content) &&
+    msg.content.some(part => part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document')
+  );
+  
+  if (existingPendingIndex >= 0) {
+    // Replace existing pending message
+    const updatedMessages = [...messages];
+    updatedMessages[existingPendingIndex] = activePending;
+    return updatedMessages;
+  } else {
+    // Add new pending message
+    return [...messages, activePending];
+  }
+});
+
+// Clear pending message from $messages when cleared from active store
+$messages.on(clearActivePendingMessage, (messages) => {
+  return messages.filter(msg => {
+    // Remove pending media-only messages
+    if (msg.status === 'pending' && msg.role === 'user' && Array.isArray(msg.content)) {
+      const isMediaOnly = msg.content.every(part => 
+        part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document'
+      );
+      return !isMediaOnly;
+    }
+    return true;
+  });
+});
 
 // Trigger file processing when files are selected
 sample({
   clock: filesSelected,
   target: processFilesFx,
+});
+
+// Handle processed files by merging into active pending message
+sample({
+  clock: processFilesFx.doneData,
+  target: mergeFilesIntoPendingMessage,
 });
 
 // Auto-select appropriate model based on file attachments
@@ -494,25 +577,17 @@ sample({
     supportsVision: $currentModelSupportsVision,
     supportsAudio: $currentModelSupportsAudio
   },
-  filter: ({ supportsVision, supportsAudio }, messages) => {
-    if (messages.length === 0) return false;
+  filter: ({ supportsVision, supportsAudio }, message) => {
+    if (!message.attachments || message.attachments.length === 0) return false;
     
-    const hasImages = messages.some(msg => 
-      msg.attachments?.some(att => att.type === 'image')
-    );
-    const hasAudio = messages.some(msg => 
-      msg.attachments?.some(att => att.type === 'audio')
-    );
+    const hasImages = message.attachments.some(att => att.type === 'image');
+    const hasAudio = message.attachments.some(att => att.type === 'audio');
     
     return (hasImages && !supportsVision) || (hasAudio && !supportsAudio);
   },
-  fn: (_, messages) => {
-    const hasImages = messages.some(msg => 
-      msg.attachments?.some(att => att.type === 'image')
-    );
-    const hasAudio = messages.some(msg => 
-      msg.attachments?.some(att => att.type === 'audio')
-    );
+  fn: (_, message) => {
+    const hasImages = message.attachments?.some(att => att.type === 'image') || false;
+    const hasAudio = message.attachments?.some(att => att.type === 'audio') || false;
     
     return { 
       vision: hasImages, 
@@ -780,111 +855,61 @@ sample({
 // Create a new user message object when message is sent (excluding image generation commands)
 sample({
   clock: messageSent,
-  source: { text: $messageText, messages: $messages },
-  filter: ({ text, messages }) => {
+  source: { text: $messageText, activePending: $activePendingMultimodalMessage },
+  filter: ({ text, activePending }) => {
     // Skip if this is an image generation command
     if (isImageGenerationCommand(text.trim())) {
       return false;
     }
     
     const hasText = text.trim().length > 0;
-    const pendingMedia = messages.filter(m => 
-      m.status === 'pending' && 
-      m.role === 'user' &&
-      Array.isArray(m.content) && 
-      m.content.every(part => part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document')
-    );
-    return hasText || pendingMedia.length > 0;
+    const hasPendingMedia = activePending !== null;
+    return hasText || hasPendingMedia;
   },
-  fn: ({ text, messages }) => {
+  fn: ({ text, activePending }) => {
     const hasText = text.trim().length > 0;
     
-    // Find consecutive pending media messages at the end
-    const pendingMedia: Message[] = [];
-    let i = messages.length - 1;
-    
-    while (i >= 0 && messages[i].status === 'pending' && messages[i].role === 'user') {
-      const msg = messages[i];
-      // Check if it's a media-only message (images, audio, or documents)
-      if (Array.isArray(msg.content) && msg.content.every(part => 
-        part.type === 'image_url' || part.type === 'input_audio' || part.type === 'document'
-      )) {
-        pendingMedia.unshift(msg);
-        i--;
-      } else {
-        break;
-      }
-    }
-    
-    if (!hasText && pendingMedia.length > 0) {
-      // Scenario 1: No text, only pending media - bundle them into a single message
-      const contentParts: MessageContentPart[] = [];
-      const allAttachments: Attachment[] = [];
-      
-      // Add media from pending messages and collect attachments
-      pendingMedia.forEach(mediaMsg => {
-        if (Array.isArray(mediaMsg.content)) {
-          contentParts.push(...mediaMsg.content);
-        }
-        if (mediaMsg.attachments) {
-          allAttachments.push(...mediaMsg.attachments);
-        }
-      });
-      
-      // Create bundled message with only media
-      const bundledMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: contentParts,
-        timestamp: Date.now(),
+    if (!hasText && activePending) {
+      // Scenario 1: No text, only pending media - send the pending message
+      const finalMessage: Message = {
+        ...activePending,
         status: "sent",
-        attachments: allAttachments.length > 0 ? allAttachments : undefined,
+        timestamp: Date.now(),
       };
       
       return {
-        bundledMessage: bundledMessage as Message | null,
-        pendingMediaIds: pendingMedia.map(media => media.id),
+        bundledMessage: finalMessage as Message | null,
+        pendingMediaIds: [activePending.id],
         markAsSent: false
       };
-    } else if (hasText && pendingMedia.length > 0) {
-      // Scenario 2: Text with pending media - bundle them
-      const contentParts: MessageContentPart[] = [];
-      const allAttachments: Attachment[] = [];
+    } else if (hasText && activePending) {
+      // Scenario 2: Text with pending media - combine them
+      const existingContent = Array.isArray(activePending.content) ? activePending.content : [];
       
-      // Add media from pending messages and collect attachments
-      pendingMedia.forEach(mediaMsg => {
-        if (Array.isArray(mediaMsg.content)) {
-          contentParts.push(...mediaMsg.content);
+      // Add text part to the content
+      const contentParts: MessageContentPart[] = [
+        ...existingContent,
+        {
+          type: "text",
+          text: text.trim(),
         }
-        if (mediaMsg.attachments) {
-          allAttachments.push(...mediaMsg.attachments);
-        }
-      });
+      ];
       
-      // Add text part
-      contentParts.push({
-        type: "text",
-        text: text.trim(),
-      });
-      
-      // Create bundled message
-      const bundledMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
+      const finalMessage: Message = {
+        ...activePending,
         content: contentParts,
-        timestamp: Date.now(),
         status: "sent",
-        attachments: allAttachments.length > 0 ? allAttachments : undefined,
+        timestamp: Date.now(),
       };
       
       return {
-        bundledMessage: bundledMessage as Message | null,
-        pendingMediaIds: pendingMedia.map(media => media.id),
+        bundledMessage: finalMessage as Message | null,
+        pendingMediaIds: [activePending.id],
         markAsSent: false
       };
-    } else {
-      // Just text, no media
-      const bundledMessage: Message = {
+    } else if (hasText && !activePending) {
+      // Scenario 3: Just text, no media
+      const textOnlyMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: text.trim(),
@@ -893,11 +918,18 @@ sample({
       };
       
       return {
-        bundledMessage: bundledMessage as Message | null,
+        bundledMessage: textOnlyMessage as Message | null,
         pendingMediaIds: [],
         markAsSent: false
       };
     }
+    
+    // This shouldn't happen due to the filter, but handle gracefully
+    return {
+      bundledMessage: null,
+      pendingMediaIds: [],
+      markAsSent: false
+    };
   },
   target: bundledMessageCreated,
 });
@@ -908,6 +940,12 @@ sample({
   filter: ({ bundledMessage }) => bundledMessage !== null,
   fn: ({ bundledMessage }) => bundledMessage!,
   target: userMessageCreated,
+});
+
+// Clear the active pending message after it's been sent
+sample({
+  clock: userMessageCreated,
+  target: clearActivePendingMessage,
 });
 
 // Create event for individual media messages sent

@@ -44,7 +44,7 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
   return (
     <Box
       sx={{
-        border: "2px dashed #bad1ff",
+        border: "1px dashed #bad1ff",
         borderRadius: 2,
         p: 2,
         mt: 2,
