@@ -183,10 +183,32 @@ export const formatMessagesForAPI = (
           continue;
         }
 
-        // Keep other valid parts as-is (excluding generated images which are UI-only)
-        if (part.type !== "generated_image") {
-          transformedContentParts.push(part as StreamMessageContentPart);
+        // Convert generated images to standard image_url parts for API consumption
+        if (part.type === "generated_image") {
+          console.log("Converting generated image part to image_url for API:", part);
+          
+          // Extract image URL/data from generated image
+          const imageUrl = part.generated_image.url || 
+                          (part.generated_image.b64_json ? `data:image/png;base64,${part.generated_image.b64_json}` : null);
+          
+          if (imageUrl) {
+            const convertedImagePart = {
+              type: "image_url" as const,
+              image_url: {
+                url: imageUrl,
+                detail: "auto" as const
+              }
+            };
+            console.log("Converted generated image to image_url part:", convertedImagePart);
+            transformedContentParts.push(convertedImagePart);
+          } else {
+            console.warn("Generated image part has no valid URL or base64 data:", part);
+          }
+          continue;
         }
+
+        // Keep other valid parts as-is
+        transformedContentParts.push(part as StreamMessageContentPart);
       }
 
       // Filter out any invalid content parts and generated images - keep OpenAI format for all models

@@ -145,24 +145,82 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
     }
   };
 
-  const downloadImage = (imageUrl: string, fileName: string) => {
-    // Handle both regular URLs and data URLs
-    if (imageUrl.startsWith("data:")) {
-      // For data URLs, use them directly - they work fine for downloads
-      const link = document.createElement("a");
-      link.href = imageUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      // For regular URLs, we might need to fetch and convert to blob for cross-origin downloads
-      const link = document.createElement("a");
-      link.href = imageUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const downloadImage = async (imageUrl: string, fileName: string) => {
+    try {
+      if (imageUrl.startsWith("data:")) {
+        // For data URLs, use them directly - they work fine for downloads
+        const link = document.createElement("a");
+        link.href = imageUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // For regular URLs, try different approaches based on the URL
+        const isAzureBlobUrl = imageUrl.includes("oaidalleapiprodscus.blob.core.windows.net");
+        
+        if (isAzureBlobUrl) {
+          // For Azure blob URLs (DALL-E), try with no-cors mode or use proxy approach
+          try {
+            const response = await fetch(imageUrl, { mode: 'no-cors' });
+            // no-cors mode doesn't allow reading the response, so we fall back to iframe download
+            throw new Error("CORS restricted, using alternative method");
+          } catch {
+            // Alternative method: create invisible iframe for download
+            const iframe = document.createElement("iframe");
+            iframe.style.display = "none";
+            iframe.src = imageUrl;
+            document.body.appendChild(iframe);
+            
+            // Clean up after attempting download
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+            }, 3000);
+            
+            // Also try the link approach as fallback
+            const link = document.createElement("a");
+            link.href = imageUrl;
+            link.download = fileName;
+            link.target = "_blank";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+        } else {
+          // For other URLs, fetch the image and create a blob URL for download
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status}`);
+          }
+          
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up the blob URL after a short delay
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      // Final fallback: open in new tab with right-click save instructions
+      const newWindow = window.open(imageUrl, "_blank");
+      if (newWindow) {
+        // Try to add some instruction in the new window (may not work due to CORS)
+        try {
+          newWindow.document.title = `Right-click and "Save image as..." to download ${fileName}`;
+        } catch (e) {
+          // Ignore if we can't modify the new window
+        }
+      }
     }
   };
 
@@ -367,12 +425,8 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                             flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "center",
-                            backgroundColor: isError
-                              ? "error.light"
-                              : "grey.100",
-                            color: isError
-                              ? "error.contrastText"
-                              : "text.secondary",
+                            backgroundColor: isError ? "#19060a" : "grey.100",
+                            color: isError ? "#ffb4c3" : "text.secondary",
                             position: "relative",
                           }}
                         >
@@ -399,12 +453,13 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                           )}
                           {isError && (
                             <>
-                              <Typography variant="body2" color="error">
+                              <Typography variant="body2" color="inherit">
                                 Generation Failed
                               </Typography>
                               {image.error && (
                                 <Typography
                                   variant="caption"
+                                  color="inherit"
                                   sx={{ mt: 1, textAlign: "center", px: 1 }}
                                 >
                                   {image.error}
@@ -457,18 +512,21 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                               >
                                 <FullscreenIcon fontSize="small" />
                               </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  downloadImage(
-                                    imageUrl,
-                                    `generated-image-${image.id}.png`
-                                  )
-                                }
-                                title="Download"
-                              >
-                                <DownloadIcon fontSize="small" />
-                              </IconButton>
+                              {/* Hide download button for CORS-restricted Azure blob URLs */}
+                              {!imageUrl.includes("oaidalleapiprodscus.blob.core.windows.net") && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() =>
+                                    downloadImage(
+                                      imageUrl,
+                                      `generated-image-${image.id}.png`
+                                    )
+                                  }
+                                  title="Download"
+                                >
+                                  <DownloadIcon fontSize="small" />
+                                </IconButton>
+                              )}
                             </Box>
                             <Box>
                               <Button
@@ -496,6 +554,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
+                                sx={{ px: 1 }}
                               >
                                 {isPending && "Waiting to start..."}
                                 {isGenerating && "Generating image..."}

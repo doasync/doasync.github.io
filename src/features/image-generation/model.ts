@@ -12,6 +12,14 @@ import {
   IMAGE_GENERATION_MODELS,
   getImageGenerationModelInfo
 } from "./types";
+import {
+  loadGeneratedImagesHandler,
+  saveGeneratedImagesHandler,
+  saveGeneratedImageHandler,
+  removeGeneratedImageHandler,
+  clearGeneratedImagesHandler,
+  migrateFromLocalStorageHandler
+} from "./lib";
 
 const imageGenerationDomain = createDomain("imageGeneration");
 
@@ -187,87 +195,40 @@ export const imageGenerationCompleted = imageGenerationDomain.event<{
 
 // --- Effects ---
 
-// Load generated images history from localStorage
+// Load generated images history from IndexedDB
 export const loadGeneratedImagesFx = imageGenerationDomain.effect<void, GeneratedImage[]>({
   name: "loadGeneratedImagesFx",
-  handler: async () => {
-    try {
-      const stored = localStorage.getItem('generatedImagesHistory');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Validate the structure and migrate old data
-        if (Array.isArray(parsed)) {
-          return parsed.filter(item => 
-            item && 
-            typeof item === 'object' && 
-            typeof item.id === 'string' &&
-            typeof item.prompt === 'string' &&
-            typeof item.model === 'string' &&
-            typeof item.timestamp === 'number'
-          ).map(item => ({
-            ...item,
-            status: item.status || 'completed', // Default to completed for existing images
-          }));
-        }
-      }
-      return [];
-    } catch (error) {
-      console.warn('Failed to load generated images from localStorage:', error);
-      return [];
-    }
-  },
+  handler: loadGeneratedImagesHandler,
 });
 
-// Save generated image to localStorage
+// Save generated image to IndexedDB
 export const saveGeneratedImageFx = imageGenerationDomain.effect<GeneratedImage, void>({
   name: "saveGeneratedImageFx",
-  handler: async (image) => {
-    try {
-      const current = $generatedImages.getState();
-      const updated = [...current, image];
-      localStorage.setItem('generatedImagesHistory', JSON.stringify(updated));
-    } catch (error) {
-      console.warn('Failed to save generated image to localStorage:', error);
-    }
-  },
+  handler: saveGeneratedImageHandler,
 });
 
-// Remove generated image from localStorage
+// Remove generated image from IndexedDB
 export const removeGeneratedImageFx = imageGenerationDomain.effect<string, void>({
   name: "removeGeneratedImageFx", 
-  handler: async (imageId) => {
-    try {
-      const current = $generatedImages.getState();
-      const updated = current.filter(img => img.id !== imageId);
-      localStorage.setItem('generatedImagesHistory', JSON.stringify(updated));
-    } catch (error) {
-      console.warn('Failed to remove generated image from localStorage:', error);
-    }
-  },
+  handler: removeGeneratedImageHandler,
 });
 
-// Save all generated images to localStorage
+// Save all generated images to IndexedDB
 export const saveGeneratedImagesFx = imageGenerationDomain.effect<GeneratedImage[], void>({
   name: "saveGeneratedImagesFx",
-  handler: async (images) => {
-    try {
-      localStorage.setItem('generatedImagesHistory', JSON.stringify(images));
-    } catch (error) {
-      console.warn('Failed to save generated images to localStorage:', error);
-    }
-  },
+  handler: saveGeneratedImagesHandler,
 });
 
-// Clear all generated images from localStorage
+// Clear all generated images from IndexedDB
 export const clearGeneratedImagesFx = imageGenerationDomain.effect<void, void>({
   name: "clearGeneratedImagesFx",
-  handler: async () => {
-    try {
-      localStorage.removeItem('generatedImagesHistory');
-    } catch (error) {
-      console.warn('Failed to clear generated images from localStorage:', error);
-    }
-  },
+  handler: clearGeneratedImagesHandler,
+});
+
+// Migrate from localStorage to IndexedDB (one-time operation)
+export const migrateFromLocalStorageFx = imageGenerationDomain.effect<void, GeneratedImage[]>({
+  name: "migrateFromLocalStorageFx",
+  handler: migrateFromLocalStorageHandler,
 });
 
 // Image generation effect
@@ -291,27 +252,27 @@ export const generateImageFx = imageGenerationDomain.effect<
 
     // Validate prompt length
     if (params.prompt.length > modelInfo.maxPromptLength) {
-      throw new Error(`Prompt too long. Maximum length for ${modelInfo.name} is ${modelInfo.maxPromptLength} characters.`);
+      throw new ImageGenerationError(`Prompt too long. Maximum length for ${modelInfo.name} is ${modelInfo.maxPromptLength} characters.`, currentRequestId);
     }
 
     // Validate size
     if (params.size && !modelInfo.supportedSizes.includes(params.size)) {
-      throw new Error(`Unsupported size ${params.size} for ${modelInfo.name}. Supported sizes: ${modelInfo.supportedSizes.join(", ")}`);
+      throw new ImageGenerationError(`Unsupported size ${params.size} for ${modelInfo.name}. Supported sizes: ${modelInfo.supportedSizes.join(", ")}`, currentRequestId);
     }
 
     // Validate quality
     if (params.quality && !modelInfo.supportedQualities.includes(params.quality)) {
-      throw new Error(`Unsupported quality ${params.quality} for ${modelInfo.name}. Supported qualities: ${modelInfo.supportedQualities.join(", ")}`);
+      throw new ImageGenerationError(`Unsupported quality ${params.quality} for ${modelInfo.name}. Supported qualities: ${modelInfo.supportedQualities.join(", ")}`, currentRequestId);
     }
 
     // Validate style (for models that support it)
     if (params.style && modelInfo.supportedStyles && !modelInfo.supportedStyles.includes(params.style)) {
-      throw new Error(`Unsupported style ${params.style} for ${modelInfo.name}. Supported styles: ${modelInfo.supportedStyles.join(", ")}`);
+      throw new ImageGenerationError(`Unsupported style ${params.style} for ${modelInfo.name}. Supported styles: ${modelInfo.supportedStyles.join(", ")}`, currentRequestId);
     }
 
     // Validate number of images
     if (params.n && params.n > modelInfo.maxImages) {
-      throw new Error(`Too many images requested. Maximum for ${modelInfo.name} is ${modelInfo.maxImages}`);
+      throw new ImageGenerationError(`Too many images requested. Maximum for ${modelInfo.name} is ${modelInfo.maxImages}`, currentRequestId);
     }
 
     // Prepare request body
@@ -346,7 +307,7 @@ export const generateImageFx = imageGenerationDomain.effect<
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
-      throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+      throw new ImageGenerationError(errorData.error?.message || `HTTP error! status: ${response.status}`, currentRequestId);
     }
 
     const result: ImageGenerationResponse = await response.json();
@@ -440,14 +401,25 @@ $isGeneratingImage.on($generatedImages, (_, images) =>
 );
 
 
-// Load images from localStorage when dialog opens
+// Migrate from localStorage on first dialog open, then load from IndexedDB
 sample({
   clock: dialogOpened,
+  target: migrateFromLocalStorageFx,
+});
+
+// Load images from IndexedDB after migration (or if migration returns empty)
+sample({
+  clock: [migrateFromLocalStorageFx.doneData, migrateFromLocalStorageFx.failData],
   target: loadGeneratedImagesFx,
 });
 
 // Update store when images are loaded
 $generatedImages.on(loadGeneratedImagesFx.doneData, (_, loadedImages) => loadedImages);
+
+// Update store when migration completes with data
+$generatedImages.on(migrateFromLocalStorageFx.doneData, (_, migratedImages) => 
+  migratedImages.length > 0 ? migratedImages : []
+);
 
 // Note: Image generation completion is now handled by imageGenerationCompleted event
 // to support parallel generation with per-request tracking
@@ -461,7 +433,11 @@ sample({
 // Handle errors
 $imageGenerationError
   .on(generateImageFx.failData, (_, error) => error.message)
-  .reset(generateImageFx);
+  .on(saveGeneratedImagesFx.failData, (_, error) => error.message)
+  .on(saveGeneratedImageFx.failData, (_, error) => error.message)
+  .on(loadGeneratedImagesFx.failData, (_, error) => `Failed to load image history: ${error.message}`)
+  .on(migrateFromLocalStorageFx.failData, (_, error) => `Failed to migrate image history: ${error.message}`)
+  .reset([generateImageFx, saveGeneratedImagesFx, saveGeneratedImageFx, loadGeneratedImagesFx, migrateFromLocalStorageFx]);
 
 // Clear generated images from both store and localStorage
 sample({
@@ -507,7 +483,6 @@ sample({
 
 // Add placeholder to generated images store
 $generatedImages.on(imageGenerationStarted, (images, { id, prompt, model, parameters }) => {
-  console.log('Creating placeholder with ID:', id);
   const newPlaceholder: GeneratedImage = {
     id,
     prompt,
@@ -547,10 +522,8 @@ sample({
 sample({
   clock: generateImageFx.doneData,
   fn: ({ requestId, response }) => {
-    console.log('Image generation completed:', { requestId, response });
     // Extract the first (and typically only) image from the response
     const imageData = response.data[0];
-    console.log('Image data:', imageData);
     return {
       id: requestId,
       url: imageData?.url,
@@ -564,11 +537,10 @@ sample({
 sample({
   clock: generateImageFx.failData,
   fn: (error) => {
-    console.log('Image generation failed:', error);
-    // For errors, we'll need a different approach to map back to the specific request
-    // For now, this will be a limitation
+    // Extract requestId from custom error or fallback
+    const requestId = error instanceof ImageGenerationError ? error.requestId : 'error-unknown';
     return {
-      id: 'error-unknown',
+      id: requestId,
       status: 'error' as ImageGenerationStatus,
       error: error.message,
     };
@@ -586,16 +558,13 @@ $generatedImages.on(imageGenerationUpdated, (images, { id, status, error, progre
 );
 
 // Update images when generation completes
-$generatedImages.on(imageGenerationCompleted, (images, { id, url, b64_json }) => {
-  console.log('Updating image completion:', { id, url, b64_json });
-  return images.map(img => {
-    if (img.id === id) {
-      console.log('Found matching image:', img.id, 'updating with:', { url, b64_json });
-      return { ...img, status: 'completed' as ImageGenerationStatus, url, b64_json };
-    }
-    return img;
-  });
-});
+$generatedImages.on(imageGenerationCompleted, (images, { id, url, b64_json }) => 
+  images.map(img => 
+    img.id === id 
+      ? { ...img, status: 'completed' as ImageGenerationStatus, url, b64_json }
+      : img
+  )
+);
 
 
 
@@ -697,6 +666,8 @@ debug(
   generateImageFx,
   loadGeneratedImagesFx,
   saveGeneratedImagesFx,
+  saveGeneratedImageFx,
   clearGeneratedImagesFx,
-  removeGeneratedImageFx
+  removeGeneratedImageFx,
+  migrateFromLocalStorageFx
 );

@@ -36,8 +36,10 @@ export {
   generateImageFx,
   loadGeneratedImagesFx,
   saveGeneratedImagesFx,
+  saveGeneratedImageFx,
   clearGeneratedImagesFx,
   removeGeneratedImageFx,
+  migrateFromLocalStorageFx,
 } from "./model";
 
 export {
