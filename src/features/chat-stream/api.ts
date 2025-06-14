@@ -66,7 +66,7 @@ export async function fetchChatStream(
 
     // Handle immediate non-2xx responses before attempting to stream
     if (!response.ok) {
-      let errorPayload: any = {};
+      let errorPayload: Record<string, unknown> = {};
       try {
         errorPayload = await response.json();
       } catch {
@@ -74,7 +74,7 @@ export async function fetchChatStream(
       }
       throw new Error(
         `API Error (${response.status}): ${
-          errorPayload?.error?.message || response.statusText
+          (errorPayload as { error?: { message?: string } })?.error?.message || response.statusText
         }`
       );
     }
@@ -107,7 +107,7 @@ export async function fetchChatStream(
           
           // Check if this is an error response
           if ('error' in jsonData) {
-            const errorData = jsonData as any;
+            const errorData = jsonData as { error: { message?: string } };
             console.error(`[Stream ${streamId}] API Error:`, errorData.error);
             onError({
               streamId,
@@ -148,7 +148,6 @@ export async function fetchChatStream(
     const parser = createParser({ onEvent: onParse }); // Try 'onEvent' as the callback key
 
     // Read loop
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       // Check signal before reading - fetch might not throw immediately
       if (signal.aborted) {
@@ -173,8 +172,8 @@ export async function fetchChatStream(
       // Feed the chunk to the parser
       parser.feed(decoder.decode(value, { stream: true }));
     }
-  } catch (error: any) {
-    if (error.name === "AbortError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
       // console.log(`[Stream ${streamId}] Aborted.`);
       onAbort({ streamId });
       // Do not re-throw AbortError, let the promise resolve successfully
@@ -185,7 +184,7 @@ export async function fetchChatStream(
         `[Stream ${streamId}] Error during fetch or stream processing:`,
         error
       );
-      onError({ streamId, error });
+      onError({ streamId, error: error instanceof Error ? error : new Error(String(error)) });
       // Re-throw the error so the wrapping Effector effect rejects
       throw error;
     }

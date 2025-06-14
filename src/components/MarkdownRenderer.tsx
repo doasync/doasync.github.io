@@ -16,38 +16,23 @@ interface MarkdownRendererProps {
   content: string;
 }
 
-// Define a minimal interface for the props we use in the code component
-interface CustomCodeProps {
-  node?: any;
-  inline?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-  style?: React.CSSProperties;
-  // Include other props from ReactMarkdown's CodeProps if needed, like 'ref'
-  ref?: React.Ref<HTMLElement>;
-  [key: string]: any; // Allow other props
-}
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   // Removed the useEffect hook for manual Mermaid initialization
   // The @lightenna/react-mermaid-diagram component handles this internally.
   return (
     <ReactMarkdown
-      children={content}
       remarkPlugins={[remarkGfm, remarkMath]} // Removed remarkMermaid
       rehypePlugins={[rehypeKatex]} // Enable KaTeX rendering
       components={{
         // Custom renderer for code blocks using react-syntax-highlighter
         // Use the custom interface to guide type checking
-        code({
-          node,
+        code: ({
           inline,
           className,
           children,
-          style,
-          ref,
           ...props
-        }: CustomCodeProps) {
+        }: { inline?: boolean; className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
           const match = /language-(\w+)/.exec(className || "");
           const codeContent = String(children).replace(/\n$/, ""); // Remove trailing newline
 
@@ -66,7 +51,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
           return !inline && match ? (
             <Highlight
               code={codeContent}
-              language={match[1] as any}
+              language={match[1] as string}
               theme={themes.vsDark}
             >
               {({ className, style, tokens, getLineProps, getTokenProps }) => (
@@ -114,7 +99,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         // td: ({node, ...props}) => <TableCell align="left" {...props} />,
         // th: ({node, ...props}) => <TableCell align="left" component="th" scope="col" {...props} />,
       }}
-    />
+    >
+      {content}
+    </ReactMarkdown>
   );
 };
 

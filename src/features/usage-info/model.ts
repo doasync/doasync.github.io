@@ -5,13 +5,13 @@ import {
   sample,
   combine,
 } from "effector";
-import { $currentChatSession } from "@/features/chat-history";
+import { $currentChatSession, ChatSession } from "@/features/chat-history";
 import { $currentChatTokens } from "@/features/chat";
 import { navigatorStorageEstimate } from "./utils";
 import { calculateApiCost } from "./utils";
 
 interface UsageStatsParams {
-  chatSession: any; // Replace with ChatSession type if available
+  chatSession: ChatSession | null;
   totalTokens: number;
 }
 
@@ -62,10 +62,14 @@ export const calculateUsageStatsFx = createEffect(
     const contextTokensUsed = totalTokens;
     const contextTokensMax =
       chatSession?.settings?.model?.context_length ?? 1000000;
+    const pricing = chatSession?.settings?.model?.pricing;
     const apiCost = calculateApiCost(
       tokensSent,
       tokensReceived,
-      chatSession?.settings?.model?.pricing
+      pricing ? { 
+        prompt: typeof pricing.prompt === 'string' ? parseFloat(pricing.prompt) : (pricing.prompt || 0),
+        completion: typeof pricing.completion === 'string' ? parseFloat(pricing.completion) : (pricing.completion || 0)
+      } : undefined
     );
 
     return {
@@ -95,6 +99,10 @@ sample({
   source: combine({
     chatSession: $currentChatSession,
     totalTokens: $currentChatTokens,
+  }),
+  fn: ({ chatSession, totalTokens }): UsageStatsParams => ({
+    chatSession,
+    totalTokens,
   }),
   target: calculateUsageStatsFx,
 });

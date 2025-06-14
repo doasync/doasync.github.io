@@ -11,9 +11,7 @@ import {
   abortStream,
   StreamChatParams,
   StreamChunkPayload,
-  StreamCompletePayload,
   StreamErrorPayload,
-  StreamAbortPayload,
 } from "@/features/chat-stream";
 import {
   $apiKey,
@@ -22,7 +20,6 @@ import {
   $systemPrompt,
 } from "@/features/chat-settings/model";
 import {
-  $selectedModelId,
   $availableModels,
   $isModelSelectorActive,
 } from "@/features/models-select/model";

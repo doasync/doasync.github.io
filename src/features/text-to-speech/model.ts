@@ -2,7 +2,7 @@ import { createDomain, createEffect, sample, combine } from 'effector';
 import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
 import { spread } from 'patronum/spread';
-import { AudioFormat, TTSParams, TTSResponse, TTSState, VoiceOption, VoiceProvider, GeneratedAudio } from './types';
+import { AudioFormat, TTSParams, TTSResponse, VoiceOption, VoiceProvider, GeneratedAudio } from './types';
 import { generateSpeech, generateSpeechStream } from './api';
 
 const domain = createDomain('text-to-speech');

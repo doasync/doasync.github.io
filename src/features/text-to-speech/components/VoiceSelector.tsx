@@ -5,6 +5,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   MenuItem,
   Box,
   Chip,
@@ -39,7 +40,6 @@ interface VoiceSelectorProps {
   size?: 'small' | 'medium';
   showPreview?: boolean;
   showFavorites?: boolean;
-  filterByProvider?: string;
 }
 
 export function VoiceSelector({
@@ -47,7 +47,6 @@ export function VoiceSelector({
   size = 'medium',
   showPreview = true,
   showFavorites = true,
-  filterByProvider,
 }: VoiceSelectorProps) {
   const availableVoices = useUnit($availableVoices);
   const selectedVoice = useUnit($selectedVoice);
@@ -81,8 +80,8 @@ export function VoiceSelector({
     });
   }, [availableVoices, searchTerm, preferences.favoriteVoices]);
 
-  const handleVoiceChange = (event: any) => {
-    voiceSelected(event.target.value);
+  const handleVoiceChange = (event: SelectChangeEvent) => {
+    voiceSelected(event.target.value as string);
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +100,7 @@ export function VoiceSelector({
     favoriteVoiceToggled(voiceId);
   };
 
-  const getVoiceIcon = (voice: any) => {
+  const getVoiceIcon = (voice: { name: string; gender?: string }) => {
     const gender = voice.gender;
     const colors = {
       male: '#1976d2',

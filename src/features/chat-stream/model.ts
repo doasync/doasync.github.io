@@ -1,4 +1,4 @@
-import { createDomain, createEvent, Effect, Event } from "effector";
+import { createDomain, createEvent, Effect } from "effector";
 import { fetchChatStream } from "./api";
 import {
   StreamChatParams,

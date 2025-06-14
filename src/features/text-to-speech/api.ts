@@ -1,10 +1,10 @@
-import { TTSParams, TTSResponse, VoiceProvider } from "./types";
+import { TTSParams, TTSResponse, VoiceProvider, AudioFormat } from "./types";
 import { $apiKey, $providerApiUrl } from "../chat-settings/model";
 
 interface ProviderConfig {
   endpoint: string;
   headers: Record<string, string>;
-  body: (params: TTSParams) => Record<string, any>;
+  body: (params: TTSParams) => Record<string, unknown>;
   parseResponse: (response: Response) => Promise<TTSResponse>;
 }
 
@@ -300,6 +300,6 @@ async function generateSpeechWithChatCompletions(params: TTSParams): Promise<TTS
 
   return {
     audio: bytes.buffer,
-    format: audioFormat === 'pcm16' ? 'pcm' : audioFormat as any,
+    format: audioFormat === 'pcm16' ? 'pcm' : audioFormat as AudioFormat,
   };
 }

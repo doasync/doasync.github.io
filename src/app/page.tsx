@@ -23,7 +23,6 @@ import {
   $isMobileDrawerOpen,
   openMobileDrawer,
   $editingMessageId,
-  openModelInfoAlert,
   closeMobileDrawer,
 } from "@/features/ui-state";
 import { useUnit } from "effector-react";
@@ -37,16 +36,10 @@ import IconButton from "@mui/material/IconButton";
 import SubjectIcon from "@mui/icons-material/Subject";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import SendIcon from "@mui/icons-material/Send"; // Keep for reference if needed, but we'll use AutoAwesome
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import StopIcon from "@mui/icons-material/Stop"; // Use standard Stop icon
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"; // Import InfoOutlinedIcon
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import Stack from "@mui/material/Stack";
-import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import type { SnackbarCloseReason } from "@mui/material/Snackbar";
 import { generateResponseClicked } from "@/features/chat";
 
 // Import components
@@ -83,10 +76,8 @@ import {
 import { loadSettings } from "@/features/chat-settings"; // Import settings loader
 import {
   // $isSettingsDrawerOpen, // Use persistent store instead for desktop
-  openSettingsDrawer, // Keep for mobile?
   closeSettingsDrawer,
   toggleHistoryDrawer, // Use for persistent toggle
-  closeHistoryDrawer,
   // $isHistoryDrawerOpen, // Use persistent store instead for desktop
   $isHistoryDrawerPersistentOpen, // Import persistent state
   $isSettingsDrawerPersistentOpen, // Import persistent state
@@ -96,7 +87,6 @@ import { fetchModels } from "@/features/models-select"; // Import model fetch tr
 import {
   newChatCreated,
   $currentChatSession,
-  generateTitleFx,
   $chatHistoryIndex,
   $isLoadingHistory,
   chatSelected,
@@ -141,12 +131,12 @@ export default function HomePage() {
     $isSettingsDrawerPersistentOpen,
   ]);
 
-  const [currentChatSession, apiKey] = useUnit([$currentChatSession, $apiKey]);
+  useUnit([$currentChatSession, $apiKey]);
 
   const editingMessageId = useUnit($editingMessageId);
   const [isGenerating, apiError] = useUnit([$isGenerating, $apiError]);
   const preventScroll = useUnit($preventScroll); // Get scroll prevention state
-  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen); // Get scroll prevention state
+  useUnit($isMobileDrawerOpen);
 
   const [
     historyIndex,
@@ -214,7 +204,7 @@ export default function HomePage() {
 
   const clickNewChat = () => newChatCreated();
 
-  const clickRegenerateTitle = () => generateTitle();
+  useUnit([generateTitle]);
 
   const handleStartEdit = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -251,7 +241,7 @@ export default function HomePage() {
     event.preventDefault();
   };
 
-  const closeSettings = () => closeSettingsDrawer(); // Still needed for mobile?
+  useUnit([closeSettingsDrawer]);
 
   const changeMessage = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

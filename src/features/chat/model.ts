@@ -1,4 +1,4 @@
-import { sample, createDomain, createEvent } from "effector"; // Removed split
+import { sample, createDomain } from "effector"; // Removed split
 import { debug } from "patronum/debug";
 import { $apiKey, $providerApiUrl, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { 
@@ -13,9 +13,7 @@ import {
   abortStream,
   StreamChatParams,
   StreamChunkPayload,
-  StreamCompletePayload,
   StreamErrorPayload,
-  StreamAbortPayload,
 } from "@/features/chat-stream";
 
 import {
@@ -23,15 +21,8 @@ import {
   Attachment,
   MessageContentPart,
   TextContentPart,
-  ImageContentPart,
-  AudioContentPart,
   GeneratedImageContentPart,
-  RetryUpdatePayload, // Keep for now, might become obsolete
   MessageRetryInitiatedPayload, // Keep for spinner logic potentially
-  RequestContext, // Import the new context type
-  RequestContextNormal,
-  RequestContextGenerate,
-  RequestContextRetry,
   Role, // Import Role type
 } from "./types";
 import {
@@ -54,9 +45,7 @@ import {
 
 // Import document processing feature
 import { 
-  processDocumentsFx, 
-  $processingResults, 
-  $processingError
+  processDocumentsFx
 } from "@/features/document-processing";
 
 // --- Domain ---
@@ -109,7 +98,6 @@ export const filesSelected = chatDomain.event<File[]>("filesSelected");
 // Events for single pending message management
 const mergeFilesIntoPendingMessage = chatDomain.event<Message>("mergeFilesIntoPendingMessage");
 const clearActivePendingMessage = chatDomain.event<void>("clearActivePendingMessage");
-const finalizePendingMessage = chatDomain.event<void>("finalizePendingMessage");
 
 // Image generation events
 export const imageGenerationRequested = chatDomain.event<string>("imageGenerationRequested");
@@ -251,7 +239,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
     const documentFiles = files.filter(f => SUPPORTED_DOCUMENT_TYPES.includes(f.type));
     
     // Process document files and create a map for later lookup
-    const documentResultsMap = new Map<string, any>();
+    const documentResultsMap = new Map<string, unknown>();
     if (documentFiles.length > 0) {
       try {
         const documentResults = await processDocumentsFx(documentFiles);
@@ -293,7 +281,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
       // Handle document files (use pre-processed results)
       if (isDocument) {
         const resultKey = `${file.name}_${file.size}`;
-        const result = documentResultsMap.get(resultKey);
+        const result = documentResultsMap.get(resultKey) as import('@/features/document-processing/types').DocumentProcessingResult | undefined;
         
         if (!result) {
           console.warn(`Document processing result not found for: ${file.name}`);
@@ -396,7 +384,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
         const duration = await new Promise<number | undefined>((resolve) => {
           const audio = new Audio();
           let resolved = false;
-          let timeoutId: NodeJS.Timeout;
+          let timeoutId: NodeJS.Timeout | null = null;
           
           const cleanup = () => {
             if (timeoutId) clearTimeout(timeoutId);
@@ -474,7 +462,7 @@ const processFilesFx = chatDomain.effect<File[], Message>({
           type: "input_audio",
           input_audio: {
             data: dataUrl.split(',')[1], // Remove data URL prefix
-            format: format as any
+            format: format as 'wav' | 'mp3' | 'flac' | 'opus'
           }
         });
         
@@ -665,7 +653,7 @@ $messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
 });
 
 // Sync $messages when a generated image is added to pending message
-$messages.on(addGeneratedImageToChat, (messages, imageData) => {
+$messages.on(addGeneratedImageToChat, (messages) => {
   const activePending = $activePendingMultimodalMessage.getState();
   
   if (!activePending) {
@@ -1054,14 +1042,7 @@ $messages.on(bundledMessageCreated, (messages, { bundledMessage, pendingMediaIds
   return messages;
 });
 
-// Type for message bundling result
-type BundleResultNonNull = {
-  bundledMessage: Message | null;
-  pendingMediaIds: string[];
-  markAsSent: boolean;
-};
 
-type BundleResult = BundleResultNonNull | null;
 
 // Handle image generation commands separately
 sample({
@@ -1220,7 +1201,6 @@ sample({
       systemPrompt: string;
       selectedModelId: string;
     },
-    userMessage: Message // The user message that was just created and added
   ): StreamInitiatedWithTargetPayload => {
     // Corrected type
     const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =

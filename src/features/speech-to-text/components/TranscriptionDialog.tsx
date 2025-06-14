@@ -19,12 +19,9 @@ import {
   Tooltip,
   Chip,
   Typography,
-  FormControlLabel,
-  Switch,
   Card,
   CardContent,
   CardActions,
-  Divider,
   Stack,
 } from "@mui/material";
 import {
@@ -37,11 +34,9 @@ import {
   AudioFile as AudioFileIcon,
   Download as DownloadIcon,
 } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
 import { useUnit } from "effector-react";
 import {
   $sttState,
-  dialogOpened,
   dialogClosed,
   fileSelected,
   fileCleared,
@@ -50,17 +45,16 @@ import {
   promptChanged,
   responseFormatChanged,
   transcribeClicked,
-  copyTextClicked,
   generateMessageClicked,
   deleteResultClicked,
   clearError,
 } from "../model";
 import { RESPONSE_FORMAT_OPTIONS } from "../api";
+import { ResponseFormat } from "../types";
 
 export function TranscriptionDialog() {
-  const theme = useTheme();
   const state = useUnit($sttState);
-
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
 
   // Debug logging in development
   React.useEffect(() => {
@@ -72,7 +66,7 @@ export function TranscriptionDialog() {
         error: state.error,
       });
     }
-  }, [state.transcriptionResults, state.isLoading, state.error]);
+  }, [state.transcriptionResults, state.isLoading, state.error, audioUrl]);
 
   const handleClose = () => {
     dialogClosed();
@@ -127,7 +121,6 @@ export function TranscriptionDialog() {
     duration?: number;
     sampleRate?: number;
   } | null>(null);
-  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
 
   // Analyze audio file and create URL when selected
   React.useEffect(() => {
@@ -147,7 +140,7 @@ export function TranscriptionDialog() {
     const analyzeAudio = async () => {
       try {
         const audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
         const arrayBuffer = await state.file!.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
@@ -174,7 +167,7 @@ export function TranscriptionDialog() {
         URL.revokeObjectURL(url);
       }
     };
-  }, [state.file]);
+  }, [state.file, audioUrl]);
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -318,7 +311,7 @@ export function TranscriptionDialog() {
                 <Select
                   value={state.selectedModel}
                   label="Model"
-                  onChange={(e) => modelChanged(e.target.value)}
+                  onChange={(e) => modelChanged(e.target.value as string)}
                 >
                   {state.availableModels.map((model) => (
                     <MenuItem key={model.id} value={model.id}>
@@ -347,7 +340,7 @@ export function TranscriptionDialog() {
                 <Select
                   value={state.currentResponseFormat}
                   label="Response Format"
-                  onChange={(e) => responseFormatChanged(e.target.value as any)}
+                  onChange={(e) => responseFormatChanged(e.target.value as ResponseFormat)}
                 >
                   {RESPONSE_FORMAT_OPTIONS.filter((option) =>
                     state.currentModel?.supportedResponseFormats.includes(

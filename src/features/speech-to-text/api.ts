@@ -1,4 +1,4 @@
-import { STTParams, STTResponse, TranscribeParams, ResponseFormat, ResponseFormatOption, STTModel } from './types';
+import { STTResponse, TranscribeParams, ResponseFormatOption, STTModel } from './types';
 import { $apiKey, $providerApiUrl } from '../chat-settings/model';
 
 export async function transcribeAudio(params: TranscribeParams): Promise<STTResponse> {

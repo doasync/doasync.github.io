@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react"; // Import useRef
-import { EventPayload } from "effector"; // Import useRef
+import { useEffect, useRef } from "react";
 import { showMiniChatToolbar, hideMiniChatToolbar } from "./model";
 
 export function useMiniChatTextSelection() {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { showSnackbar } from "@/features/ui-state/snackbar";
-import { useLongPress, LongPressCallback } from "use-long-press";
+import { useLongPress } from "use-long-press";
 import { useUnit } from "effector-react";
 import {
   editMessage,
@@ -49,7 +49,6 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ReplayIcon from "@mui/icons-material/Replay";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CodeIcon from "@mui/icons-material/Code";
 import CheckIcon from "@mui/icons-material/Check";
@@ -57,11 +56,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
 import DownloadIcon from "@mui/icons-material/Download";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import DocumentIcon from "@mui/icons-material/Description";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import TranscribeIcon from "@mui/icons-material/TextFields";
-import ContentCopy from "@mui/icons-material/ContentCopy";
 import MarkdownRenderer from "./MarkdownRenderer";
 
 interface MessageItemProps {
@@ -105,44 +101,7 @@ const extractTextContent = (content: string | MessageContentPart[]): string => {
   return result.trim();
 };
 
-// Helper function to extract HTML content from multimodal content
-const extractHtmlContent = (content: string | MessageContentPart[]): string => {
-  if (typeof content === "string") {
-    return content;
-  }
 
-  let result = "";
-
-  // Extract text from text parts
-  const textParts = content.filter(
-    (part): part is TextContentPart => part.type === "text"
-  );
-  result += textParts.map((part) => part.text).join(" ");
-
-  // Extract HTML from document parts
-  const documentParts = content.filter(
-    (part): part is DocumentContentPart => part.type === "document"
-  );
-  if (documentParts.length > 0) {
-    result += documentParts
-      .map((part) => part.document.previewHtml || part.document.text)
-      .join("\n\n");
-  }
-
-  return result.trim();
-};
-
-// Helper function to get image parts from content
-const getImageParts = (
-  content: string | MessageContentPart[]
-): ImageContentPart[] => {
-  if (typeof content === "string") {
-    return [];
-  }
-  return content.filter(
-    (part): part is ImageContentPart => part.type === "image_url"
-  );
-};
 
 // Helper function to get audio parts from content
 const getAudioParts = (
@@ -168,17 +127,6 @@ const getGeneratedImageParts = (
   );
 };
 
-// Helper function to get document parts from content
-const getDocumentParts = (
-  content: string | MessageContentPart[]
-): DocumentContentPart[] => {
-  if (typeof content === "string") {
-    return [];
-  }
-  return content.filter(
-    (part): part is DocumentContentPart => part.type === "document"
-  );
-};
 
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
@@ -237,7 +185,7 @@ const openImageInNewTab = async (imageUrl: string) => {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      const newWindow = window.open(blobUrl, '_blank');
+      window.open(blobUrl, '_blank');
       
       // Clean up blob URL after a delay to allow the window to load
       setTimeout(() => {
@@ -284,14 +232,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isImageOnlyMessage =
     Array.isArray(message.content) &&
     message.content.every((part) => part.type === "image_url");
-  const isAudioOnlyMessage =
-    Array.isArray(message.content) &&
-    message.content.every((part) => part.type === "input_audio");
-  const isGeneratedImageOnlyMessage =
-    Array.isArray(message.content) &&
-    message.content.every((part) => part.type === "generated_image");
-  const isMediaOnlyMessage =
-    isImageOnlyMessage || isAudioOnlyMessage || isGeneratedImageOnlyMessage;
+  // const isAudioOnlyMessage =
+  //   Array.isArray(message.content) &&
+  //   message.content.every((part) => part.type === "input_audio");
+  // const isGeneratedImageOnlyMessage =
+  //   Array.isArray(message.content) &&
+  //   message.content.every((part) => part.type === "generated_image");
   const isPending = message.status === "pending";
   
   // Ephemeral Audio Data
@@ -405,17 +351,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     }
   };
 
-  const handleCopyTextClick = () => {
-    const textContent = extractTextContent(message.content);
-    if (textContent) {
-      navigator.clipboard
-        .writeText(textContent)
-        .then(() => console.log("Text copied to clipboard"))
-        .catch((err) => console.error("Failed to copy text: ", err));
-    } else {
-      console.error("No text content to copy");
-    }
-  };
 
   const handleCopyCodeClick = () => {
     const textContent = extractTextContent(message.content);
@@ -441,27 +376,27 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     // Skip this for now
     return;
 
-    if (!isEditing) return; // Only run when editing
+    // if (!isEditing) return; // Only run when editing
 
-    const handleClickOutside = (event: MouseEvent) => {
-      // Check if the click is outside the message item's DOM node
-      if (
-        messageItemRef.current &&
-        !messageItemRef.current.contains(event.target as Node)
-      ) {
-        // Confirm or Cancel based on whether text changed
-        handleEditConfirm(); // handleEditConfirm now checks if text changed internally
-      }
-    };
+    // const handleClickOutside = (event: MouseEvent) => {
+    //   // Check if the click is outside the message item's DOM node
+    //   if (
+    //     messageItemRef.current &&
+    //     !messageItemRef.current.contains(event.target as Node)
+    //   ) {
+    //     // Confirm or Cancel based on whether text changed
+    //     handleEditConfirm(); // handleEditConfirm now checks if text changed internally
+    //   }
+    // };
 
-    // Use mousedown to catch the click event early
-    document.addEventListener("mousedown", handleClickOutside);
-    // Cleanup the event listener on unmount or when isEditing/deps change
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-    // Dependencies: Ensure the effect re-runs if these change.
-  }, [isEditing, handleEditConfirm]); // Simplified dependencies as confirm handles logic
+    // // Use mousedown to catch the click event early
+    // document.addEventListener("mousedown", handleClickOutside);
+    // // Cleanup the event listener on unmount or when isEditing/deps change
+    // return () => {
+    //   document.removeEventListener("mousedown", handleClickOutside);
+    // };
+    // // Dependencies: Ensure the effect re-runs if these change.
+  }, []); // Simplified dependencies as confirm handles logic
 
   return (
     <Paper

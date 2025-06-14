@@ -1,7 +1,7 @@
 import { createDomain, sample } from "effector";
 import { debug } from "patronum/debug";
 import { persist } from "effector-storage/local";
-import { debounce } from "patronum/debounce";
+// import { debounce } from "patronum/debounce";
 import { buildModelsUrl } from "@/features/api-config";
 import { $providerApiUrl, $apiKey } from "@/features/chat-settings";
 
@@ -88,7 +88,7 @@ interface RawModelsApiResponse {
     };
     
     // Potentially other fields not in ModelInfo
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 }
 
@@ -381,14 +381,14 @@ const FREE_MODEL_PATTERNS = [
   "llama",
 ];
 
-const isFreeModel = (modelId: string, pricing?: any): boolean => {
+const isFreeModel = (modelId: string, pricing?: unknown): boolean => {
   const id = modelId.toLowerCase();
   
   // OpenRouter format: check actual pricing data
   if (pricing) {
     // If pricing exists, check if prompt and completion are both exactly "0"
-    const promptPrice = parseFloat(pricing.prompt || "0");
-    const completionPrice = parseFloat(pricing.completion || "0");
+    const promptPrice = parseFloat((pricing as { prompt?: string }).prompt || "0");
+    const completionPrice = parseFloat((pricing as { completion?: string }).completion || "0");
     
     // Only consider truly free models (exactly $0 for both prompt and completion)
     if (promptPrice === 0 && completionPrice === 0) {
@@ -404,7 +404,7 @@ const isFreeModel = (modelId: string, pricing?: any): boolean => {
 };
 
 // Helper function to detect if a model is a chat model (supports multiple API formats)
-const isChatModel = (model: any): boolean => {
+const isChatModel = (model: Record<string, unknown>): boolean => {
   // Must have an ID - this is the only required field
   if (!model.id) {
     return false;
@@ -421,14 +421,14 @@ const isChatModel = (model: any): boolean => {
   }
   
   // OpenRouter format: check architecture.modality
-  if (model.architecture?.modality) {
-    const modality = model.architecture.modality;
+  if ((model.architecture as { modality?: string })?.modality) {
+    const modality = (model.architecture as { modality: string }).modality;
     // Chat models in OpenRouter have text output and can take text (and optionally images) as input
     return modality === "text->text" || modality === "text+image->text";
   }
   
   // Fallback: if no explicit indicators, exclude obvious non-chat types
-  const id = model.id.toLowerCase();
+  const id = (model.id as string).toLowerCase();
   
   // Exclude known non-chat model types
   if (id.includes('dall-e') || id.includes('midjourney') || id.includes('stable-diffusion') || 
@@ -687,10 +687,10 @@ sample({
 });
 
 // Optional: Auto-test URL when it changes (debounced to avoid spam)
-const debouncedProviderApiUrl = debounce({
-  source: $providerApiUrl,
-  timeout: 2000, // 2 second delay after user stops typing
-});
+// const debouncedProviderApiUrl = debounce({
+//   source: $providerApiUrl,
+//   timeout: 2000, // 2 second delay after user stops typing
+// });
 
 // Uncomment the next block if you want automatic URL testing on change
 // sample({

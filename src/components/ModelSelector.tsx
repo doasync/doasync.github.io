@@ -6,15 +6,13 @@ import {
   Autocomplete, // Added Autocomplete
   TextField,
   Box,
-  Typography,
-  CircularProgress,
   Tooltip,
   IconButton,
 } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-import { styled, lighten, darken, padding } from "@mui/system";
+import { styled, lighten, darken } from "@mui/system";
 import { openModelInfoAlert } from "@/features/ui-state";
 import {
   $availableModels,
@@ -25,7 +23,6 @@ import {
   modelSelected,
   ModelInfo,
   fetchModels,
-  $showFreeOnly,
   modelSelectorFocused, // Import the new event
 } from "@/features/models-select";
 
@@ -57,7 +54,6 @@ export const ModelSelector: React.FC = () => {
     error,
     handleModelSelect,
     retryFetch,
-    showFreeOnly,
   } = useUnit({
     allModels: $availableModels, // Keep all models for selected model info
     models: $filteredModels, // Use filtered models for the dropdown
@@ -66,7 +62,6 @@ export const ModelSelector: React.FC = () => {
     error: $modelsError,
     handleModelSelect: modelSelected,
     retryFetch: fetchModels,
-    showFreeOnly: $showFreeOnly,
   });
 
   const [autocompleteOpen, setAutocompleteOpen] = useState(false); // State for Autocomplete dropdown
@@ -79,14 +74,6 @@ export const ModelSelector: React.FC = () => {
       handleModelSelect(newValue.id);
     }
   };
-
-  const selectedModelName = useMemo(() => {
-    const model = allModels.find((m) => m.id === selectedModelId);
-    // TODO: Why is there no model.name?
-    return model && model.name
-      ? model.name.replace(/^[^:]+:\s*/, "")
-      : selectedModelId;
-  }, [allModels, selectedModelId]);
 
   const selectedModel: ModelInfo | undefined = useMemo(() => {
     return allModels.find((m) => m.id === selectedModelId);

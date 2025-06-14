@@ -1,5 +1,4 @@
-import { sample } from "effector";
-import { createDomain, createEffect, createEvent, createStore } from "effector"; // Added createEffect, createStore
+import { sample, createDomain, createEffect } from "effector";
 import { debug } from "patronum/debug";
 import { chatSelected, newChatCreated } from "@/features/chat-history"; // Import chat history events
 import { appStarted } from "@/app"; // Import app started event
@@ -50,7 +49,7 @@ export const closeModelInfoAlert = uiDomain.event<void>("closeModelInfoAlert");
 // export const setPreventScroll = uiDomain.event<boolean>("setPreventScroll");
 
 // --- Effects ---
-const loadUiSettingsFx = uiDomain.effect<
+const loadUiSettingsFx = createEffect<
   void,
   { historyOpen: boolean; settingsOpen: boolean },
   Error
@@ -70,7 +69,7 @@ const loadUiSettingsFx = uiDomain.effect<
   },
 });
 
-const saveHistoryDrawerStateFx = uiDomain.effect<boolean, void, Error>({
+const saveHistoryDrawerStateFx = createEffect<boolean, void, Error>({
   name: "saveHistoryDrawerStateFx",
   handler: async (isOpen) => {
     try {
@@ -84,7 +83,7 @@ const saveHistoryDrawerStateFx = uiDomain.effect<boolean, void, Error>({
   },
 });
 
-const saveSettingsDrawerStateFx = uiDomain.effect<boolean, void, Error>({
+const saveSettingsDrawerStateFx = createEffect<boolean, void, Error>({
   name: "saveSettingsDrawerStateFx",
   handler: async (isOpen) => {
     try {

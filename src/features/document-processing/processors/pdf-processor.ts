@@ -47,7 +47,7 @@ export class PDFProcessor implements DocumentProcessor {
       
       // Extract plain text for backward compatibility
       const pageText = textContent.items
-        .map((item: any) => item.str)
+        .map((item: unknown) => ('str' in (item as object) ? (item as { str: string }).str : ''))
         .join(' ');
       
       pageTexts.push(pageText);
@@ -184,7 +184,7 @@ export class PDFProcessor implements DocumentProcessor {
     lines.sort((a, b) => a[0].y - b[0].y);
 
     // Convert each line to HTML with simplified approach
-    const htmlLines = lines.map((line, lineIndex) => {
+    const htmlLines = lines.map((line) => {
       // Sort items in line by X position (left to right)
       line.sort((a, b) => a.transform[4] - b.transform[4]);
       

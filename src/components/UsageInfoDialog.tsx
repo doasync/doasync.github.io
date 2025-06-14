@@ -6,16 +6,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Typography,
-  LinearProgress,
-  Box,
-  Stack,
 } from "@mui/material";
-import { useUnit } from "effector-react";
-import {
-  $usageStats,
-  $contextWindowPercent,
-} from "@/features/usage-info/model";
 
 interface UsageInfoDialogProps {
   open: boolean;
@@ -26,8 +17,6 @@ export const UsageInfoDialog: React.FC<UsageInfoDialogProps> = ({
   open,
   onClose,
 }) => {
-  const usage = useUnit($usageStats);
-  const contextPercent = useUnit($contextWindowPercent);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>

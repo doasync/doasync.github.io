@@ -23,7 +23,6 @@ export interface EphemeralTranscriptProps {
 }
 
 export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
-  messageId,
   transcriptData,
   onError,
 }) => {

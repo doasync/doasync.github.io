@@ -7,7 +7,6 @@ import {
   Divider,
   Stack,
   Toolbar,
-  Paper,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";

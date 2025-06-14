@@ -1,7 +1,7 @@
 import { createDomain, createEffect, sample, combine } from 'effector';
 import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
-import { VoiceModel, VoiceModelsState, VoicePreferences, VoiceInfo } from './types';
+import { VoiceModel, VoicePreferences, VoiceInfo } from './types';
 import voicesConfig from './config/voices.json';
 import modelsConfig from './config/models.json';
 

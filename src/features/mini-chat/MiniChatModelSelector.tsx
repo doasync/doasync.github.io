@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useUnit } from "effector-react";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import {
   $availableModels,
   $isLoadingModels, // Corrected import name
@@ -53,7 +52,7 @@ export const MiniChatModelSelector: React.FC = () => {
   };
 
   const handleChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     newValue: ModelInfo | null
   ) => {
     if (newValue) {

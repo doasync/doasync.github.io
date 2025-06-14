@@ -177,7 +177,7 @@ export const generateTitleHandler = async ({
     try {
       const errorBody = await response.json();
       errorMsg = `Title Generation API Error (${response.status}): ${errorBody.error.message}`;
-    } catch (e) {
+    } catch {
       /* Ignore JSON parsing error */
     }
     throw new Error(errorMsg);
@@ -250,7 +250,6 @@ export const updateIndexOnTitleEditFn = (
 export const prepareChatSessionFn = ({
   currentSession,
   messages,
-  model,
   temperature,
   systemPrompt,
   tokens,

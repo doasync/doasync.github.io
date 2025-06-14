@@ -8,7 +8,7 @@
  * - Be persisted beyond the current session
  */
 
-import { createStore, createEvent, createEffect, sample, createDomain } from 'effector';
+import { createEffect, sample, createDomain } from 'effector';
 import { debug } from 'patronum/debug';
 import { persist } from 'effector-storage/local';
 import type { 
@@ -452,80 +452,72 @@ sample({
 });
 
 // Update ephemeral store for successful completion
-sample({
-  clock: audioGenerationCompleted,
-  source: $ephemeralMessageData,
-  fn: (ephemeralData, { messageId, audioUrl, voice }) => ({
-    ...ephemeralData,
-    [messageId]: {
-      ...ephemeralData[messageId],
-      audio: {
-        ...ephemeralData[messageId]?.audio!,
-        url: audioUrl,
-        isLoading: false,
-        voice,
-        timestamp: Date.now(),
-      },
+$ephemeralMessageData.on(audioGenerationCompleted, (ephemeralData, { messageId, audioUrl, voice }) => ({
+  ...ephemeralData,
+  [messageId]: {
+    ...(ephemeralData[messageId] || {}),
+    audio: {
+      ...(ephemeralData[messageId]?.audio || {}),
+      url: audioUrl,
+      isLoading: false,
+      isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
+      model: ephemeralData[messageId]?.audio?.model ?? '',
+      voice,
+      timestamp: Date.now(),
     },
-  }),
-  target: $ephemeralMessageData,
-});
+  },
+}));
 
-sample({
-  clock: transcriptionCompleted,
-  source: $ephemeralMessageData,
-  fn: (ephemeralData, { messageId, transcript, format }) => ({
-    ...ephemeralData,
-    [messageId]: {
-      ...ephemeralData[messageId],
-      transcript: {
-        ...ephemeralData[messageId]?.transcript!,
-        text: transcript,
-        isLoading: false,
-        format,
-        timestamp: Date.now(),
-      },
+$ephemeralMessageData.on(transcriptionCompleted, (ephemeralData, { messageId, transcript, format }) => ({
+  ...ephemeralData,
+  [messageId]: {
+    ...(ephemeralData[messageId] || {}),
+    transcript: {
+      ...(ephemeralData[messageId]?.transcript || {}),
+      text: transcript,
+      isLoading: false,
+      isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
+      model: ephemeralData[messageId]?.transcript?.model ?? '',
+      format,
+      timestamp: Date.now(),
     },
-  }),
-  target: $ephemeralMessageData,
-});
+  },
+}));
 
 // Update ephemeral store for failures
-sample({
-  clock: audioGenerationFailed,
-  source: $ephemeralMessageData,
-  fn: (ephemeralData, { messageId, error }) => ({
-    ...ephemeralData,
-    [messageId]: {
-      ...ephemeralData[messageId],
-      audio: {
-        ...ephemeralData[messageId]?.audio!,
-        isLoading: false,
-        error,
-        timestamp: Date.now(),
-      },
+$ephemeralMessageData.on(audioGenerationFailed, (ephemeralData, { messageId, error }) => ({
+  ...ephemeralData,
+  [messageId]: {
+    ...(ephemeralData[messageId] || {}),
+    audio: {
+      ...(ephemeralData[messageId]?.audio || {}),
+      url: ephemeralData[messageId]?.audio?.url ?? '',
+      isLoading: false,
+      isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
+      model: ephemeralData[messageId]?.audio?.model ?? '',
+      voice: ephemeralData[messageId]?.audio?.voice ?? '',
+      error,
+      timestamp: Date.now(),
     },
-  }),
-  target: $ephemeralMessageData,
-});
+  },
+}));
 
-sample({
-  clock: transcriptionFailed,
-  source: $ephemeralMessageData,
-  fn: (ephemeralData, { messageId, error }) => ({
-    ...ephemeralData,
-    [messageId]: {
-      ...ephemeralData[messageId],
-      transcript: {
-        ...ephemeralData[messageId]?.transcript!,
-        isLoading: false,
-        error,
-        timestamp: Date.now(),
-      },
+$ephemeralMessageData.on(transcriptionFailed, (ephemeralData, { messageId, error }) => ({
+  ...ephemeralData,
+  [messageId]: {
+    ...(ephemeralData[messageId] || {}),
+    transcript: {
+      ...(ephemeralData[messageId]?.transcript || {}),
+      text: ephemeralData[messageId]?.transcript?.text ?? '',
+      isLoading: false,
+      isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
+      model: ephemeralData[messageId]?.transcript?.model ?? '',
+      format: ephemeralData[messageId]?.transcript?.format ?? '',
+      error,
+      timestamp: Date.now(),
     },
-  }),
-  target: $ephemeralMessageData,
-});
+  },
+}));
 
 // Clear ephemeral data
 sample({

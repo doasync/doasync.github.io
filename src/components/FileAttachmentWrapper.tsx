@@ -17,10 +17,7 @@ import {
   Image as ImageIcon,
   AudioFile as AudioIcon,
   AutoAwesome as GeneratedIcon,
-  ContentCopy,
   Delete as DeleteIcon,
-  Download as DownloadIcon,
-  Fullscreen as FullscreenIcon,
 } from '@mui/icons-material';
 
 export interface FileAttachmentAction {
@@ -47,12 +44,6 @@ const FILE_TYPE_ICONS = {
   generated_image: GeneratedIcon,
 };
 
-const FILE_TYPE_LABELS = {
-  image: 'Image',
-  audio: 'Audio',
-  document: 'Document', 
-  generated_image: 'Generated Image',
-};
 
 export const FileAttachmentWrapper: React.FC<FileAttachmentWrapperProps> = ({
   type,
@@ -65,7 +56,6 @@ export const FileAttachmentWrapper: React.FC<FileAttachmentWrapperProps> = ({
 }) => {
   const theme = useTheme();
   const IconComponent = FILE_TYPE_ICONS[type];
-  const typeLabel = FILE_TYPE_LABELS[type];
 
   // Always include delete button if onDelete is provided
   const allActions: FileAttachmentAction[] = [

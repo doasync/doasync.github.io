@@ -17,7 +17,6 @@ export interface EphemeralAudioPlayerProps {
 }
 
 export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
-  messageId,
   audioData,
   onError,
 }) => {

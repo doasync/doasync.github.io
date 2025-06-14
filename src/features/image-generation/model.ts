@@ -1,7 +1,6 @@
 import { createDomain, sample, combine } from "effector";
 import { debug } from "patronum/debug";
 import { persist } from "effector-storage/local";
-import { spread } from "patronum/spread";
 import { $apiKey, $providerApiUrl } from "@/features/chat-settings";
 import { buildImageGenerationsUrl } from "@/features/api-config";
 import { 
@@ -276,7 +275,7 @@ export const generateImageFx = imageGenerationDomain.effect<
     }
 
     // Prepare request body
-    const requestBody: any = {
+    const requestBody: Record<string, unknown> = {
       model: params.model,
       prompt: params.prompt,
       n: params.n || 1,
@@ -512,7 +511,7 @@ sample({
 sample({
   clock: generateImageFx,
   fn: (params) => ({
-    id: (params as any).requestId || 'unknown',
+    id: (params as ImageGenerationParams & { requestId?: string }).requestId || 'unknown',
     status: 'generating' as ImageGenerationStatus,
   }),
   target: imageGenerationUpdated,

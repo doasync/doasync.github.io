@@ -16,13 +16,11 @@ import {
   ListItemButton,
   ListItemText,
   CircularProgress,
-  Tooltip,
   Menu,
   MenuItem,
   ListItemIcon,
   Toolbar,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
 import SubjectIcon from "@mui/icons-material/Subject"; // Import icon for desktop close
 import AddCircleIcon from "@mui/icons-material/AddCircle"; // Import icon for desktop close
 import SearchIcon from "@mui/icons-material/Search";

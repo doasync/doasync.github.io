@@ -1,5 +1,5 @@
 // Extended types for audio message support
-import { Message, AudioContentPart, MessageContentPart } from './types';
+import { Message, MessageContentPart } from './types';
 
 // Extended audio content part with playback data
 export interface AudioContentPartExtended {
@@ -41,12 +41,12 @@ export interface AudioMessage extends Omit<Message, 'content'> {
 }
 
 // Helper type guards
-export function isAudioInputPart(part: any): part is AudioContentPartExtended {
-  return part?.type === 'input_audio';
+export function isAudioInputPart(part: unknown): part is AudioContentPartExtended {
+  return typeof part === 'object' && part !== null && 'type' in part && (part as { type: unknown }).type === 'input_audio';
 }
 
-export function isAudioOutputPart(part: any): part is AudioOutputPart {
-  return part?.type === 'output_audio';
+export function isAudioOutputPart(part: unknown): part is AudioOutputPart {
+  return typeof part === 'object' && part !== null && 'type' in part && (part as { type: unknown }).type === 'output_audio';
 }
 
 export function hasAudioContent(message: Message | AudioMessage): boolean {
@@ -67,7 +67,7 @@ export async function createAudioContentPart(
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   
   // Detect format from MIME type
-  const format = blob.type.replace('audio/', '') as any;
+  const format = blob.type.replace('audio/', '') as 'wav' | 'mp3' | 'flac' | 'opus';
   
   return {
     type: 'input_audio',

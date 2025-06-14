@@ -1,4 +1,4 @@
-import { createDomain, createStore, sample } from "effector";
+import { createDomain, sample } from "effector";
 import { debug } from "patronum/debug";
 import { debounce } from "patronum/debounce";
 import { persist } from "effector-storage/local";
@@ -15,7 +15,7 @@ import {
 } from "@/features/chat";
 import { $apiKey, $providerApiUrl, $temperature, $systemPrompt } from "@/features/chat-settings";
 import { $autoTitleModelId } from "@/features/models-select/model";
-import { $availableModels, ModelInfo } from "@/features/models-select";
+import { $availableModels } from "@/features/models-select";
 import { $selectedModelId } from "@/features/models-select";
 import { modelSelected } from "@/features/models-select";
 import {
@@ -404,7 +404,7 @@ sample({
 sample({
   clock: loadSpecificChatFx.doneData,
   filter: isChatSession,
-  fn: (chat) => $selectedModelId.getState(),
+  fn: () => $selectedModelId.getState(),
   target: $selectedModelId,
 });
 

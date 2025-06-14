@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useUnit } from "effector-react";
 import {
   Dialog,
@@ -13,7 +13,6 @@ import {
   MenuItem,
   Typography,
   Box,
-  Chip,
   Alert,
   LinearProgress,
   CircularProgress,
@@ -73,7 +72,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
 
   const handleSettingChange = (
     key: keyof typeof state.settings,
-    value: any
+    value: string | number
   ) => {
     updateImageGenSettings({ [key]: value });
   };
@@ -111,7 +110,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
     removeGeneratedImage(imageId);
   };
 
-  const openImageInNewTab = (imageUrl: string, image?: any) => {
+  const openImageInNewTab = (imageUrl: string) => {
     // If it's a data URL (base64), convert to blob URL for better browser support
     if (imageUrl.startsWith("data:")) {
       try {
@@ -162,7 +161,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
         if (isAzureBlobUrl) {
           // For Azure blob URLs (DALL-E), try with no-cors mode or use proxy approach
           try {
-            const response = await fetch(imageUrl, { mode: 'no-cors' });
+            await fetch(imageUrl, { mode: 'no-cors' });
             // no-cors mode doesn't allow reading the response, so we fall back to iframe download
             throw new Error("CORS restricted, using alternative method");
           } catch {
@@ -217,7 +216,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
         // Try to add some instruction in the new window (may not work due to CORS)
         try {
           newWindow.document.title = `Right-click and "Save image as..." to download ${fileName}`;
-        } catch (e) {
+        } catch {
           // Ignore if we can't modify the new window
         }
       }
@@ -269,7 +268,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
               onChange={(e) => handleModelChange(e.target.value)}
               label="Image Generation Model"
             >
-              {state.availableModels.map((model: any) => (
+              {state.availableModels.map((model) => (
                 <MenuItem key={model.id} value={model.id}>
                   <Box
                     sx={{
@@ -475,11 +474,11 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                           color="text.secondary"
                           noWrap
                         >
-                          "
+                          &quot;
                           {image.prompt.length > 80
                             ? image.prompt.substring(0, 80) + "..."
                             : image.prompt}
-                          "
+                          &quot;
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {image.model} • {image.parameters?.size} •{" "}

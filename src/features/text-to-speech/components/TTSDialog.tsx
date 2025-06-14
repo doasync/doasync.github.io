@@ -10,6 +10,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   MenuItem,
   Button,
   Box,
@@ -39,8 +40,6 @@ import {
   instructionsChanged,
   generateTTSClicked,
   generateTTSStreamClicked,
-  downloadRequested,
-  previewRequested,
   clearError,
   ttsDialogClosed,
   ttsDialogOpened,
@@ -48,7 +47,6 @@ import {
   $isStreaming,
 } from '../model';
 import { $ttsModels, loadVoiceModels } from '../../voice-models';
-import { $selectedModelInfo } from '../../models-select';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 
@@ -82,10 +80,9 @@ interface TTSDialogProps {
 
 interface AudioGenerationItemProps {
   audio: GeneratedAudio;
-  index: number;
 }
 
-function AudioGenerationItem({ audio, index }: AudioGenerationItemProps) {
+function AudioGenerationItem({ audio }: AudioGenerationItemProps) {
   const theme = useTheme();
   
   // Format the timestamp
@@ -177,7 +174,7 @@ function AudioGenerationItem({ audio, index }: AudioGenerationItemProps) {
           border: `1px solid ${theme.palette.divider}`,
         }}
       >
-        "{truncateText(audio.text, 100)}"
+        &quot;{truncateText(audio.text, 100)}&quot;
       </Typography>
 
       {/* Native audio player */}
@@ -200,7 +197,6 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
   const generatedAudios = useUnit($generatedAudios);
   const { availableVoices } = ttsState;
   const ttsModels = useUnit($ttsModels);
-  const selectedModelInfo = useUnit($selectedModelInfo);
   const isStreaming = useUnit($isStreaming);
   const supportedFormats = useUnit($supportedFormats);
   
@@ -224,16 +220,16 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
     textChanged(text);
   };
 
-  const handleVoiceChange = (event: any) => {
-    voiceSelected(event.target.value);
+  const handleVoiceChange = (event: SelectChangeEvent) => {
+    voiceSelected(event.target.value as string);
   };
 
-  const handleFormatChange = (event: any) => {
-    formatSelected(event.target.value);
+  const handleFormatChange = (event: SelectChangeEvent) => {
+    formatSelected(event.target.value as AudioFormat);
   };
 
-  const handleModelChange = (event: any) => {
-    modelSelected(event.target.value);
+  const handleModelChange = (event: SelectChangeEvent) => {
+    modelSelected(event.target.value as string);
   };
 
   const handleGenerate = () => {
@@ -398,8 +394,8 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
               </Typography>
               
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 400, overflowY: 'auto' }}>
-                {generatedAudios.map((audio, index) => (
-                  <AudioGenerationItem key={audio.id} audio={audio} index={generatedAudios.length - index - 1} />
+                {generatedAudios.map((audio) => (
+                  <AudioGenerationItem key={audio.id} audio={audio} />
                 ))}
               </Box>
             </Box>

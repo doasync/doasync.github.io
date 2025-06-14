@@ -15,7 +15,6 @@ import {
   Toolbar,
   Divider,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close"; // Keep for mobile? Or remove if not needed
 import SettingsIcon from "@mui/icons-material/Settings";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -58,7 +57,6 @@ const ChatSettingsPanel: React.FC<ChatSettingsPanelProps> = ({
   showApiKey,
   temperature,
   systemPrompt,
-  currentChatTokens,
   handleApiKeyChange,
   handleProviderApiUrlChange,
   handleSystemPromptChange,

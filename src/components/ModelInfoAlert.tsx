@@ -6,8 +6,6 @@ import {
   Tooltip,
   Divider,
   Stack,
-  Toolbar,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,7 +15,6 @@ import {
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import { ModelInfo } from "../features/models-select";
-import { $isMobileDrawerOpen } from "@/features/ui-state";
 import { useUnit } from "effector-react";
 import {
   $isModelInfoAlertOpen,
@@ -28,9 +25,7 @@ interface ModelInfoAlertProps {
 }
 
 const ModelInfoAlert: React.FC<ModelInfoAlertProps> = ({ model }) => {
-  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen); // Get scroll prevention state
-  const isModelInfoDrawerOpen = useUnit($isModelInfoAlertOpen); // Get scroll prevention state
-  const isModelInfoAlertOpen = useUnit($isModelInfoAlertOpen); // Get scroll prevention state
+  const isModelInfoAlertOpen = useUnit($isModelInfoAlertOpen);
 
   const isFree =
     model.pricing?.prompt === "0" && model.pricing?.completion === "0";

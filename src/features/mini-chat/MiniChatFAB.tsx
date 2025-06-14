@@ -1,5 +1,5 @@
 import React from "react";
-import { Fab, Box } from "@mui/material";
+import { Fab } from "@mui/material";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { useUnit } from "effector-react";
 import { $miniChat, restoreMiniChat } from "./model";

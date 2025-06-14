@@ -1,4 +1,4 @@
-import { createDomain, createEffect, sample, combine, createEvent, createStore } from 'effector';
+import { createDomain, createEffect, sample, combine, createEvent } from 'effector';
 import { debug } from 'patronum/debug';
 import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult, ResponseFormat } from './types';
 import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
@@ -358,9 +358,9 @@ export const $sttProgress = domain.createStore<number>(0);
 export const $sttResult = domain.createStore<string | null>(null);
 export const $sttLanguage = domain.createStore<string | null>(null);
 export const $sttProvider = domain.createStore<'voidai' | 'openai' | 'gemini'>('voidai');
-export const $sttSegments = domain.createStore<any[]>([]);
+export const $sttSegments = domain.createStore<unknown[]>([]);
 
-// Legacy events
+// Legacy events (kept for backward compatibility)
 export const audioFileDropped = fileSelected;
 export const transcriptionStarted = transcribeClicked;
 export const progressUpdated = createEvent<number>();

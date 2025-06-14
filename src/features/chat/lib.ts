@@ -2,7 +2,6 @@
 import {
   Message,
   MessageContentPart,
-  GeneratedImageContentPart,
   // CalculatedRetryUpdatePayload, // No longer used as calculateRetryUpdatePayloadFn is removed
   MessageRetryInitiatedPayload,
   // RequestContext, // No longer used directly in this file

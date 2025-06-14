@@ -6,11 +6,7 @@ import {
   Stack,
   Typography,
   TextField,
-  Button,
-  CircularProgress,
   IconButton,
-  OutlinedInput,
-  InputAdornment,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
