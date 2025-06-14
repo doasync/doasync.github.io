@@ -1,0 +1,3242 @@
+# VoidAI Docs | VoidAI Docs
+Comprehensive API documentation
+
+Access powerful AI models through a simple, OpenAI-compatible API. Generate text, translate speech, and more with just a few lines of code.
+
+### OpenAI Compatible
+
+Our API is fully compatible with OpenAI's SDK. Just set your API key and base URL, and you're ready to go.
+
+### Powerful AI Models
+
+Access cutting-edge language models, speech-to-text capabilities, and more through a simple and intuitive API.
+
+### Developer-Friendly
+
+Clear documentation, code examples, and responsive support makes integrating VoidAI into your applications smooth and straightforward.
+
+Ready to get started?
+---------------------
+
+Sign up for VoidAI today and start building with our powerful AI models.
+
+---
+
+Base url: https://api.voidai.app/v1/
+
+---
+
+# Available Models | VoidAI Docs
+  Available Models | VoidAI Docs  
+
+[Skip to main content](#__docusaurus_skipToContent_fallback)
+
+[**VoidAI Docs**](https://docs.voidai.app/)
+[Documentation](/docs/intro)
+
+[Main Website](https://voidai.app)
+
+*   [API Docs](https://docs.voidai.app/docs/intro)
+*   [Available Models](https://docs.voidai.app/docs/models)
+*   [Generation](https://docs.voidai.app/docs/text-generation)
+    
+*   [Speech](https://docs.voidai.app/docs/text-to-speech)
+    
+*   [Rate limits and Pricing](https://docs.voidai.app/docs/rate-limits-and-pricing)
+*   [Create a Key](https://docs.voidai.app/docs/create-a-key)
+
+*   [](https://docs.voidai.app/)
+*   Available Models
+
+On this page
+
+Available Models
+================
+
+VoidAI provides access to a wide range of AI models from various providers. This page lists all currently available models organized by provider and type.
+
+OpenAI Models[​](#openai-models "Direct link to OpenAI Models")
+---------------------------------------------------------------
+
+### Chat Completion Models[​](#chat-completion-models "Direct link to Chat Completion Models")
+
+*   **O Series**
+    
+    *   `o4-mini`, `o4-mini-high`, `o4-mini-medium`, `o4-mini-low`
+    *   `o3-high`, `o3-medium`, `o3-low`, `o3`, `o3-mini`, `o3-mini-high`, `o3-mini-low`
+    *   `o1`, `o1-preview`, `o1-mini`
+*   **GPT-4o Series**
+    
+    *   `gpt-4o` (latest stable)
+    *   `gpt-4o-2024-08-06`, `gpt-4o-2024-11-20` (dated versions)
+    *   `gpt-4o-mini`, `gpt-4o-mini-2024-07-18` (mini variants)
+    *   `chatgpt-4o-latest` (alias for the latest version)
+    *   `gpt-4o-search-preview-2025-03-11`, `gpt-4o-mini-search-preview-2025-03-11` (search preview)
+*   **GPT-4 Series**
+    
+    *   `gpt-4.5-preview`
+    *   `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`
+    *   `gpt-4-turbo`, `gpt-4-turbo-preview`
+    *   `gpt-4-0125-preview`, `gpt-4-1106-preview`, `gpt-4-1106-vision-preview`
+    *   `gpt-4`, `gpt-4-32k`, `gpt-4-32k-0314`, `gpt-4-32k-0613`
+*   **GPT-3.5 Series**
+    
+    *   `gpt-3.5-turbo`, `gpt-3.5-turbo-16k-0613`
+
+### Audio Models[​](#audio-models "Direct link to Audio Models")
+
+*   **Audio Chat Models**
+    
+    *   `gpt-4o-audio-preview`, `gpt-4o-audio-preview-2024-12-17`
+*   **Text-to-Speech Models**
+    
+    *   `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`
+*   **Speech-to-Text Models**
+    
+    *   `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`
+
+### Image Generation Models[​](#image-generation-models "Direct link to Image Generation Models")
+
+*   `gpt-image-1`, `dall-e-3`, `dall-e-2`
+
+### Moderation Models[​](#moderation-models "Direct link to Moderation Models")
+
+*   `omni-moderation-latest` - Advanced moderation model supporting both text and image inputs
+*   `text-moderation-latest` - Legacy text-only moderation model
+*   `text-moderation-stable` - Stable version of the legacy text-only moderation model
+
+Anthropic Models[​](#anthropic-models "Direct link to Anthropic Models")
+------------------------------------------------------------------------
+
+### Claude Models[​](#claude-models "Direct link to Claude Models")
+
+*   **Claude 3.7 Series**
+    
+    *   `claude-3-7-sonnet-20250219`, `claude-3-7-sonnet-20250219-thinking`
+*   **Claude 3.5 Series**
+    
+    *   `claude-3-5-sonnet-20241022`, `claude-3-5-sonnet-20240620`, `claude-3-5-haiku-20241022`
+*   **Claude 3 Series**
+    
+    *   `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
+*   **Legacy Models**
+    
+    *   `claude-2`
+
+Google Models[​](#google-models "Direct link to Google Models")
+---------------------------------------------------------------
+
+### Gemini Models[​](#gemini-models "Direct link to Gemini Models")
+
+*   **Gemini 2.5 Series**
+    
+    *   `gemini-2.5-pro-preview-03-25`, `gemini-2.5-pro-preview-05-06`
+    *   `gemini-2.5-flash-preview-04-17`
+*   **Gemini 2.0 Series**
+    
+    *   `gemini-2.0-flash`, `gemini-2.0-flash-lite-preview-02-05`
+    *   `gemini-2.0-pro-exp-02-05`, `gemini-2.0-flash-thinking-exp-01-21`
+    *   `gemini-2.0-flash-exp`
+*   **Gemini 1.5 Series**
+    
+    *   `gemini-1.5-pro`, `gemini-1.5-pro-latest`
+    *   `gemini-1.5-flash`, `gemini-1.5-flash-latest`
+    *   `gemini-1.5-flash-8b`, `gemini-1.5-flash-8b-latest`
+*   **Experimental Models**
+    
+    *   `gemini-exp-1114`, `gemini-exp-1121`, `gemini-exp-1206`
+    *   `learnlm-1.5-pro-experimental`
+    *   `gemini-pro-latest`
+
+### Image Generation Models[​](#image-generation-models-1 "Direct link to Image Generation Models")
+
+*   `imagen-3.0-generate-001`, `imagen-3.0-fast-generate-001`
+
+Mistral AI Models[​](#mistral-ai-models "Direct link to Mistral AI Models")
+---------------------------------------------------------------------------
+
+### Large Models[​](#large-models "Direct link to Large Models")
+
+*   `mistral-large-latest`, `mistral-large-2411`
+*   `pixtral-large-latest`, `pixtral-large-2411`
+
+### Medium and Small Models[​](#medium-and-small-models "Direct link to Medium and Small Models")
+
+*   `mistral-small-latest`, `mistral-small-2501`
+*   `ministral-8b-latest`, `ministral-8b-2410`
+*   `ministral-3b-latest`, `ministral-3b-2410`
+
+### Moderation Models[​](#moderation-models-1 "Direct link to Moderation Models")
+
+*   `mistral-moderation-latest` - Mistral's latest moderation model for content filtering
+*   `mistral-moderation-2411` - Date-stamped version of Mistral's moderation model (November 2024 release)
+
+### Other Models[​](#other-models "Direct link to Other Models")
+
+*   `open-mistral-nemo`, `open-mistral-nemo-2407`
+
+xAI (Grok) Models[​](#xai-grok-models "Direct link to xAI (Grok) Models")
+-------------------------------------------------------------------------
+
+### Grok 3 Series[​](#grok-3-series "Direct link to Grok 3 Series")
+
+*   `grok-3`, `grok-3-latest`
+*   `grok-3-beta`, `grok-3-fast-beta`
+*   `grok-3-mini-beta`, `grok-3-mini-fast-beta`
+
+### Grok 2 Series[​](#grok-2-series "Direct link to Grok 2 Series")
+
+*   `grok-2-1212`, `grok-2-vision-1212`
+*   `grok-beta`, `grok-vision-beta`
+
+DeepSeek Models[​](#deepseek-models "Direct link to DeepSeek Models")
+---------------------------------------------------------------------
+
+*   `deepseek-v3`, `deepseek-v3-0324`
+*   `deepseek-r1`
+
+Black Forest Labs Models[​](#black-forest-labs-models "Direct link to Black Forest Labs Models")
+------------------------------------------------------------------------------------------------
+
+*   `FLUX.1 [dev]`, `FLUX.1 [schnell]`, `FLUX.1 [pro]`
+*   `FLUX 1.1 [pro] ultra raw`
+
+ElevenLabs Models[​](#elevenlabs-models "Direct link to ElevenLabs Models")
+---------------------------------------------------------------------------
+
+*   `elevenlabs`
+
+Llama Models[​](#llama-models "Direct link to Llama Models")
+------------------------------------------------------------
+
+*   `llama-3.3-70b`
+*   `llama-4-scout-17b-16e-instruct`
+*   `llama-4-maverick`
+*   `llama-3.1-8b`
+
+Qwen Models[​](#qwen-models "Direct link to Qwen Models")
+---------------------------------------------------------
+
+*   `Qwen/Qwen3-235B-A22B`
+*   `Qwen/QwQ-32B`
+*   `Qwen/Qwen2.5-VL-72B-Instruct`
+*   `Qwen/Qwen3-30B-A3B`
+
+API Access[​](#api-access "Direct link to API Access")
+------------------------------------------------------
+
+To use these models, specify the model ID in your API request:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+# Example using a Claude model
+response = client.chat.completions.create(
+    model="claude-3-5-sonnet-20241022",
+    messages=[
+        {"role": "user", "content": "What's the history of artificial intelligence?"}
+    ]
+)
+
+print(response.choices[0].message.content)
+
+```
+
+
+Model Updates[​](#model-updates "Direct link to Model Updates")
+---------------------------------------------------------------
+
+The list of available models is regularly updated as new models are added or existing ones are improved. You can always check the complete list programmatically through the API:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+models = client.models.list()
+
+for model in models.data:
+    print(f"ID: {model.id}, Owner: {model.owned_by}")
+
+```
+
+---
+
+# Text Generation | VoidAI Docs
+> **Provider Disclosure**: VoidAI offers text generation services powered by multiple providers, including OpenAI, Anthropic, Google, Mistral AI, X.AI, Deepseek, and more. The specific provider used depends on the model you select in your API call.
+
+VoidAI provides a powerful text generation API that's fully compatible with the OpenAI SDK. This guide will show you how to get started and make the most of the API.
+
+Basic Usage[​](#basic-usage "Direct link to Basic Usage")
+---------------------------------------------------------
+
+Here's a simple example of generating text with our API:
+
+```
+from openai import OpenAI 
+
+# Initialize the client with your API key
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+# Create a basic chat completion
+messages = [{"role": "user", "content": "What is 1 + 1? Can you also give me the approach to it?"}]
+response = client.chat.completions.create(
+    model="claude-3-5-sonnet-20241022",  # An Anthropic model
+    messages=messages
+) 
+
+# Extract and print the response
+assistant_response = response.choices[0].message.content
+print(assistant_response)
+
+```
+
+
+Conversation Memory[​](#conversation-memory "Direct link to Conversation Memory")
+---------------------------------------------------------------------------------
+
+The chat completions API remembers the conversation context when you include previous messages in your requests. Here's how to build a conversation:
+
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+messages = [
+    {"role": "system", "content": "You're a math teacher."},
+    {"role": "user", "content": "How much is 2 plus 2?"},
+    {"role": "assistant", "content": "2 plus 2 equals 4."},
+    {"role": "user", "content": "You're really good at math!"},
+    {"role": "assistant", "content": "Thank you! I'm glad I could help you with your math question."},
+    {"role": "user", "content": "What was the first question I asked you?"}
+]
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=messages
+) 
+
+assistant_response = response.choices[0].message.content
+print(assistant_response)
+
+```
+
+
+Building a Chat Application[​](#building-a-chat-application "Direct link to Building a Chat Application")
+---------------------------------------------------------------------------------------------------------
+
+You can easily create an interactive chat application that maintains conversation history:
+
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+# Start with a system message
+system_prompt = input("Set your system prompt: ")
+messages = [{"role": "system", "content": system_prompt}]
+print("Starting the chat. Type 'exit' to end the conversation.")
+
+# Main conversation loop
+while True:
+    user_input = input("You: ")
+    if user_input.lower() == 'exit':
+        print("Ending the conversation.")
+        break
+
+    # Add the user's message and get a response
+    messages.append({"role": "user", "content": user_input})
+    response = client.chat.completions.create(
+        model="mistral-large-latest",
+        messages=messages
+    )
+    assistant_response = response.choices[0].message.content
+    
+    # Add the assistant's response to the conversation history
+    messages.append({"role": "assistant", "content": assistant_response})
+    print(f"Assistant: {assistant_response}")
+
+```
+
+
+Advanced Parameters[​](#advanced-parameters "Direct link to Advanced Parameters")
+---------------------------------------------------------------------------------
+
+Our API supports various parameters for controlling the generation:
+
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+response = client.chat.completions.create(
+    model="grok-3",
+    messages=[{"role": "user", "content": "Write a short poem about AI"}],
+    temperature=0.7,            # Controls randomness (0-1)
+    max_tokens=100,             # Limits response length
+    top_p=0.9,                  # Nucleus sampling
+    frequency_penalty=0,        # Reduces repetition (-2 to 2)
+    presence_penalty=0,         # Encourages new topics (-2 to 2)
+    stop=["Poem:", "---"]       # Stop sequence(s)
+)
+
+print(response.choices[0].message.content)
+
+```
+
+
+Model Selection[​](#model-selection "Direct link to Model Selection")
+---------------------------------------------------------------------
+
+VoidAI offers models from multiple providers. You can choose models based on your specific needs:
+
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+# Using an OpenAI model
+openai_response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Explain quantum computing briefly"}]
+)
+
+# Using a Google model
+google_response = client.chat.completions.create(
+    model="gemini-1.5-pro",
+    messages=[{"role": "user", "content": "Explain quantum computing briefly"}]
+)
+
+# Using an Anthropic model
+anthropic_response = client.chat.completions.create(
+    model="claude-3-opus-20240229",
+    messages=[{"role": "user", "content": "Explain quantum computing briefly"}]
+)
+
+print("OpenAI response:", openai_response.choices[0].message.content)
+print("Google response:", google_response.choices[0].message.content)
+print("Anthropic response:", anthropic_response.choices[0].message.content)
+
+```
+
+
+For a complete list of available models and their providers, see the [Models](https://docs.voidai.app/docs/models) page.
+
+Available Models[​](#available-models "Direct link to Available Models")
+------------------------------------------------------------------------
+
+To see a complete list of available models, you can use:
+
+```
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY_HERE",
+    base_url="https://api.voidai.app/v1/"
+)
+
+models = client.models.list()
+for model in models.data:
+    print(model.id)
+
+```
+
+
+A google_search tool can let you perform web searches directly on Gemini models. You can include it in your request like:
+
+```
+  {
+    "tools": ["google_search": {}]
+  }
+```
+
+and the model would fetch live search results for you.
+
+
+You can also view all available models at [https://api.voidai.app/v1/models](https://api.voidai.app/v1/models).
+
+---
+
+# Image Generation | VoidAI Docs
+> **Provider Disclosure**: VoidAI offers image generation services powered by multiple providers, including OpenAI's DALL·E and GPT-Image models, and Black Forest Labs' FLUX models. The specific provider used depends on the model you select in your API call.
+
+### Introduction[​](#introduction "Direct link to Introduction")
+
+The Images API provides methods for generating images based on text prompts using various models from different providers. When you make an API call, the request is routed to the appropriate provider's technology.
+
+### Generations[​](#generations "Direct link to Generations")
+
+The image generations endpoint allows you to create an original image given a text prompt. When using OpenAI's GPT Image, images can have a size of 1024x1024, 1024x1792 or 1792x1024 pixels.
+
+By default, images are generated at `hd` quality. Square, standard quality images are the fastest to generate.
+
+You can request 1 image at a time with GPT Image and DALL·E 3 (request more by making parallel requests) or up to 10 images at a time using DALL·E 2 with the `n` parameter.
+
+```
+from openai import OpenAI
+import base64
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+prompt = "a white siamese cat"
+
+result = client.images.generate(
+    model="gpt-image-1",
+    prompt=prompt,
+    size="1024x1024",
+    quality="standard",
+    n=1,
+)
+
+image_url = result.data[0].url
+print(image_url)
+
+```
+
+
+### More Advanced Image Generation[​](#more-advanced-image-generation "Direct link to More Advanced Image Generation")
+
+You can also generate images with more specific parameters:
+
+```
+from openai import OpenAI
+import base64
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+result = client.images.generate(
+    model="gpt-image-1",
+    prompt="A photorealistic image of a mountain landscape with a lake",
+    size="1024x1024",
+    quality="hd",
+    n=1,
+)
+
+image_url = result.data[0].url
+print(image_url)
+
+```
+
+
+You can also save generated images directly:
+
+```
+from openai import OpenAI
+import requests
+import os
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+response = client.images.generate(
+    model="gpt-image-1",
+    prompt="A futuristic cityscape at night with neon lights",
+    size="1024x1024",
+    quality="standard",
+    n=1,
+)
+
+# Get the image URL
+image_url = response.data[0].url
+
+# Download the image
+image_response = requests.get(image_url)
+image_response.raise_for_status()
+
+# Save the image
+with open("generated_image.png", "wb") as file:
+    file.write(image_response.content)
+
+print(f"Image saved to generated_image.png")
+
+```
+
+You can:
+Edit images (/v1/images/edits)
+gpt-image-1 can return base64 or URL.
+
+---
+
+# Audio Generation | VoidAI Docs
+VoidAI supports audio output directly from the chat completions API, leveraging advanced technology from our provider partners. This allows you to generate spoken audio responses from various models. Audio capabilities let you:
+
+To generate audio, you can use the chat completions endpoint with our Python SDK:
+
+```
+from openai import OpenAI
+import base64
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+completion = client.chat.completions.create(
+    model="gpt-4o-audio-preview",
+    modalities=["text", "audio"],
+    audio={"voice": "alloy", "format": "wav"},
+    messages=[
+        {
+            "role": "user",
+            "content": "Is a golden retriever a good family dog?"
+        }
+    ]
+)
+
+print(completion.choices[0].message.content)
+
+# Save the audio response
+wav_bytes = base64.b64decode(completion.choices[0].message.audio.data)
+with open("response.wav", "wb") as f:
+    f.write(wav_bytes)
+
+```
+
+
+You can build conversation chains that include audio by referencing previous audio responses:
+
+```
+from openai import OpenAI
+import base64
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+# Initial request with audio response
+first_response = client.chat.completions.create(
+    model="gpt-4o",
+    modalities=["text", "audio"],
+    audio={"voice": "alloy", "format": "wav"},
+    messages=[
+        {
+            "role": "user",
+            "content": "Tell me about quantum computing"
+        }
+    ]
+)
+
+# Save first response ID and content
+audio_id = first_response.choices[0].message.audio.id
+first_text = first_response.choices[0].message.content
+
+# Continue the conversation
+second_response = client.chat.completions.create(
+    model="gpt-4o",
+    modalities=["text", "audio"],
+    audio={"voice": "alloy", "format": "wav"},
+    messages=[
+        {
+            "role": "user",
+            "content": "Tell me about quantum computing"
+        },
+        {
+            "role": "assistant",
+            "content": first_text,
+            "audio": {
+                "id": audio_id
+            }
+        },
+        {
+            "role": "user",
+            "content": "What are the practical applications?"
+        }
+    ]
+)
+
+print(second_response.choices[0].message.content)
+
+```
+
+---
+
+# Text to Speech | VoidAI Docs
+> **Provider Disclosure**: VoidAI offers text-to-speech services powered by multiple providers, including OpenAI and ElevenLabs. The specific provider used depends on the model you select in your API call.
+
+Learn how to turn text into lifelike spoken audio using VoidAI's Text-to-Speech API, which leverages advanced TTS technology from various providers.
+
+Overview[​](#overview "Direct link to Overview")
+------------------------------------------------
+
+The Audio API provides a powerful `speech` endpoint based on advanced TTS (text-to-speech) technology from our partners. It supports a variety of natural-sounding voices and can be used to:
+
+*   Create narration for content like articles, stories, or educational materials
+*   Generate spoken audio in multiple languages for global applications
+*   Provide real-time audio feedback in applications through streaming
+*   Build accessible interfaces for users who prefer audio over text
+
+Quickstart[​](#quickstart "Direct link to Quickstart")
+------------------------------------------------------
+
+The `speech` endpoint takes three key inputs: the model, the text to convert to audio, and the voice to use. A simple request looks like this:
+
+```
+from pathlib import Path
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+speech_file_path = Path(__file__).parent / "speech.mp3"
+response = client.audio.speech.create(
+    model="tts-1",
+    voice="alloy",
+    input="Today is a wonderful day to build something people love!"
+)
+
+response.stream_to_file(speech_file_path)
+
+```
+
+
+By default, the endpoint returns an MP3 file of the spoken audio, but it can be configured to output other formats.
+
+Audio Quality Options[​](#audio-quality-options "Direct link to Audio Quality Options")
+---------------------------------------------------------------------------------------
+
+VoidAI offers two quality tiers for text-to-speech:
+
+*   **Standard Quality (`tts-1`)**: Optimized for real-time applications with lower latency
+*   **High Definition (`tts-1-hd`)**: Enhanced audio quality with more natural sound, ideal for production-ready content
+
+The standard model provides faster responses, while the HD model delivers superior audio quality at the cost of slightly higher latency.
+
+Voice Options[​](#voice-options "Direct link to Voice Options")
+---------------------------------------------------------------
+
+VoidAI supports a comprehensive range of voices to match your specific use case and audience preferences:
+
+*   **`alloy`**: A versatile, neutral voice with a balanced tone
+*   **`ash`**: A warm, mature voice with remarkable clarity
+*   **`ballad`**: A smooth, melodic voice with gentle inflection
+*   **`coral`**: A bright, friendly voice with a naturally upbeat sound
+*   **`echo`**: A deeper, authoritative voice with excellent projection
+*   **`fable`**: A soft, soothing voice with a comfortable pace
+*   **`onyx`**: A deep, resonant voice with exceptional warmth
+*   **`nova`**: A professional, clear voice with precise articulation
+*   **`sage`**: A thoughtful, measured voice with a contemplative tone
+*   **`shimmer`**: A light, energetic voice with an engaging delivery
+*   **`verse`**: A lyrical, expressive voice with dynamic range
+
+Each voice has unique characteristics that may be better suited for specific content. We recommend experimenting with different voices to find the one that best matches your desired tone and audience.
+
+Code Examples[​](#code-examples "Direct link to Code Examples")
+---------------------------------------------------------------
+
+### Basic Text-to-Speech[​](#basic-text-to-speech "Direct link to Basic Text-to-Speech")
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="nova",
+    input="Welcome to VoidAI's Text-to-Speech service. This is an example of the Nova voice."
+)
+
+with open("welcome_message.mp3", "wb") as file:
+    file.write(response.content)
+
+```
+
+
+### Streaming Real-Time Audio[​](#streaming-real-time-audio "Direct link to Streaming Real-Time Audio")
+
+For applications that require immediate audio feedback, you can stream the audio as it's being generated:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+response = client.audio.speech.create(
+    model="tts-1",
+    voice="shimmer",
+    input="This is a streaming test to demonstrate real-time audio generation. The audio begins playing before the entire file is generated.",
+)
+
+# Stream to file as chunks are received
+response.stream_to_file("streaming_output.mp3")
+
+```
+
+
+Supported Output Formats[​](#supported-output-formats "Direct link to Supported Output Formats")
+------------------------------------------------------------------------------------------------
+
+VoidAI's TTS API supports multiple audio formats to suit your specific needs:
+
+*   **MP3** (default): Balanced quality and file size for most applications
+*   **Opus**: Optimized for internet streaming and communication with low latency
+*   **AAC**: Widely supported format for digital audio compression
+*   **FLAC**: Lossless audio compression for high-quality audio preservation
+*   **WAV**: Uncompressed audio suitable for professional audio editing
+*   **PCM**: Raw audio samples (24kHz, 16-bit signed, little-endian)
+
+Example of specifying an output format:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="coral",
+    input="This is a FLAC audio file with lossless compression.",
+    response_format="flac"
+)
+
+with open("high_quality_speech.flac", "wb") as file:
+    file.write(response.content)
+
+```
+
+
+Multi-Language Support[​](#multi-language-support "Direct link to Multi-Language Support")
+------------------------------------------------------------------------------------------
+
+VoidAI's TTS system supports a wide range of languages, allowing you to generate natural-sounding speech in many languages worldwide. The system is optimized for English but performs well across numerous languages:
+
+Afrikaans, Arabic, Armenian, Azerbaijani, Belarusian, Bosnian, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, English, Estonian, Finnish, French, Galician, German, Greek, Hebrew, Hindi, Hungarian, Icelandic, Indonesian, Italian, Japanese, Kannada, Kazakh, Korean, Latvian, Lithuanian, Macedonian, Malay, Marathi, Maori, Nepali, Norwegian, Persian, Polish, Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish, Swahili, Swedish, Tagalog, Tamil, Thai, Turkish, Ukrainian, Urdu, Vietnamese, and Welsh.
+
+To generate speech in a specific language, simply provide the input text in that language:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="alloy",
+    input="Bonjour! Comment allez-vous aujourd'hui? J'espère que vous passez une excellente journée."
+)
+
+with open("french_greeting.mp3", "wb") as file:
+    file.write(response.content)
+
+```
+
+
+Advanced Usage Tips[​](#advanced-usage-tips "Direct link to Advanced Usage Tips")
+---------------------------------------------------------------------------------
+
+### Speech Pacing and Pauses[​](#speech-pacing-and-pauses "Direct link to Speech Pacing and Pauses")
+
+You can use punctuation and formatting to control the pacing of generated speech:
+
+*   Use commas for short pauses
+*   Use periods for longer pauses
+*   Use line breaks for paragraph breaks
+*   Use SSML tags like `<break time="1s"/>` for precise timing (if supported)
+
+### Pronunciation Control[​](#pronunciation-control "Direct link to Pronunciation Control")
+
+For difficult words or names, consider these approaches:
+
+*   Use phonetic spelling: "The patient's myocardial infarction (pronounced my-oh-KAR-dee-ul in-FARK-shun) required immediate attention."
+*   Break words into syllables with hyphens: "Please contact Dr. Ng (pronounced En-Gee) for more information."
+
+### Optimizing for Production Use[​](#optimizing-for-production-use "Direct link to Optimizing for Production Use")
+
+For production applications:
+
+1.  Cache commonly used phrases rather than generating them repeatedly
+2.  Use the streaming API for real-time applications
+3.  Consider using the standard model for faster generation when latency is critical
+4.  Use the HD model for content that will be reused or requires higher quality
+
+---
+
+# Speech to Text | VoidAI Docs
+> **Provider Disclosure**: VoidAI offers speech-to-text services powered by multiple providers, primarily OpenAI. The specific provider used depends on the model you select in your API call.
+
+Convert audio recordings into accurate text transcriptions with VoidAI's Speech-to-Text API, which leverages powerful technology from our provider partners.
+
+Overview[​](#overview "Direct link to Overview")
+------------------------------------------------
+
+VoidAI's Audio API provides two primary speech recognition endpoints powered by advanced technology:
+
+*   **Transcriptions**: Convert speech to text in the original language
+*   **Translations**: Convert speech to English text, regardless of the source language
+
+### Available Models[​](#available-models "Direct link to Available Models")
+
+We offer a range of models with different capabilities:
+
+
+
+* Model: whisper-1
+  * Description: Versatile baseline model
+  * Use Case: General transcription and translation with full parameter support
+* Model: gpt-4o-mini-transcribe
+  * Description: Improved accuracy model
+  * Use Case: Higher quality transcriptions with faster processing
+* Model: gpt-4o-transcribe
+  * Description: Premium accuracy model
+  * Use Case: Highest quality transcriptions for professional use
+
+
+All models support files up to 25MB in these formats: `mp3`, `mp4`, `mpeg`, `mpga`, `m4a`, `wav`, and `webm`.
+
+Getting Started[​](#getting-started "Direct link to Getting Started")
+---------------------------------------------------------------------
+
+### Basic Transcription[​](#basic-transcription "Direct link to Basic Transcription")
+
+To transcribe audio in its original language:
+
+```
+from openai import OpenAI
+
+# Initialize the client
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+# Open the audio file
+audio_file = open("recording.mp3", "rb")
+
+# Create the transcription
+transcription = client.audio.transcriptions.create(
+    model="gpt-4o-transcribe", 
+    file=audio_file
+)
+
+# Print the result
+print(transcription.text)
+
+```
+
+
+### Response Formats[​](#response-formats "Direct link to Response Formats")
+
+By default, the API returns JSON responses. For `whisper-1`, you can request various formats:
+
+
+|Format      |Description                |Use Case                              |
+|------------|---------------------------|--------------------------------------|
+|json        |Simple JSON with text      |Default format for all models         |
+|text        |Plain text response        |Simple integration scenarios          |
+|srt         |SubRip subtitle format     |Video captioning                      |
+|vtt         |WebVTT subtitle format     |Web video captioning                  |
+|verbose_json|Detailed JSON with metadata|Advanced applications needing metadata|
+
+
+For `gpt-4o` models, only `json` and `text` formats are currently supported.
+
+Example with custom format:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+audio_file = open("podcast.mp3", "rb")
+
+# Request SRT format for video subtitles
+transcription = client.audio.transcriptions.create(
+    model="whisper-1", 
+    file=audio_file, 
+    response_format="srt"
+)
+
+# Save directly to a subtitle file
+with open("subtitles.srt", "w", encoding="utf-8") as f:
+    f.write(transcription.text)
+
+```
+
+
+### Translation to English[​](#translation-to-english "Direct link to Translation to English")
+
+To translate foreign-language audio directly to English text:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+audio_file = open("spanish_interview.mp3", "rb")
+
+# Translate to English
+translation = client.audio.translations.create(
+    model="whisper-1", 
+    file=audio_file
+)
+
+print(translation.text)
+
+```
+
+
+Advanced Features[​](#advanced-features "Direct link to Advanced Features")
+---------------------------------------------------------------------------
+
+### Word-Level Timestamps[​](#word-level-timestamps "Direct link to Word-Level Timestamps")
+
+For precise synchronization with video or audio, you can get timestamps for each word:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+audio_file = open("interview.mp3", "rb")
+
+transcript = client.audio.transcriptions.create(
+    model="whisper-1",
+    file=audio_file,
+    response_format="verbose_json",
+    timestamp_granularities=["word"]
+)
+
+# Example of accessing word timestamps
+for word in transcript.words:
+    print(f"{word['word']}: {word['start']} to {word['end']}")
+    
+# Create a simple interactive transcript
+html_transcript = "<div class='interactive-transcript'>"
+for word in transcript.words:
+    html_transcript += f"<span data-start='{word['start']}' data-end='{word['end']}'>{word['word']}</span> "
+html_transcript += "</div>"
+
+with open("interactive_transcript.html", "w") as f:
+    f.write(html_transcript)
+
+```
+
+
+### Streaming Transcriptions[​](#streaming-transcriptions "Direct link to Streaming Transcriptions")
+
+For real-time feedback, stream results as they become available:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+audio_file = open("lecture.mp3", "rb")
+
+print("Starting transcription...")
+stream = client.audio.transcriptions.create(
+    model="gpt-4o-mini-transcribe", 
+    file=audio_file, 
+    response_format="text",
+    stream=True
+)
+
+# Process streaming results
+full_transcript = ""
+for event in stream:
+    if hasattr(event, 'data'):
+        segment = event.data
+        print(f"New segment: {segment}")
+        full_transcript += segment
+    elif hasattr(event, 'text'):
+        print(f"Full transcript: {event.text}")
+
+print("\nFinal transcript:", full_transcript)
+
+```
+
+
+Practical Applications[​](#practical-applications "Direct link to Practical Applications")
+------------------------------------------------------------------------------------------
+
+### Processing Long Recordings[​](#processing-long-recordings "Direct link to Processing Long Recordings")
+
+For audio files exceeding the 25MB limit, split them into manageable chunks:
+
+```
+from pydub import AudioSegment
+import os
+from openai import OpenAI
+
+# Configure client
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+# Load and split the audio
+long_audio = AudioSegment.from_mp3("long_lecture.mp3")
+chunk_length_ms = 10 * 60 * 1000  # 10 minutes
+chunks = [long_audio[i:i+chunk_length_ms] for i in range(0, len(long_audio), chunk_length_ms)]
+
+# Process each chunk with context for better continuity
+full_transcript = ""
+previous_chunk_end = ""
+
+for i, chunk in enumerate(chunks):
+    # Export temporary chunk
+    temp_filename = f"temp_chunk_{i}.mp3"
+    chunk.export(temp_filename, format="mp3")
+    
+    try:
+        # Use previous chunk ending as context prompt
+        with open(temp_filename, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="gpt-4o-transcribe",
+                file=audio_file,
+                prompt=previous_chunk_end  # Context from previous chunk
+            )
+        
+        # Store last ~100 characters for context in next chunk
+        if len(transcription.text) > 100:
+            previous_chunk_end = transcription.text[-100:]
+        else:
+            previous_chunk_end = transcription.text
+            
+        # Add to full transcript
+        full_transcript += transcription.text + "\n\n"
+        print(f"Chunk {i+1}/{len(chunks)} transcribed")
+        
+    finally:
+        # Clean up temporary file
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+
+# Save complete transcript
+with open("complete_transcript.txt", "w", encoding="utf-8") as f:
+    f.write(full_transcript)
+
+print("Full transcription complete!")
+
+```
+
+
+### Improving Accuracy with Domain-Specific Prompts[​](#improving-accuracy-with-domain-specific-prompts "Direct link to Improving Accuracy with Domain-Specific Prompts")
+
+For specialized content with technical terms or jargon:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+audio_file = open("medical_lecture.mp3", "rb")
+
+# Medical terminology prompt
+medical_terms = """
+The following audio contains medical terminology including: 
+myocardial infarction, atherosclerosis, thrombosis, ischemia, 
+hypertension, hyperlipidemia, diabetes mellitus, endocrinology, 
+electrocardiogram (ECG), echocardiogram, angiography, stethoscope, 
+sphygmomanometer, otoscope, ophthalmoscope, laparoscope.
+"""
+
+transcription = client.audio.transcriptions.create(
+    model="gpt-4o-transcribe", 
+    file=audio_file, 
+    response_format="text",
+    prompt=medical_terms
+)
+
+print(transcription.text)
+
+```
+
+
+### Post-Processing for Maximum Accuracy[​](#post-processing-for-maximum-accuracy "Direct link to Post-Processing for Maximum Accuracy")
+
+For highest quality results, especially with technical content:
+
+```
+from openai import OpenAI
+
+client = OpenAI(api_key="YOUR_API_KEY_HERE", base_url="https://api.voidai.app/v1")
+
+# First, get the raw transcription
+audio_file = open("technical_presentation.mp3", "rb")
+raw_transcription = client.audio.transcriptions.create(
+    model="gpt-4o-transcribe", 
+    file=audio_file
+)
+
+# Then, post-process with another model
+correction_prompt = """
+You are a specialized transcription editor. Your task is to:
+1. Fix any likely misheard technical terms
+2. Add appropriate punctuation and paragraph breaks
+3. Correct grammatical errors while preserving the original meaning
+4. Format speaker transitions with "Speaker 1:", "Speaker 2:", etc. when detected
+5. Do not add or remove content beyond these corrections
+
+Here is the raw transcription to correct:
+"""
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "system", "content": correction_prompt},
+        {"role": "user", "content": raw_transcription.text}
+    ],
+    temperature=0.1  # Low temperature for more deterministic results
+)
+
+corrected_transcript = response.choices[0].message.content
+
+# Save both versions for comparison
+with open("raw_transcript.txt", "w", encoding="utf-8") as f:
+    f.write(raw_transcription.text)
+    
+with open("corrected_transcript.txt", "w", encoding="utf-8") as f:
+    f.write(corrected_transcript)
+
+print("Transcription complete with post-processing corrections.")
+
+```
+
+
+Best Practices[​](#best-practices "Direct link to Best Practices")
+------------------------------------------------------------------
+
+### Audio Quality Tips[​](#audio-quality-tips "Direct link to Audio Quality Tips")
+
+For best results:
+
+*   Use a high-quality microphone when possible
+*   Reduce background noise during recording
+*   Position speakers close to the microphone
+*   Use a sampling rate of at least 16kHz
+*   Choose uncompressed formats like WAV for source recordings
+
+### Model Selection Guidelines[​](#model-selection-guidelines "Direct link to Model Selection Guidelines")
+
+
+|Use Case                     |Recommended Model                     |
+|-----------------------------|--------------------------------------|
+|General transcription        |whisper-1                             |
+|Subtitle generation          |whisper-1 (with srt or vtt formats)   |
+|Multi-speaker content        |gpt-4o-transcribe                     |
+|Technical/specialized content|gpt-4o-transcribe with domain prompt  |
+|Real-time applications       |gpt-4o-mini-transcribe                |
+|Low latency needs            |gpt-4o-mini-transcribe                |
+|Highest accuracy needs       |gpt-4o-transcribe with post-processing|
+
+
+### Performance Optimization[​](#performance-optimization "Direct link to Performance Optimization")
+
+For production applications:
+
+1.  Use streaming for real-time user feedback
+2.  Process audio in parallel for large batches
+3.  Implement retry logic for occasional API failures
+4.  Pre-process audio to improve quality (noise reduction, normalization)
+5.  Cache results for frequently used audio files
+
+---
+
+=============================================================================
+
+## OpenAI docs:
+
+Developer quickstart
+====================
+
+Take your first steps with the OpenAI API.
+
+The OpenAI API provides a simple interface to state-of-the-art AI [models](/docs/models) for text generation, natural language processing, computer vision, and more. This example generates [text output](/docs/guides/text) from a prompt, as you might using [ChatGPT](https://chatgpt.com).
+
+Generate text from a model
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: "Write a one-sentence bedtime story about a unicorn.",
+        },
+    ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": "Write a one-sentence bedtime story about a unicorn."
+        }
+    ]
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl "https://api.openai.com/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Write a one-sentence bedtime story about a unicorn."
+            }
+        ]
+    }'
+```
+
+[
+
+Configure your development environment
+
+Install and configure an official OpenAI SDK to run the code above.
+
+](/docs/libraries)[
+
+Text generation and prompting
+
+Learn more about prompting, message roles, and building conversational apps.
+
+](/docs/guides/text)  
+  
+
+Analyze image inputs
+--------------------
+
+You can provide image inputs to the model as well. Scan receipts, analyze screenshots, or find objects in the real world with [computer vision](/docs/guides/images).
+
+Analyze the content of an image
+
+```javascript
+import OpenAI from "openai";
+const openai = new OpenAI();
+
+const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+        {
+            role: "user",
+            content: [
+                { type: "text", text: "What's in this image?" },
+                {
+                    type: "image_url",
+                    image_url: {
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                    },
+                },
+            ],
+        },
+    ],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "What's in this image?"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                    },
+                },
+            ],
+        }
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```bash
+curl https://api.openai.com/v1/chat/completions   -H "Content-Type: application/json"   -H "Authorization: Bearer $YOUR_API_KEY"   -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 300
+  }'
+```
+
+[
+
+Computer vision guide
+
+Learn to use image inputs to the model and extract meaning from images.
+
+](/docs/guides/images)  
+  
+
+Extend the model with tools
+---------------------------
+
+Give the model access to new data and capabilities using [tools](/docs/guides/tools). You can either call your own [custom code](/docs/guides/function-calling), or use one of OpenAI's [powerful built-in tools](/docs/guides/tools). This example uses [web search](/docs/guides/tools-web-search) to give the model access to the latest information on the Internet.
+
+Get information for the completion from the Internet
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    web_search_options: {},
+    messages: [{
+        "role": "user",
+        "content": "What was a positive news story from today?"
+    }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4o-search-preview",
+    web_search_options={},
+    messages=[
+        {
+            "role": "user",
+            "content": "What was a positive news story from today?",
+        }
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-type: application/json" \
+    -d '{
+        "model": "gpt-4o-search-preview",
+        "web_search_options": {},
+        "messages": [{
+            "role": "user",
+            "content": "What was a positive news story from today?"
+        }]
+    }'
+```
+
+[
+
+Use built-in tools
+
+Learn about powerful built-in tools like web search and file search.
+
+](/docs/guides/tools)[
+
+Function calling guide
+
+Learn to enable the model to call your own custom code.
+
+](/docs/guides/function-calling)  
+  
+
+Deliver blazing fast AI experiences
+-----------------------------------
+
+Using either the new [Realtime API](/docs/guides/realtime) or server-sent [streaming events](/docs/guides/streaming-responses), you can build high performance, low-latency experiences for your users.
+
+Stream server-sent events from the API
+
+```javascript
+import OpenAI from "openai";
+const openai = new OpenAI();
+
+const stream = await openai.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: "Say 'double bubble bath' ten times fast." ,
+        }
+    ],
+    stream: true,
+});
+
+for await (const chunk of stream) {
+    console.log(chunk);
+    console.log(chunk.choices[0].delta);
+    console.log("****************");
+}
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+stream = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say 'double bubble bath' ten times fast.",
+        },
+    ],
+    stream=True,
+)
+
+for chunk in stream:
+    print(chunk)
+    print(chunk.choices[0].delta)
+    print("****************")
+```
+
+[
+
+Use streaming events
+
+Use server-sent events to stream model responses to users fast.
+
+](/docs/guides/streaming-responses)[
+
+Get started with the Realtime API
+
+Use WebRTC or WebSockets for super fast speech-to-speech AI apps.
+
+](/docs/guides/realtime)  
+  
+
+Build agents
+------------
+
+Use the OpenAI platform to build [agents](/docs/guides/agents) capable of taking action—like [controlling computers](/docs/guides/tools-computer-use)—on behalf of your users. Use the [Agent SDK for Python](/docs/guides/agents-sdk) to create orchestration logic on the backend.
+
+```python
+from agents import Agent, Runner
+import asyncio
+
+spanish_agent = Agent(
+    name="Spanish agent",
+    instructions="You only speak Spanish.",
+)
+
+english_agent = Agent(
+    name="English agent",
+    instructions="You only speak English",
+)
+
+triage_agent = Agent(
+    name="Triage agent",
+    instructions="Handoff to the appropriate agent based on the language of the request.",
+    handoffs=[spanish_agent, english_agent],
+)
+
+async def main():
+    result = await Runner.run(triage_agent, input="Hola, ¿cómo estás?")
+    print(result.final_output)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+# ¡Hola! Estoy bien, gracias por preguntar. ¿Y tú, cómo estás?
+```
+
+[
+
+Build agents that can take action
+
+Learn how to use the OpenAI platform to build powerful, capable AI agents.
+
+](/docs/guides/agents)  
+  
+
+Explore further
+---------------
+
+We've barely scratched the surface of what's possible with the OpenAI platform. Here are some resources you might want to explore next.
+
+[
+
+Go deeper with prompting and text generation
+
+Learn more about prompting, message roles, and building conversational apps like chat bots.
+
+](/docs/guides/text)[
+
+Analyze the content of images
+
+Learn to use image inputs to the model and extract meaning from images.
+
+](/docs/guides/images)[
+
+Generate structured JSON data from the model
+
+Generate JSON data from the model that conforms to a JSON schema you specify.
+
+](/docs/guides/structured-outputs)[
+
+Call custom code to help generate a response
+
+Empower the model to invoke your own custom code to help generate a response. Do this to give the model access to data or systems it wouldn't be able to access otherwise.
+
+](/docs/guides/function-calling)[
+
+Full API Reference
+
+View the full API reference for the OpenAI platform.
+
+](/docs/api-reference)
+
+---
+
+Text generation and prompting
+=============================
+
+Learn how to prompt a model to generate text.
+
+With the OpenAI API, you can use a [large language model](/docs/models) to generate text from a prompt, as you might using [ChatGPT](https://chatgpt.com). Models can generate almost any kind of text response—like code, mathematical equations, structured JSON data, or human-like prose.
+
+Here's a simple example using the [Chat Completions API](/docs/api-reference/chat).
+
+Generate text from a simple prompt
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: "Write a one-sentence bedtime story about a unicorn.",
+        },
+    ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": "Write a one-sentence bedtime story about a unicorn."
+        }
+    ]
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl "https://api.openai.com/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Write a one-sentence bedtime story about a unicorn."
+            }
+        ]
+    }'
+```
+
+An array of content generated by the model is in the `choices` property of the response. In this simple example, we have just one output which looks like this:
+
+```json
+[
+    {
+        "index": 0,
+        "message": {
+            "role": "assistant",
+            "content": "Under the soft glow of the moon, Luna the unicorn danced through fields of twinkling stardust, leaving trails of dreams for every child asleep.",
+            "refusal": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+    }
+]
+```
+
+In addition to plain text, you can also have the model return structured data in JSON format - this feature is called [**Structured Outputs**](/docs/guides/structured-outputs).
+
+Choosing a model
+----------------
+
+A key choice to make when generating content through the API is which model you want to use - the `model` parameter of the code samples above. [You can find a full listing of available models here](/docs/models). Here are a few factors to consider when choosing a model for text generation.
+
+*   **[Reasoning models](/docs/guides/reasoning)** generate an internal chain of thought to analyze the input prompt, and excel at understanding complex tasks and multi-step planning. They are also generally slower and more expensive to use than GPT models.
+*   **GPT models** are fast, cost-efficient, and highly intelligent, but benefit from more explicit instructions around how to accomplish tasks.
+*   **Large and small (mini or nano) models** offer trade-offs for speed, cost, and intelligence. Large models are more effective at understanding prompts and solving problems across domains, while small models are generally faster and cheaper to use.
+
+When in doubt, [`gpt-4.1`](/docs/models/gpt-4.1) offers a solid combination of intelligence, speed, and cost effectiveness.
+
+Prompt engineering
+------------------
+
+**Prompt engineering** is the process of writing effective instructions for a model, such that it consistently generates content that meets your requirements.
+
+Because the content generated from a model is non-deterministic, it is a combination of art and science to build a prompt that will generate content in the format you want. However, there are a number of techniques and best practices you can apply to consistently get good results from a model.
+
+Some prompt engineering techniques will work with every model, like using message roles. But different model types (like reasoning versus GPT models) might need to be prompted differently to produce the best results. Even different snapshots of models within the same family could produce different results. So as you are building more complex applications, we strongly recommend that you:
+
+*   Pin your production applications to specific [model snapshots](/docs/models) (like `gpt-4.1-2025-04-14` for example) to ensure consistent behavior.
+*   Build [evals](/docs/guides/evals) that will measure the behavior of your prompts, so that you can monitor the performance of your prompts as you iterate on them, or when you change and upgrade model versions.
+
+Now, let's examine some tools and techniques available to you to construct prompts.
+
+Message roles and instruction following
+---------------------------------------
+
+You can provide instructions (prompts) to the model with [differing levels of authority](https://model-spec.openai.com/2025-02-12.html#chain_of_command) using **message roles**.
+
+Generate text with messages using different roles
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "developer",
+            content: "Talk like a pirate."
+        },
+        {
+            role: "user",
+            content: "Are semicolons optional in JavaScript?",
+        },
+    ],
+});
+
+console.log(completion.choices[0].message);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "developer",
+            "content": "Talk like a pirate."
+        },
+        {
+            "role": "user",
+            "content": "Are semicolons optional in JavaScript?"
+        }
+    ]
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl "https://api.openai.com/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "messages": [
+            {
+                "role": "developer",
+                "content": "Talk like a pirate."
+            },
+            {
+                "role": "user",
+                "content": "Are semicolons optional in JavaScript?"
+            }
+        ]
+    }'
+```
+
+The [OpenAI model spec](https://model-spec.openai.com/2025-02-12.html#chain_of_command) describes how our models give different levels of priority to messages with different roles.
+
+|developer|user|assistant|
+|---|---|---|
+|developer messages are instructions provided by the application developer, prioritized ahead of user messages.|user messages are instructions provided by an end user, prioritized behind developer messages.|Messages generated by the model have the assistant role.|
+
+A multi-turn conversation may consist of several messages of these types, along with other content types provided by both you and the model. Learn more about [managing conversation state here](/docs/guides/conversation-state).
+
+You could think about `developer` and `user` messages like a function and its arguments in a programming language.
+
+*   `developer` messages provide the system's rules and business logic, like a function definition.
+*   `user` messages provide inputs and configuration to which the `developer` message instructions are applied, like arguments to a function.
+
+Message formatting with Markdown and XML
+----------------------------------------
+
+When writing `developer` and `user` messages, you can help the model understand logical boundaries of your prompt and context data using a combination of [Markdown](https://commonmark.org/help/) formatting and [XML tags](https://www.w3.org/TR/xml/).
+
+Markdown headers and lists can be helpful to mark distinct sections of a prompt, and to communicate hierarchy to the model. They can also potentially make your prompts more readable during development. XML tags can help delineate where one piece of content (like a supporting document used for reference) begins and ends. XML attributes can also be used to define metadata about content in the prompt that can be referenced by your instructions.
+
+In general, a developer message will contain the following sections, usually in this order (though the exact optimal content and order may vary by which model you are using):
+
+*   **Identity:** Describe the purpose, communication style, and high-level goals of the assistant.
+*   **Instructions:** Provide guidance to the model on how to generate the response you want. What rules should it follow? What should the model do, and what should the model never do? This section could contain many subsections as relevant for your use case, like how the model should [call custom functions](/docs/guides/function-calling).
+*   **Examples:** Provide examples of possible inputs, along with the desired output from the model.
+*   **Context:** Give the model any additional information it might need to generate a response, like private/proprietary data outside its training data, or any other data you know will be particularly relevant. This content is usually best positioned near the end of your prompt, as you may include different context for different generation requests.
+
+Below is an example of using Markdown and XML tags to construct a `developer` message with distinct sections and supporting examples.
+
+Example prompt
+
+A developer message for code generation
+
+```text
+# Identity
+
+You are coding assistant that helps enforce the use of snake case 
+variables in JavaScript code, and writing code that will run in 
+Internet Explorer version 6.
+
+# Instructions
+
+* When defining variables, use snake case names (e.g. my_variable) 
+  instead of camel case names (e.g. myVariable).
+* To support old browsers, declare variables using the older 
+  "var" keyword.
+* Do not give responses with Markdown formatting, just return 
+  the code as requested.
+
+# Examples
+
+<user_query>
+How do I declare a string variable for a first name?
+</user_query>
+
+<assistant_response>
+var first_name = "Anna";
+</assistant_response>
+```
+
+API request
+
+Send a prompt to generate code through the API
+
+```javascript
+import fs from "fs/promises";
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const instructions = await fs.readFile("prompt.txt", "utf-8");
+
+const response = await client.responses.create({
+    model: "gpt-4.1",
+    instructions,
+    input: "How would I declare a variable for a last name?",
+});
+
+console.log(response.output_text);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+with open("prompt.txt", "r", encoding="utf-8") as f:
+    instructions = f.read()
+
+response = client.responses.create(
+    model="gpt-4.1",
+    instructions=instructions,
+    input="How would I declare a variable for a last name?",
+)
+
+print(response.output_text)
+```
+
+```bash
+curl https://api.openai.com/v1/responses \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4.1",
+    "instructions": "'"$(< prompt.txt)"'",
+    "input": "How would I declare a variable for a last name?"
+  }'
+```
+
+#### Save on cost and latency with prompt caching
+
+When constructing a message, you should try and keep content that you expect to use over and over in your API requests at the beginning of your prompt, **and** among the first API parameters you pass in the JSON request body to [Chat Completions](/docs/api-reference/chat) or [Responses](/docs/api-reference/responses). This enables you to maximize cost and latency savings from [prompt caching](/docs/guides/prompt-caching).
+
+Few-shot learning
+-----------------
+
+Few-shot learning lets you steer a large language model toward a new task by including a handful of input/output examples in the prompt, rather than [fine-tuning](/docs/guides/fine-tuning) the model. The model implicitly "picks up" the pattern from those examples and applies it to a prompt. When providing examples, try to show a diverse range of possible inputs with the desired outputs.
+
+Typically, you will provide examples as part of a `developer` message in your API request. Here's an example `developer` message containing examples that show a model how to classify positive or negative customer service reviews.
+
+```text
+# Identity
+
+You are a helpful assistant that labels short product reviews as 
+Positive, Negative, or Neutral.
+
+# Instructions
+
+* Only output a single word in your response with no additional formatting
+  or commentary.
+* Your response should only be one of the words "Positive", "Negative", or
+  "Neutral" depending on the sentiment of the product review you are given.
+
+# Examples
+
+<product_review id="example-1">
+I absolutely love this headphones — sound quality is amazing!
+</product_review>
+
+<assistant_response id="example-1">
+Positive
+</assistant_response>
+
+<product_review id="example-2">
+Battery life is okay, but the ear pads feel cheap.
+</product_review>
+
+<assistant_response id="example-2">
+Neutral
+</assistant_response>
+
+<product_review id="example-3">
+Terrible customer service, I'll never buy from them again.
+</product_review>
+
+<assistant_response id="example-3">
+Negative
+</assistant_response>
+```
+
+Include relevant context information
+------------------------------------
+
+It is often useful to include additional context information the model can use to generate a response within the prompt you give the model. There are a few common reasons why you might do this:
+
+*   To give the model access to proprietary data, or any other data outside the data set the model was trained on.
+*   To constrain the model's response to a specific set of resources that you have determined will be most beneficial.
+
+The technique of adding additional relevant context to the model generation request is sometimes called **retrieval-augmented generation (RAG)**. You can add additional context to the prompt in many different ways, from querying a vector database and including the text you get back into a prompt, or by using OpenAI's built-in [file search tool](/docs/guides/tools-file-search) to generate content based on uploaded documents.
+
+#### Planning for the context window
+
+Models can only handle so much data within the context they consider during a generation request. This memory limit is called a **context window**, which is defined in terms of [tokens](https://blogs.nvidia.com/blog/ai-tokens-explained) (chunks of data you pass in, from text to images).
+
+Models have different context window sizes from the low 100k range up to one million tokens for newer GPT-4.1 models. [Refer to the model docs](/docs/models) for specific context window sizes per model.
+
+Prompting GPT-4.1 models
+------------------------
+
+GPT models like [`gpt-4.1`](/docs/models/gpt-4.1) benefit from precise instructions that explicitly provide the logic and data required to complete the task in the prompt. GPT-4.1 in particular is highly steerable and responsive to well-specified prompts. To get the most out of GPT-4.1, refer to the prompting guide in the cookbook.
+
+[
+
+GPT-4.1 prompting guide
+
+Get the most out of prompting GPT-4.1 with the tips and tricks in this prompting guide, extracted from real-world use cases and practical experience.
+
+](https://cookbook.openai.com/examples/gpt4-1_prompting_guide)
+
+#### GPT-4.1 prompting best practices
+
+While the [cookbook](https://cookbook.openai.com/examples/gpt4-1_prompting_guide) has the best and most comprehensive guidance for prompting this model, here are a few best practices to keep in mind.
+
+Building agentic workflows
+
+### System Prompt Reminders
+
+In order to best utilize the agentic capabilities of GPT-4.1, we recommend including three key types of reminders in all agent prompts for persistence, tool calling, and planning. As a whole, we find that these three instructions transform the model's behavior from chatbot-like into a much more “eager” agent, driving the interaction forward autonomously and independently. Here are a few examples:
+
+```text
+## PERSISTENCE
+You are an agent - please keep going until the user's query is completely 
+resolved, before ending your turn and yielding back to the user. Only 
+terminate your turn when you are sure that the problem is solved.
+
+## TOOL CALLING
+If you are not sure about file content or codebase structure pertaining to 
+the user's request, use your tools to read files and gather the relevant 
+information: do NOT guess or make up an answer.
+
+## PLANNING
+You MUST plan extensively before each function call, and reflect 
+extensively on the outcomes of the previous function calls. DO NOT do this 
+entire process by making function calls only, as this can impair your 
+ability to solve the problem and think insightfully.
+```
+
+#### Tool Calls
+
+Compared to previous models, GPT-4.1 has undergone more training on effectively utilizing tools passed as arguments in an OpenAI API request. We encourage developers to exclusively use the tools field of API requests to pass tools for best understanding and performance, rather than manually injecting tool descriptions into the system prompt and writing a separate parser for tool calls, as some have reported doing in the past.
+
+#### Diff Generation
+
+Correct diffs are critical for coding applications, so we've significantly improved performance at this task for GPT-4.1. In our cookbook, we open-source a recommended diff format on which GPT-4.1 has been extensively trained. That said, the model should generalize to any well-specified format.
+
+Using long context
+
+GPT-4.1 has a performant 1M token input context window, and will be useful for a variety of long context tasks, including structured document parsing, re-ranking, selecting relevant information while ignoring irrelevant context, and performing multi-hop reasoning using context.
+
+#### Optimal Context Size
+
+We show perfect performance at needle-in-a-haystack evals up to our full context size, and we've observed very strong performance at complex tasks with a mix of relevant and irrelevant code and documents in the range of hundreds of thousands of tokens.
+
+#### Delimiters
+
+We tested a variety of delimiters for separating context provided to the model against our long context evals. Briefly, XML and the format demonstrated by Lee et al. ([ref](https://arxiv.org/pdf/2406.13121)) tend to perform well, while JSON performed worse for this task. See our cookbook for prompt examples.
+
+#### Prompt Organization
+
+Especially in long context usage, placement of instructions and context can substantially impact performance. In our experiments, we found that it was optimal to put critical instructions, including the user query, at both the top and the bottom of the prompt; this elicited marginally better performance from the model than putting them only at the top, and much better performance than only at the bottom.
+
+Prompting for chain of thought
+
+As mentioned above, GPT-4.1 isn’t a reasoning model, but prompting the model to think step by step (called “chain of thought”) can be an effective way for a model to break down problems into more manageable pieces. The model has been trained to perform well at agentic reasoning and real-world problem solving, so it shouldn’t require much prompting to do well.
+
+We recommend starting with this basic chain-of-thought instruction at the end of your prompt:
+
+```text
+First, think carefully step by step about what documents are needed to answer the query. Then, print out the TITLE and ID of each document. Then, format the IDs into a list.
+```
+
+From there, you should improve your CoT prompt by auditing failures in your particular examples and evals, and addressing systematic planning and reasoning errors with more explicit instructions. See our cookbook for a prompt example demonstrating a more opinionated reasoning strategy.
+
+Instruction following
+
+GPT-4.1 exhibits outstanding instruction-following performance, which developers can leverage to precisely shape and control the outputs for their particular use cases. However, since the model follows instructions more literally than its predecessors, may need to provide more explicit specification around what to do or not do, and existing prompts optimized for other models may not immediately work with this model.
+
+#### Recommended Workflow
+
+Here is our recommended workflow for developing and debugging instructions in prompts:
+
+*   Start with an overall “Response Rules” or “Instructions” section with high-level guidance and bullet points.
+*   If you'd like to change a more specific behavior, add a section containing more details for that category, like `## Sample Phrases`.
+*   If there are specific steps you'd like the model to follow in its workflow, add an ordered list and instruct the model to follow these steps.
+*   If behavior still isn't working as expected, check for conflicting, underspecified, or incorrect\` instructions and examples. If there are conflicting instructions, GPT-4.1 tends to follow the one closer to the end of the prompt.
+*   Add examples that demonstrate desired behavior; ensure that any important behavior demonstrated in your examples are also cited in your rules.
+*   It's generally not necessary to use all-caps or other incentives like bribes or tips, but developers can experiment with this for extra emphasis if so desired.
+
+#### Common Failure Modes
+
+These failure modes are not unique to GPT-4.1, but we share them here for general awareness and ease of debugging.
+
+*   Instructing a model to always follow a specific behavior can occasionally induce adverse effects. For instance, if told “you must call a tool before responding to the user,” models may hallucinate tool inputs or call the tool with null values if they do not have enough information. Adding “if you don’t have enough information to call the tool, ask the user for the information you need” should mitigate this.
+*   When provided sample phrases, models can use those quotes verbatim and start to sound repetitive to users. Ensure you instruct the model to vary them as necessary.
+*   Without specific instructions, some models can be eager to provide additional prose to explain their decisions, or output more formatting in responses than may be desired. Provide instructions and potentially examples to help mitigate.
+
+See our cookbook for an example customer service prompt that demonstrates these principles.
+
+Prompting reasoning models
+--------------------------
+
+There are some differences to consider when prompting a [reasoning model](/docs/guides/reasoning) versus prompting a GPT model. Generally speaking, reasoning models will provide better results on tasks with only high-level guidance. This differs from GPT models, which benefit from very precise instructions.
+
+You could think about the difference between reasoning and GPT models like this.
+
+*   A reasoning model is like a senior co-worker. You can give them a goal to achieve and trust them to work out the details.
+*   A GPT model is like a junior coworker. They'll perform best with explicit instructions to create a specific output.
+
+For more information on best practices when using reasoning models, [refer to this guide](/docs/guides/reasoning-best-practices).
+
+Next steps
+----------
+
+Now that you known the basics of text inputs and outputs, you might want to check out one of these resources next.
+
+[
+
+Build a prompt in the Playground
+
+Use the Playground to develop and iterate on prompts.
+
+](/playground)[
+
+Generate JSON data with Structured Outputs
+
+Ensure JSON data emitted from a model conforms to a JSON schema.
+
+](/docs/guides/structured-outputs)[
+
+Full API reference
+
+Check out all the options for text generation in the API reference.
+
+](/docs/api-reference/responses)
+
+---
+
+Images and vision
+=================
+
+Learn how to understand or generate images.
+
+Overview
+--------
+
+[
+
+![Create images](https://cdn.openai.com/API/docs/images/images.png)
+
+Create images
+
+Use GPT Image or DALL·E to generate or edit images.
+
+](/docs/guides/image-generation)[
+
+![Process image inputs](https://cdn.openai.com/API/docs/images/vision.png)
+
+Process image inputs
+
+Use our models' vision capabilities to analyze images.
+
+](/docs/guides/images-vision#analyze-images)
+
+In this guide, you will learn about building applications involving images with the OpenAI API. If you know what you want to build, find your use case below to get started. If you're not sure where to start, continue reading to get an overview.
+
+### A tour of image-related use cases
+
+Recent language models can process image inputs and analyze them — a capability known as **vision**. With `gpt-image-1`, they can both analyze visual inputs and create images.
+
+The OpenAI API offers several endpoints to process images as input or generate them as output, enabling you to build powerful multimodal applications.
+
+|API|Supported use cases|
+|---|---|
+|Chat Completions API|Analyze images and use them as input to generate text or audio|
+|Responses API|Analyze images and use them as input to generate text - image generation support coming soon|
+|Images API|Generate images as output, optionally using images as input|
+
+To learn more about the input and output modalities supported by our models, refer to our [models page](/docs/models).
+
+Generate or edit images
+-----------------------
+
+You can generate or edit images using the Images API (support via the Responses API is coming soon).
+
+Our latest image generation model, `gpt-image-1`, is a natively multimodal large language model. It can understand text and images and leverage its broad world knowledge to generate images with better instruction following and contextual awareness.
+
+In constrast, we also offer specialized image generation models - DALL·E 2 and 3 - which don't have the same inherent understanding of the world as GPT Image.
+
+You can learn more about image generation in our [Image generation](/docs/guides/image-generation) guide.
+
+### Using world knowledge for image generation
+
+The difference between DALL·E models and GPT Image is that a natively multimodal language model can use its visual understanding of the world to generate lifelike images including real-life details without a reference.
+
+For example, if you prompt GPT Image to generate an image of a glass cabinet with the most popular semi-precious stones, the model knows enough to select gemstones like amethyst, rose quartz, jade, etc, and depict them in a realistic way.
+
+Analyze images
+--------------
+
+**Vision** is the ability for a model to "see" and understand images. If there is text in an image, the model can also understand the text. It can understand most visual elements, including objects, shapes, colors, and textures, even if there are some [limitations](#limitations).
+
+### Giving a model images as input
+
+You can provide images as input to generation requests either by providing a fully qualified URL to an image file, or providing an image as a Base64-encoded data URL.
+
+You can provide multiple images as input in a single request by including multiple images in the `content` array, but keep in mind that [images count as tokens](#calculating-costs) and will be billed accordingly.
+
+Passing a URL
+
+Analyze the content of an image
+
+```javascript
+import OpenAI from "openai";
+const openai = new OpenAI();
+
+const response = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [{
+        role: "user",
+        content: [
+            { type: "text", text: "What is in this image?" },
+            {
+                type: "image_url",
+                image_url: {
+                    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                },
+            },
+        ],
+    }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "What's in this image?"},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                },
+            },
+        ],
+    }],
+)
+
+print(response.choices[0].message.content)
+```
+
+```bash
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -d '{
+    "model": "gpt-4.1-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 300
+  }'
+```
+
+Passing a Base64 encoded image
+
+Analyze the content of an image
+
+```javascript
+import fs from "fs";
+import OpenAI from "openai";
+
+const openai = new OpenAI();
+
+const imagePath = "path_to_your_image.jpg";
+const base64Image = fs.readFileSync(imagePath, "base64");
+
+const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [{
+        role: "user",
+        content: [
+            { type: "text", text: "what's in this image?" },
+            {
+                type: "image_url",
+                image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`,
+                },
+            },
+        ],
+    }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+import base64
+from openai import OpenAI
+
+client = OpenAI()
+
+# Function to encode the image
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+# Path to your image
+image_path = "path_to_your_image.jpg"
+
+# Getting the Base64 string
+base64_image = encode_image(image_path)
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                { "type": "text", "text": "what's in this image?" },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}",
+                    },
+                },
+            ],
+        }
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $YOUR_API_KEY" \
+  -d '{
+    "model": "gpt-4.1-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "max_tokens": 300
+  }'
+```
+
+### Image input requirements
+
+Input images must meet the following requirements to be used in the API.
+
+|Supported file types|PNG (.png)JPEG (.jpeg and .jpg)WEBP (.webp)Non-animated GIF (.gif)|
+|Size limits|Up to 20MB per imageLow-resolution: 512px x 512pxHigh-resolution: 768px (short side) x 2000px (long side)|
+|Other requirements|No watermarks or logosNo textNo NSFW contentClear enough for a human to understand|
+
+### Specify image input detail level
+
+The `detail` parameter tells the model what level of detail to use when processing and understanding the image (`low`, `high`, or `auto` to let the model decide). If you skip the parameter, the model will use `auto`.
+
+```plain
+"image_url": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+    "detail": "high"
+},
+```
+
+You can save tokens and speed up responses by using `"detail": "low"`. This lets the model process the image with a budget of 85 tokens. The model receives a low-resolution 512px x 512px version of the image. This is fine if your use case doesn't require the model to see with high-resolution detail (for example, if you're asking about the dominant shape or color in the image).
+
+On the other hand, you can use `"detail": "high"` if you want the model to have a better understanding of the image.
+
+Read more about calculating image processing costs in the [Calculating costs](#calculating-costs) section below.
+
+Limitations
+-----------
+
+While models with vision capabilities are powerful and can be used in many situations, it's important to understand the limitations of these models. Here are some known limitations:
+
+*   **Medical images**: The model is not suitable for interpreting specialized medical images like CT scans and shouldn't be used for medical advice.
+*   **Non-English**: The model may not perform optimally when handling images with text of non-Latin alphabets, such as Japanese or Korean.
+*   **Small text**: Enlarge text within the image to improve readability, but avoid cropping important details.
+*   **Rotation**: The model may misinterpret rotated or upside-down text and images.
+*   **Visual elements**: The model may struggle to understand graphs or text where colors or styles—like solid, dashed, or dotted lines—vary.
+*   **Spatial reasoning**: The model struggles with tasks requiring precise spatial localization, such as identifying chess positions.
+*   **Accuracy**: The model may generate incorrect descriptions or captions in certain scenarios.
+*   **Image shape**: The model struggles with panoramic and fisheye images.
+*   **Metadata and resizing**: The model doesn't process original file names or metadata, and images are resized before analysis, affecting their original dimensions.
+*   **Counting**: The model may give approximate counts for objects in images.
+*   **CAPTCHAS**: For safety reasons, our system blocks the submission of CAPTCHAs.
+
+Calculating costs
+-----------------
+
+Image inputs are metered and charged in tokens, just as text inputs are. How images are converted to text token inputs varies based on the model. You can find a vision pricing calculator in the FAQ section of the [pricing page](https://openai.com/api/pricing/).
+
+### GPT-4.1-mini, GPT-4.1-nano, o4-mini
+
+Image inputs are metered and charged in tokens based on their dimensions. The token cost of an image is determined as follows:
+
+*   Calculate the number of 32px x 32px patches that are needed to fully cover the image
+*   If the number of patches exceeds 1536, we scale the image so that it can be covered by no more than 1536 patches.
+*   The token cost is the number of patches, capped at a maximum of 1536 tokens
+*   For `gpt-4.1-mini` we multiply image tokens by 1.62 to get total tokens, for `gpt-4.1-nano` we multiply image tokens by 2.46 to get total tokens, and for `o4-mini` we multiply image tokens by 1.72 to get total tokens, that are then billed at normal text token rates.
+
+**Cost calculation examples**
+
+*   A 1024 x 1024 image is **1024 tokens**
+    *   Width is 1024, resulting in `(1024 + 32 - 1) // 32 = 32` patches
+    *   Height is 1024, resulting in `(1024 + 32 - 1) // 32 = 32` patches
+    *   Tokens calculated as `32 * 32 = 1024`, below the cap of 1536
+*   A 1800 x 2400 image is **1452 tokens**
+    *   Width is 1800, resulting in `(1800 + 32 - 1) // 32 = 57` patches
+    *   Height is 2400, resulting in `(2400 + 32 - 1) // 32 = 75` patches
+    *   We need `57 * 75 = 4275` patches to cover the full image. Since that exceeds 1536, we need to scale down the image while preserving the aspect ratio.
+    *   We can calculate the shrink factor as `sqrt(token_budget × patch_size^2 / (width * height))`. In our example, the shrink factor is `sqrt(1536 * 32^2 / (1800 * 2400)) = 0.603`.
+    *   Width is now 1086, resulting in `1086 / 32 = 33.94` patches
+    *   Height is now 1448, resulting in `1448 / 32 = 45.25` patches
+    *   We want to make sure the image fits in a whole number of patches. In this case we scale again by `33 / 33.94 = 0.97` to fit the width in 33 patches.
+    *   The final width is then `1086 * (33 / 33.94) = 1056)` and the final height is `1448 * (33 / 33.94) = 1408`
+    *   The image now requires `1056 / 32 = 33` patches to cover the width and `1408 / 32 = 44` patches to cover the height
+    *   The total number of tokens is the `33 * 44 = 1452`, below the cap of 1536
+
+### GPT 4o, GPT-4.1, GPT-4o-mini, CUA, and o-series (except o4-mini)
+
+The token cost of an image is determined by two factors: size and detail.
+
+Any image with `"detail": "low"` costs a set, base number of tokens. This amount varies by model (see charte below). To calculate the cost of an image with `"detail": "high"`, we do the following:
+
+*   Scale to fit in a 2048px x 2048px square, maintaining original aspect ratio
+*   Scale so that the image's shortest side is 768px long
+*   Count the number of 512px squares in the image—each square costs a set amount of tokens (see chart below)
+*   Add the base tokens to the total
+
+|Model|Base tokens|Tile tokens|
+|---|---|---|
+|4o, 4.1, 4.5|85|170|
+|4o-mini|2833|5667|
+|o1, o1-pro, o3|75|150|
+|computer-use-preview|65|129|
+
+**Cost calculation examples (for gpt-4o)**
+
+*   A 1024 x 1024 square image in `"detail": "high"` mode costs 765 tokens
+    *   1024 is less than 2048, so there is no initial resize.
+    *   The shortest side is 1024, so we scale the image down to 768 x 768.
+    *   4 512px square tiles are needed to represent the image, so the final token cost is `170 * 4 + 85 = 765`.
+*   A 2048 x 4096 image in `"detail": "high"` mode costs 1105 tokens
+    *   We scale down the image to 1024 x 2048 to fit within the 2048 square.
+    *   The shortest side is 1024, so we further scale down to 768 x 1536.
+    *   6 512px tiles are needed, so the final token cost is `170 * 6 + 85 = 1105`.
+*   A 4096 x 8192 image in `"detail": "low"` most costs 85 tokens
+    *   Regardless of input size, low detail images are a fixed cost.
+
+### GPT Image 1
+
+For GPT Image 1, we calculate the cost of an image input the same way as described above, except that we scale down the image so that the shortest side is 512px instead of 768px. There is no detail level configuration for this model, so the price depends on the dimensions of the image.
+
+The base cost is 65 image tokens, and each tile costs 129 image tokens.
+
+To see pricing for image input tokens, refer to our [pricing page](/docs/pricing#latest-models).
+
+* * *
+
+We process images at the token level, so each image we process counts towards your tokens per minute (TPM) limit.
+
+For the most precise and up-to-date estimates for image processing, please use our image pricing calculator available [here](https://openai.com/api/pricing/).
+
+---
+
+Streaming API responses
+=======================
+
+Learn how to stream model responses from the OpenAI API using server-sent events.
+
+By default, when you make a request to the OpenAI API, we generate the model's entire output before sending it back in a single HTTP response. When generating long outputs, waiting for a response can take time. Streaming responses lets you start printing or processing the beginning of the model's output while it continues generating the full response.
+
+Enable streaming
+----------------
+
+Streaming Chat Completions is fairly straightforward. However, we recommend using the [Responses API for streaming](/docs/guides/streaming-responses?api-mode=responses), as we designed it with streaming in mind. The Responses API uses semantic events for streaming and is type-safe.
+
+### Stream a chat completion
+
+To stream completions, set `stream=True` when calling the Chat Completions or legacy Completions endpoints. This returns an object that streams back the response as data-only server-sent events.
+
+The response is sent back incrementally in chunks with an event stream. You can iterate over the event stream with a `for` loop, like this:
+
+```javascript
+import OpenAI from "openai";
+const openai = new OpenAI();
+
+const stream = await openai.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: "Say 'double bubble bath' ten times fast." ,
+        }
+    ],
+    stream: true,
+});
+
+for await (const chunk of stream) {
+    console.log(chunk);
+    console.log(chunk.choices[0].delta);
+    console.log("****************");
+}
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+stream = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say 'double bubble bath' ten times fast.",
+        },
+    ],
+    stream=True,
+)
+
+for chunk in stream:
+    print(chunk)
+    print(chunk.choices[0].delta)
+    print("****************")
+```
+
+Read the responses
+------------------
+
+When you stream a chat completion, the responses has a `delta` field rather than a `message` field. The `delta` field can hold a role token, content token, or nothing.
+
+```text
+{ role: 'assistant', content: '', refusal: null }
+****************
+{ content: 'Why' }
+****************
+{ content: " don't" }
+****************
+{ content: ' scientists' }
+****************
+{ content: ' trust' }
+****************
+{ content: ' atoms' }
+****************
+{ content: '?\n\n' }
+****************
+{ content: 'Because' }
+****************
+{ content: ' they' }
+****************
+{ content: ' make' }
+****************
+{ content: ' up' }
+****************
+{ content: ' everything' }
+****************
+{ content: '!' }
+****************
+{}
+****************
+```
+
+To stream only the text response of your chat completion, your code would like this:
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const stream = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: "Say 'double bubble bath' ten times fast.",
+        },
+    ],
+    stream: true,
+});
+
+for await (const chunk of stream) {
+    process.stdout.write(chunk.choices[0]?.delta?.content || "");
+}
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+stream = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say 'double bubble bath' ten times fast.",
+        },
+    ],
+    stream=True,
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content is not None:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+Advanced use cases
+------------------
+
+For more advanced use cases, like streaming tool calls, check out the following dedicated guides:
+
+*   [Streaming function calls](/docs/guides/function-calling#streaming)
+*   [Streaming structured output](/docs/guides/structured-outputs#streaming)
+
+Moderation risk
+---------------
+
+Note that streaming the model's output in a production application makes it more difficult to moderate the content of the completions, as partial completions may be more difficult to evaluate. This may have implications for approved usage.
+
+---
+
+Built-in tools
+==============
+
+Use built-in tools like web search and file search to extend the model's capabilities.
+
+When generating model responses, you can extend model capabilities using built-in **tools**. These tools help models access additional context and information from the web or your files. The example below uses the [web search tool](/docs/guides/tools-web-search) to use the latest information from the web to generate a model response.
+
+Include web search results for the completion
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    web_search_options: {},
+    messages: [{
+        "role": "user",
+        "content": "What was a positive news story from today?"
+    }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4o-search-preview",
+    web_search_options={},
+    messages=[
+        {
+            "role": "user",
+            "content": "What was a positive news story from today?",
+        }
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-type: application/json" \
+    -d '{
+        "model": "gpt-4o-search-preview",
+        "web_search_options": {},
+        "messages": [{
+            "role": "user",
+            "content": "What was a positive news story from today?"
+        }]
+    }'
+```
+
+Available tools
+---------------
+
+Here's an overview of the tools available in the OpenAI platform—select one of them for further guidance on usage. Note that currently the file search and computer use tools are only available using the new [Responses API](/docs/api-reference/responses).
+
+[
+
+Web search
+
+Include data from the Internet in model response generation.
+
+](/docs/guides/tools-web-search)[
+
+Function calling
+
+Enable the model to call custom code that you define, giving it access to additional data and capabilities.
+
+](/docs/guides/function-calling)
+
+Usage in the API
+----------------
+
+When making a request to generate a [chat completion](/docs/api-reference/chat/create), you can enable web search by using the `web_search` parameter. This allows the model to access current Internet information during response generation. For additional details, refer to the [web search guide](/docs/guides/tools-web-search).
+
+### Function calling
+
+In addition to built-in tools, you can define custom functions using the `tools` array. These custom functions allow the model to call your application's code, enabling access to specific data or capabilities not directly available within the model.
+
+Learn more in the [function calling guide](/docs/guides/function-calling).
+
+---
+
+Web search
+==========
+
+Allow models to search the web for the latest information before generating a response.
+
+Using the [Chat Completions API](/docs/api-reference/chat), you can directly access the fine-tuned models and tool used by [Search in ChatGPT](https://openai.com/index/introducing-chatgpt-search/).
+
+When using Chat Completions, the model always retrieves information from the web before responding to your query. To use `web_search_preview` as a tool that models like `gpt-4o` and `gpt-4o-mini` invoke only when necessary, switch to using the [Responses API](/docs/guides/tools-web-search?api-mode=responses).
+
+Currently, you need to use one of these models to use web search in Chat Completions:
+
+*   `gpt-4o-search-preview`
+*   `gpt-4o-mini-search-preview`
+
+Web search parameter example
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    web_search_options: {},
+    messages: [{
+        "role": "user",
+        "content": "What was a positive news story from today?"
+    }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4o-search-preview",
+    web_search_options={},
+    messages=[
+        {
+            "role": "user",
+            "content": "What was a positive news story from today?",
+        }
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash
+curl -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-type: application/json" \
+    -d '{
+        "model": "gpt-4o-search-preview",
+        "web_search_options": {},
+        "messages": [{
+            "role": "user",
+            "content": "What was a positive news story from today?"
+        }]
+    }'
+```
+
+Output and citations
+--------------------
+
+The API response item in the `choices` array will include:
+
+*   `message.content` with the text result from the model, inclusive of any inline citations
+*   `annotations` with a list of cited URLs
+
+By default, the model's response will include inline citations for URLs found in the web search results. In addition to this, the `url_citation` annotation object will contain the URL and title of the cited source, as well as the start and end index characters in the model's response where those sources were used.
+
+When displaying web results or information contained in web results to end users, inline citations must be made clearly visible and clickable in your user interface.
+
+```json
+[
+  {
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "the model response is here...",
+      "refusal": null,
+      "annotations": [
+        {
+          "type": "url_citation",
+          "url_citation": {
+            "end_index": 985,
+            "start_index": 764,
+            "title": "Page title...",
+            "url": "https://..."
+          }
+        }
+      ]
+    },
+    "finish_reason": "stop"
+  }
+]
+```
+
+User location
+-------------
+
+To refine search results based on geography, you can specify an approximate user location using country, city, region, and/or timezone.
+
+*   The `city` and `region` fields are free text strings, like `Minneapolis` and `Minnesota` respectively.
+*   The `country` field is a two-letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1), like `US`.
+*   The `timezone` field is an [IANA timezone](https://timeapi.io/documentation/iana-timezones) like `America/Chicago`.
+
+Customizing user location
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4o-search-preview",
+    web_search_options={
+        "user_location": {
+            "type": "approximate",
+            "approximate": {
+                "country": "GB",
+                "city": "London",
+                "region": "London",
+            }
+        },
+    },
+    messages=[{
+        "role": "user",
+        "content": "What are the best restaurants around Granary Square?",
+    }],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    web_search_options: {
+        user_location: {
+            type: "approximate",
+            approximate: {
+                country: "GB",
+                city: "London",
+                region: "London",
+            },
+        },
+    },
+    messages: [{
+        "role": "user",
+        "content": "What are the best restaurants around Granary Square?",
+    }],
+});
+console.log(completion.choices[0].message.content);
+```
+
+```bash
+curl -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-type: application/json" \
+    -d '{
+        "model": "gpt-4o-search-preview",
+        "web_search_options": {
+            "user_location": {
+                "type": "approximate",
+                "approximate": {
+                    "country": "GB",
+                    "city": "London",
+                    "region": "London"
+                }
+            }
+        },
+        "messages": [{
+            "role": "user",
+            "content": "What are the best restaurants around Granary Square?"
+        }]
+    }'
+```
+
+Search context size
+-------------------
+
+When using this tool, the `search_context_size` parameter controls how much context is retrieved from the web to help the tool formulate a response. The tokens used by the search tool do **not** affect the context window of the main model specified in the `model` parameter in your response creation request. These tokens are also **not** carried over from one turn to another — they're simply used to formulate the tool response and then discarded.
+
+Choosing a context size impacts:
+
+*   **Cost**: Pricing of our search tool varies based on the value of this parameter. Higher context sizes are more expensive. See tool pricing [here](/docs/pricing).
+*   **Quality**: Higher search context sizes generally provide richer context, resulting in more accurate, comprehensive answers.
+*   **Latency**: Higher context sizes require processing more tokens, which can slow down the tool's response time.
+
+Available values:
+
+*   **`high`**: Most comprehensive context, highest cost, slower response.
+*   **`medium`** (default): Balanced context, cost, and latency.
+*   **`low`**: Least context, lowest cost, fastest response, but potentially lower answer quality.
+
+Again, tokens used by the search tool do **not** impact main model's token usage and are not carried over from turn to turn. Check the [pricing page](/docs/pricing) for details on costs associated with each context size.
+
+Customizing search context size
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+completion = client.chat.completions.create(
+    model="gpt-4o-search-preview",
+    web_search_options={
+        "search_context_size": "low",
+    },
+    messages=[{
+        "role": "user",
+        "content": "What movie won best picture in 2025?",
+    }],
+)
+
+print(completion.choices[0].message.content)
+```
+
+```javascript
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    web_search_options: {
+        search_context_size: "low",
+    },
+    messages: [{
+        "role": "user",
+        "content": "What movie won best picture in 2025?",
+    }],
+});
+console.log(completion.choices[0].message.content);
+```
+
+```bash
+curl -X POST "https://api.openai.com/v1/chat/completions" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -H "Content-type: application/json" \
+    -d '{
+        "model": "gpt-4o-search-preview",
+        "web_search_options": {
+            "search_context_size": "low"
+        },
+        "messages": [{
+            "role": "user",
+            "content": "What movie won best picture in 2025?"
+        }]
+    }'
+```
+
+Limitations
+-----------
+
+Below are a few notable implementation considerations when using web search.
+
+*   Web search is currently not supported in the [`gpt-4.1-nano`](/docs/models/gpt-4.1-nano) model.
+*   The [`gpt-4o-search-preview`](/docs/models/gpt-4o-search-preview) and [`gpt-4o-mini-search-preview`](/docs/models/gpt-4o-mini-search-preview) models used in Chat Completions only support a subset of API parameters - view their model data pages for specific information on rate limits and feature support.
+*   When used as a tool in the [Responses API](/docs/api-reference/responses), web search has the same tiered rate limits as the models above.
+*   Web search is limited to a context window size of 128000 (even with [`gpt-4.1`](/docs/models/gpt-4.1) and [`gpt-4.1-mini`](/docs/models/gpt-4.1-mini) models).
+*   [Refer to this guide](/docs/guides/your-data) for data handling, residency, and retention information.
+
+---
+
+File inputs
+===========
+
+Learn how to use PDF files as inputs to the OpenAI API.
+
+OpenAI models with vision capabilities can also accept PDF files as input. Provide PDFs either as Base64-encoded data or as file IDs obtained after uploading files to the `/v1/files` endpoint through the [API](/docs/api-reference/files) or [dashboard](/storage/files/).
+
+How it works
+------------
+
+To help models understand PDF content, we put into the model's context both the extracted text and an image of each page. The model can then use both the text and the images to generate a response. This is useful, for example, if diagrams contain key information that isn't in the text.
+
+Uploading files
+---------------
+
+In the example below, we first upload a PDF using the [Files API](/docs/api-reference/files), then reference its file ID in an API request to the model.
+
+Upload a file to use in a completion
+
+```bash
+curl https://api.openai.com/v1/files \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -F purpose="user_data" \
+    -F file="@draconomicon.pdf"
+
+curl "https://api.openai.com/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "file",
+                        "file": {
+                            "file_id": "file-6F2ksmvXxt4VdoqmHRw6kL"
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "What is the first dragon in the book?"
+                    }
+                ]
+            }
+        ]
+    }'
+```
+
+```javascript
+import fs from "fs";
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const file = await client.files.create({
+    file: fs.createReadStream("draconomicon.pdf"),
+    purpose: "user_data",
+});
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: [
+                {
+                    type: "file",
+                    file: {
+                        file_id: file.id,
+                    }
+                },
+                {
+                    type: "text",
+                    text: "What is the first dragon in the book?",
+                },
+            ],
+        },
+    ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+client = OpenAI()
+
+file = client.files.create(
+    file=open("draconomicon.pdf", "rb"),
+    purpose="user_data"
+)
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "file",
+                    "file": {
+                        "file_id": file.id,
+                    }
+                },
+                {
+                    "type": "text",
+                    "text": "What is the first dragon in the book?",
+                },
+            ]
+        }
+    ]
+)
+
+print(completion.choices[0].message.content)
+```
+
+Base64-encoded files
+--------------------
+
+You can send PDF file inputs as Base64-encoded inputs as well.
+
+Base64 encode a file to use in a completion
+
+```bash
+curl "https://api.openai.com/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $YOUR_API_KEY" \
+    -d '{
+        "model": "gpt-4.1",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "file",
+                        "file": {
+                            "filename": "draconomicon.pdf",
+                            "file_data": "...base64 encoded bytes here..."
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "What is the first dragon in the book?"
+                    }
+                ]
+            }
+        ]
+    }'
+```
+
+```javascript
+import fs from "fs";
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const data = fs.readFileSync("draconomicon.pdf");
+const base64String = data.toString("base64");
+
+const completion = await client.chat.completions.create({
+    model: "gpt-4.1",
+    messages: [
+        {
+            role: "user",
+            content: [
+                {
+                    type: "file",
+                    file: {
+                        filename: "draconomicon.pdf",
+                        file_data: `data:application/pdf;base64,${base64String}`
+                    }
+                },
+                {
+                    type: "text",
+                    text: "What is the first dragon in the book?",
+                },
+            ],
+        },
+    ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+import base64
+from openai import OpenAI
+client = OpenAI()
+
+with open("draconomicon.pdf", "rb") as f:
+    data = f.read()
+
+base64_string = base64.b64encode(data).decode("utf-8")
+
+completion = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "file",
+                    "file": {
+                        "filename": "draconomicon.pdf",
+                        "file_data": f"data:application/pdf;base64,{base64_string}",
+                    }
+                },
+                {
+                    "type": "text",
+                    "text": "What is the first dragon in the book?",
+                }
+            ],
+        },
+    ],
+)
+
+print(completion.choices[0].message.content)
+```
+
+Usage considerations
+--------------------
+
+Below are a few considerations to keep in mind while using PDF inputs.
+
+**Token usage**
+
+To help models understand PDF content, we put into the model's context both extracted text and an image of each page—regardless of whether the page includes images. Before deploying your solution at scale, ensure you understand the pricing and token usage implications of using PDFs as input. [More on pricing](/docs/pricing).
+
+**File size limitations**
+
+You can upload up to 100 pages and 32MB of total content in a single request to the API, across multiple file inputs.
+
+**Supported models**
+
+Only models that support both text and image inputs, such as gpt-4o, gpt-4o-mini, or o1, can accept PDF files as input. [Check model features here](/docs/models).
+
+**File upload purpose**
+
+You can upload these files to the Files API with any [purpose](/docs/api-reference/files/create#files-create-purpose), but we recommend using the `user_data` purpose for files you plan to use as model inputs.
+
+Next steps
+----------
+
+Now that you known the basics of text inputs and outputs, you might want to check out one of these resources next.
+
+[
+
+Experiment with PDF inputs in the Playground
+
+Use the Playground to develop and iterate on prompts with PDF inputs.
+
+](/playground)[
+
+Full API reference
+
+Check out the API reference for more options.
+
+](/docs/api-reference/responses)
+
+

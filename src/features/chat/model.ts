@@ -7,6 +7,7 @@ import {
   $currentModelSupportsAudio,
   autoSelectModelForCapabilities 
 } from "@/features/models-select";
+import { $selectedVoice as $ttsVoice } from "@/features/text-to-speech";
 // Import chat-stream feature
 import {
   streamChatFx,
@@ -47,6 +48,41 @@ import {
 import { 
   processDocumentsFx
 } from "@/features/document-processing";
+
+// --- Helper Functions ---
+
+/**
+ * Helper function to detect if any message contains audio content
+ */
+function hasAudioContentInMessages(messages: unknown[]): boolean {
+  return messages.some(message => {
+    if (typeof message !== 'object' || message === null || !('content' in message)) return false;
+    const messageContent = (message as { content: unknown }).content;
+    if (typeof messageContent === 'string') return false;
+    return Array.isArray(messageContent) && messageContent.some((part: unknown) => 
+      typeof part === 'object' && part !== null && 'type' in part && 
+      (part as { type: unknown }).type === 'input_audio'
+    );
+  });
+}
+
+/**
+ * Helper function to get audio parameters for chat completions
+ */
+function getAudioParams(hasAudio: boolean, supportsAudio: boolean, ttsVoice: string): {
+  modalities?: ("text" | "audio")[];
+  audio?: { voice: string; format: "wav" | "mp3" | "flac" | "opus" | "pcm" };
+} {
+  if (!hasAudio || !supportsAudio) return {};
+  
+  return {
+    modalities: ["text", "audio"],
+    audio: {
+      voice: ttsVoice || "alloy",
+      format: "mp3" as const
+    }
+  };
+}
 
 // --- Domain ---
 const chatDomain = createDomain("chat");
@@ -1190,6 +1226,8 @@ sample({
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
+    supportsAudio: $currentModelSupportsAudio,
+    ttsVoice: $ttsVoice,
   },
   filter: ({ apiKey }) => !!apiKey,
   fn: (
@@ -1200,10 +1238,12 @@ sample({
       temperature: number;
       systemPrompt: string;
       selectedModelId: string;
+      supportsAudio: boolean;
+      ttsVoice: string;
     },
   ): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId, supportsAudio, ttsVoice } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -1220,6 +1260,10 @@ sample({
       
     // Format messages for API consumption with model-specific validation
     const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
+
+    // Detect if we need audio capabilities
+    const hasAudio = hasAudioContentInMessages(messagesWithSystem);
+    const audioParams = getAudioParams(hasAudio, supportsAudio, ttsVoice);
 
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
@@ -1264,6 +1308,7 @@ sample({
       apiKey,
       providerApiUrl,
       temperature,
+      ...audioParams, // Include audio parameters if needed
       onChunk,
       onComplete,
       onError,
@@ -1293,6 +1338,8 @@ sample({
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
+    supportsAudio: $currentModelSupportsAudio,
+    ttsVoice: $ttsVoice,
   },
   filter: ({ apiKey, messages }) => !!apiKey && messages.length > 0, // Ensure API key exists and there are messages to generate from
   fn: (sourceData: {
@@ -1302,9 +1349,11 @@ sample({
     temperature: number;
     systemPrompt: string;
     selectedModelId: string;
+    supportsAudio: boolean;
+    ttsVoice: string;
   }): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId, supportsAudio, ttsVoice } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -1354,6 +1403,10 @@ sample({
     // Format messages for API consumption with model-specific validation
     const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
 
+    // Detect if we need audio capabilities
+    const hasAudio = hasAudioContentInMessages(messagesWithSystem);
+    const audioParams = getAudioParams(hasAudio, supportsAudio, ttsVoice);
+
     let isFirstChunkForThisStream = true; // Flag for this specific stream initiation
 
     // Define Callbacks
@@ -1391,6 +1444,7 @@ sample({
       apiKey,
       providerApiUrl,
       temperature,
+      ...audioParams, // Include audio parameters if needed
       onChunk,
       onComplete,
       onError,
@@ -1419,6 +1473,8 @@ sample({
     temperature: $temperature,
     systemPrompt: $systemPrompt,
     selectedModelId: $selectedModelId,
+    supportsAudio: $currentModelSupportsAudio,
+    ttsVoice: $ttsVoice,
   },
   filter: (
     sourceData: {
@@ -1428,6 +1484,8 @@ sample({
       temperature: number;
       systemPrompt: string;
       selectedModelId: string;
+      supportsAudio: boolean;
+      ttsVoice: string;
     },
     messageToRetry: Message
   ): sourceData is {
@@ -1437,10 +1495,12 @@ sample({
     temperature: number;
     systemPrompt: string;
     selectedModelId: string;
+    supportsAudio: boolean;
+    ttsVoice: string;
   } => !!sourceData.apiKey && isRetryableMessage(messageToRetry),
   fn: (sourceData, messageToRetry): StreamInitiatedWithTargetPayload => {
     // Corrected type
-    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId } =
+    const { messages, apiKey, providerApiUrl, temperature, systemPrompt, selectedModelId, supportsAudio, ttsVoice } =
       sourceData;
 
     const streamId = crypto.randomUUID();
@@ -1460,6 +1520,10 @@ sample({
       
     // Format messages for API consumption with model-specific validation
     const messagesWithSystem = formatMessagesForAPI(messagesBeforeFormatting, selectedModelId);
+
+    // Detect if we need audio capabilities
+    const hasAudio = hasAudioContentInMessages(messagesWithSystem);
+    const audioParams = getAudioParams(hasAudio, supportsAudio, ttsVoice);
 
     const originalMessageIndex = messages.findIndex(
       (m) => m.id === messageToRetry.id
@@ -1499,6 +1563,7 @@ sample({
       apiKey,
       providerApiUrl,
       temperature,
+      ...audioParams, // Include audio parameters if needed
       onChunk: ({ chunk }: StreamChunkPayload) => {
         const content = chunk.choices?.[0]?.delta?.content;
         if (content) {

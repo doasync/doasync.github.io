@@ -32,7 +32,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
           className,
           children,
           ...props
-        }: { inline?: boolean; className?: string; children?: React.ReactNode; [key: string]: unknown }) => {
+        }: React.HTMLAttributes<HTMLElement> & { inline?: boolean; className?: string; children?: React.ReactNode }) => {
           const match = /language-(\w+)/.exec(className || "");
           const codeContent = String(children).replace(/\n$/, ""); // Remove trailing newline
 

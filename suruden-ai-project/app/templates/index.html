@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Suruden AI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <!-- >>> ДОБАВЛЕНО: CSS для highlight.js (тема Atom One Dark) <<< -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <!-- Библиотека для Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Иконки Feather -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+</head>
+<body>
+    <!-- Главный контейнер приложения (класс sidebar-collapsed будет добавляться JS) -->
+    <div class="app-container">
+
+        <!-- Боковая панель -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <!-- НОВАЯ КНОПКА: Скрыть/Показать сайдбар (для десктопа) -->
+                <button class="icon-button sidebar-action-button desktop-only" id="desktop-sidebar-toggle" title="Скрыть/Показать панель">
+                    <i data-feather="chevron-left"></i> <!-- Иконка изменится на chevron-right при скрытии -->
+                </button>
+                <!-- Существующий контейнер для кнопок Поиск/Новый чат -->
+                <div class="sidebar-header-actions">
+                     <button class="icon-button sidebar-action-button" id="search-chat-btn" title="Поиск по чатам">
+                         <i data-feather="search"></i>
+                     </button>
+                     <button class="icon-button sidebar-action-button" id="new-chat-btn" title="Новый чат">
+                         <i data-feather="edit-3"></i>
+                     </button>
+                </div>
+            </div>
+            <!-- Список истории чатов -->
+            <nav class="chat-history" id="chat-history-list">
+                <!-- Сюда будет загружаться история чатов JS -->
+            </nav>
+            <!-- Футер сайдбара -->
+            <div class="sidebar-footer">
+                <!-- Переключатель Инкогнито -->
+                <div class="temp-chat-toggle" id="temp-chat-switch-container">
+                    <input type="checkbox" id="temp-chat-checkbox" class="temp-chat-checkbox">
+                    <label for="temp-chat-checkbox" class="temp-chat-label">
+                        <span class="toggle-indicator"></span>
+                        <span class="toggle-text">Инкогнито</span>
+                    </label>
+                </div>
+                <!-- Кнопка Настройки -->
+                <button class="icon-button sidebar-action-button" title="Настройки" id="settings-btn">
+                    <i data-feather="settings"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="main-content" id="main-content">
+            <!-- Шапка основной области -->
+            <header class="chat-header">
+                <!-- НОВАЯ КНОПКА ОТКРЫТИЯ (появится слева при скрытом сайдбаре на десктопе) -->
+                <button class="icon-button sidebar-action-button desktop-only" id="open-sidebar-btn" title="Показать панель">
+                   <i data-feather="menu"></i> <!-- Используем иконку меню для открытия -->
+                </button>
+
+                <!-- Кнопка для мобильного меню (без изменений, но теперь order: 1 в CSS) -->
+                <button class="icon-button sidebar-toggle-button mobile-only" id="sidebar-toggle">
+                   <i data-feather="menu"></i>
+                </button>
+
+                <!-- Кнопка "Новый чат" (без класса mobile-only, order: 2 в CSS при скрытом сайдбаре) -->
+                <button class="icon-button sidebar-action-button" id="new-chat-btn-header" title="Новый чат">
+                    <i data-feather="edit-3"></i>
+                </button>
+
+               <!-- Селектор моделей (без изменений, но отодвинется с помощью margin-right: auto у #new-chat-btn-header) -->
+               <div class="model-selector">
+                    <button id="model-selector-button">
+                        <span id="current-model-name">Загрузка...</span>
+                        <i data-feather="chevron-down" class="chevron-icon"></i>
+                    </button>
+                    <div id="model-selection-popup" class="model-popup hidden">
+                         <ul id="model-list-ul"></ul>
+                    </div>
+                </div>
+           </header>
+
+           <!-- Область чата (со скроллом) -->
+           <div class="chat-area" id="chat-area">
+                <!-- Контейнер для сообщений -->
+                <div class="chat-messages" id="chat-messages">
+                     <!-- Сообщения будут добавляться сюда JS -->
+                </div>
+                <!-- Плейсхолдер для пустого чата -->
+                 <div class="empty-chat-placeholder hidden" id="empty-chat-placeholder">
+                        <h2>What can I help with?</h2>
+                 </div>
+           </div>
+
+            <!-- Область ввода сообщения (футер) -->
+             <footer class="chat-input-area">
+                 <div class="input-wrapper">
+                     <!-- Кнопка Загрузить файл -->
+                     <button class="icon-button input-area-button file-upload-button" title="Загрузить файл" id="upload-btn">
+                         <i data-feather="plus"></i>
+                     </button>
+                     <!-- Поле ввода текста -->
+                     <textarea id="message-input" class="message-input" placeholder="Ask anything..." rows="1"></textarea>
+                     <!-- Кнопка Поиск в интернете -->
+                     <button class="icon-button input-area-button web-search-button disabled" title="Поиск в интернете (неактивно)" id="web-search-btn">
+                         <i data-feather="globe"></i>
+                     </button>
+                     <!-- Кнопка Отправить / Остановить -->
+                     <button class="icon-button input-area-button send-button disabled" id="send-button" title="Отправить" disabled>
+                         <i data-feather="arrow-up"></i> <!-- Иконка изменится на square при генерации -->
+                     </button>
+                 </div>
+             </footer>
+        </main>
+
+        <!-- Оверлей для мобильного меню -->
+        <div class="sidebar-overlay mobile-only hidden" id="sidebar-overlay"></div>
+
+    </div> <!-- Конец .app-container -->
+
+        <!-- ======== НОВОЕ: Общее меню настроек ======== -->
+        <div class="settings-menu hidden" id="settings-menu">
+            <div class="settings-menu-content">
+                <div class="settings-menu-header">
+                    <h3>Настройки</h3>
+                    <button class="icon-button close-settings-btn" id="close-settings-btn" title="Закрыть">
+                        <i data-feather="x"></i>
+                    </button>
+                </div>
+                
+                <div class="settings-menu-section">
+                    <h4>Общие настройки</h4>
+                    
+                    <!-- Настройка стриминга -->
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <i data-feather="zap" class="setting-icon"></i>
+                            <div class="setting-text">
+                                <label class="setting-label" for="streaming-toggle">Стриминг ответов</label>
+                                <span class="setting-description">Получать ответы частями по мере генерации</span>
+                            </div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="streaming-toggle" class="toggle-checkbox" checked>
+                                <label for="streaming-toggle" class="toggle-label">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопка системного промпта -->
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <i data-feather="cpu" class="setting-icon"></i>
+                            <div class="setting-text">
+                                <span class="setting-label">Системные инструкции</span>
+                                <span class="setting-description">Задать инструкции или личность для AI</span>
+                            </div>
+                        </div>
+                        <div class="setting-control">
+                            <button class="setting-button" id="system-prompt-btn">
+                                <i data-feather="edit-3"></i>
+                                <span>Настроить</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== Модальное окно Настроек Системных Инструкций ======== -->
+        <div class="modal-overlay settings-overlay hidden" id="settings-modal-overlay">
+            <div class="confirmation-modal settings-modal" id="settings-modal">
+                <h3>Системные инструкции</h3>
+                <p>Задай инструкции или личность, которой модель будет следовать во всех чатах.</p>
+                <textarea id="system-instructions-textarea" placeholder="Например: Ты — вежливый и немного саркастичный помощник."></textarea>
+                <div class="modal-button-container">
+                    <button class="modal-button cancel" id="close-settings-modal-btn">Отмена</button>
+                    <button class="modal-button save" id="save-instructions-btn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+
+    <!-- >>> ДОБАВЛЕНО: JS для highlight.js (перед вашим main.js) <<< -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Основной скрипт приложения -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

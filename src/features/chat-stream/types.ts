@@ -10,6 +10,11 @@ export interface APIStreamChoice {
   delta: {
     content: string | null; // Content can be null in some initial chunks
     role?: "assistant"; // Optional role information
+    audio?: {
+      id?: string;
+      data?: string; // Base64 encoded audio data
+      transcript?: string;
+    }; // Audio output from the API
   };
   finish_reason: string | null; // e.g., "stop", "length"
   index: number;
@@ -157,6 +162,12 @@ export interface StreamChatParams {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  // Audio-specific parameters
+  modalities?: ("text" | "audio")[];
+  audio?: {
+    voice?: string;
+    format?: "wav" | "mp3" | "flac" | "opus" | "pcm";
+  };
   // ... other valid OpenAI-compatible stream parameters
 
   // --- Callbacks ---

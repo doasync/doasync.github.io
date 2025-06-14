@@ -19,6 +19,34 @@ import { buildChatCompletionsUrl } from "@/features/api-config";
  * @throws An error if a non-abort related issue occurs (e.g., initial fetch failure, critical stream error).
  *         AbortError is caught and handled via the onAbort callback, allowing the promise to resolve.
  */
+/**
+ * Helper function to detect if any message contains audio content
+ */
+function hasAudioContent(messages: StreamChatParams['messages']): boolean {
+  return messages.some(message => {
+    if (typeof message.content === 'string') return false;
+    return message.content.some(part => part.type === 'input_audio');
+  });
+}
+
+/**
+ * Helper function to check if a model supports audio capabilities
+ */
+function supportsAudio(model: string): boolean {
+  const audioModels = [
+    'gpt-4o-audio-preview',
+    'gpt-4o-audio-preview-2024-12-17',
+    'gemini-2.5-flash-preview-05-20',
+    'gemini-2.5-flash-preview-native-audio-dialog',
+  ];
+  
+  const modelLower = model.toLowerCase();
+  return audioModels.includes(model) ||
+         modelLower.includes('gpt-4o-audio') ||
+         modelLower.includes('native-audio') ||
+         (modelLower.includes('gemini') && modelLower.includes('2.5'));
+}
+
 export async function fetchChatStream(
   params: StreamChatParams, // streamId is now inside params
   signal: AbortSignal
@@ -32,6 +60,8 @@ export async function fetchChatStream(
     temperature,
     max_tokens,
     top_p,
+    modalities,
+    audio,
     // Callbacks
     onChunk,
     onComplete,
@@ -39,15 +69,31 @@ export async function fetchChatStream(
     onAbort,
   } = params;
 
-  const requestBody = {
+  // Detect if we need audio capabilities
+  const needsAudio = hasAudioContent(messages) || modalities?.includes('audio');
+  const modelSupportsAudio = supportsAudio(model);
+
+  const requestBody: Record<string, unknown> = {
     model,
     messages,
     temperature,
     max_tokens,
     top_p,
     stream: true, // Explicitly enable streaming
-    // Add any other passthrough parameters here
   };
+
+  // Add audio parameters if needed and supported
+  if (needsAudio && modelSupportsAudio) {
+    requestBody.modalities = modalities || ['text', 'audio'];
+    
+    if (audio || modalities?.includes('audio')) {
+      requestBody.audio = {
+        voice: audio?.voice || 'alloy',
+        format: audio?.format || 'mp3',
+        ...audio,
+      };
+    }
+  }
 
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 

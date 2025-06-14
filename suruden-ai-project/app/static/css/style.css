@@ -1,0 +1,2918 @@
+/* --- Глобальные стили и переменные --- */
+:root {
+    --bg-sidebar: #171717;
+    --bg-main: #212121;
+    --bg-element: #303030;
+    --bg-element-secondary: #3a3a3a;
+    --bg-element-hover: #454545;
+    --bg-input: #383838;
+    --text-primary: #E5E5E5;
+    --text-secondary: #B0B0B0;
+    --text-placeholder: #888888;
+    --accent-color: #EFF2F5;
+    --accent-color-hover: #F8F9FA;  
+    --border-color: #404040;
+    --scrollbar-thumb: #5f5f5f;
+    --scrollbar-track: var(--bg-element);
+
+    --sidebar-width: 260px;
+    --header-height: 60px;
+    --border-radius-large: 24px;
+    --border-radius-medium: 16px;
+    --border-radius-small: 12px;
+    --padding-large: 24px;
+    --padding-medium: 18px;
+    --padding-small: 10px;
+
+    /* Базовый размер иконок (НЕ для сообщений) */
+    --icon-fixed-size: 1.8em;
+
+    /* ---- НОВЫЕ/ИЗМЕНЕННЫЕ Переменные для иконок под сообщениями ---- */
+    --message-icon-size: 15px; /* <<< ЗАДАЕМ ЯВНЫЙ РАЗМЕР иконок */
+    /* УВЕЛИЧЕННЫЙ отступ ВНУТРИ message-container снизу, чтобы было место */
+    --message-container-bottom-padding: 48px; /* <<< УВЕЛИЧЕНО */
+    /* Отступ контейнера иконок от НИЖНЕГО края message-container */
+    --message-actions-bottom-offset: 10px; /* <<< Немного увеличено */
+    /* Расстояние МЕЖДУ иконками */
+    --message-actions-gap: 6px;
+    /* Отступ ВОКРУГ самой иконки внутри кнопки для кликабельности */
+    --message-icon-button-padding: 5px; /* <<< УМЕНЬШЕНО */
+    /* Толщина линий иконок */
+    --message-icon-stroke-width: 2.2; /* <<< Толщина как в примере */
+    /* Цвет иконок (постоянный, кроме спец. случаев типа delete hover) */
+    --message-icon-color: var(--text-secondary); /* <<< ПОСТОЯННЫЙ цвет */
+    --content-max-width: 900px;
+    --sidebar-transition-duration: 0.3s; /* Добавим переменную для анимации */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: "Figtree", sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: var(--border-radius-medium);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--padding-small);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+button:active {
+    transform: scale(0.96);
+}
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+}
+ul {
+    list-style: none;
+}
+
+/* Базовый стиль для ВСЕХ иконок Feather (SVG) */
+svg.feather {
+    width: var(--icon-fixed-size) !important; /* Устанавливаем размер и ПЕРЕОПРЕДЕЛЯЕМ атрибут */
+    height: var(--icon-fixed-size) !important; /* Устанавливаем размер и ПЕРЕОПРЕДЕЛЯЕМ атрибут */
+    stroke-width: 2;
+    display: inline-block; /* Используем inline-block */
+    color: currentColor;
+    flex-shrink: 0;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    /* vertical-align убран */
+}
+
+/* Общий стиль для кнопок ТОЛЬКО с иконкой */
+.icon-button {
+    padding: 11px; /* Оставляем паддинг для области клика */
+    line-height: 0;
+    border-radius: var(--border-radius-small);
+    color: var(--text-primary);
+    background-color: transparent;
+}
+.icon-button:hover:not(:disabled) {
+    background-color: var(--bg-element-hover);
+    color: var(--text-primary);
+}
+
+
+/* --- Основной макет --- */
+.app-container {
+    display: flex;
+    height: 100vh;
+    overflow-x: hidden; /* Предотвращаем горизонтальный скролл при анимации */
+}
+
+/* --- Сайдбар --- */
+.sidebar {
+    width: var(--sidebar-width); /* 260px по умолчанию */
+    background-color: var(--bg-sidebar);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: var(--padding-medium);
+    transition: width var(--sidebar-transition-duration) ease,
+                padding var(--sidebar-transition-duration) ease,
+                transform var(--sidebar-transition-duration) ease; /* Добавили transform для мобильных */
+    flex-shrink: 0;
+    z-index: 1001;
+    position: relative; /* Для позиционирования кнопки скрытия */
+    overflow: hidden; /* Скрываем контент при схлопывании */
+}
+.sidebar-header {
+    display: flex;
+    /* ИЗМЕНЕНИЕ: Распределяем кнопки по краям */
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--padding-medium);
+    gap: var(--padding-small);
+    height: 44px;
+    flex-shrink: 0;
+    /* ИЗМЕНЕНИЕ: Добавляем transition для плавной анимации скрытия кнопок */
+    transition: opacity var(--sidebar-transition-duration) ease;
+}
+.sidebar-header-actions { /* Контейнер для поиска и нового чата */
+    display: flex;
+    gap: var(--padding-small);
+    /* ИЗМЕНЕНИЕ: Добавляем transition */
+    transition: opacity var(--sidebar-transition-duration) ease;
+}
+.sidebar-action-button {
+    padding: 11px; /* Оставляем паддинг для области клика */
+    line-height: 0;
+    border-radius: var(--border-radius-small);
+    color: var(--text-primary);
+    background-color: transparent;
+}
+/* НОВЫЕ СТИЛИ: Кнопка скрытия сайдбара (#desktop-sidebar-toggle) */
+#desktop-sidebar-toggle {
+    /* Позиционирование: можно оставить в потоке или абсолютно */
+    /* Оставляем в потоке для простоты */
+    order: -1; /* Помещаем ее слева в шапке сайдбара */
+    /* Убираем стандартные отступы кнопки, если нужно */
+    margin: 0;
+    /* По умолчанию видна только на десктопе */
+    display: none; /* Скрыта по умолчанию, покажем в медиа-запросе */
+}
+
+.chat-history {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin: 0 calc(-1 * var(--padding-small));
+    padding: 0 var(--padding-small);
+}
+.history-group-title {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    padding: var(--padding-medium) var(--padding-medium) var(--padding-small);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.chat-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px var(--padding-medium);
+    border-radius: var(--border-radius-medium);
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+.chat-history-item:hover {
+    background-color: var(--bg-element);
+}
+.chat-history-item.active {
+    background-color: var(--bg-element);
+    font-weight: 500;
+}
+.chat-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    margin-right: var(--padding-small);
+}
+.chat-history-item { /* Убедимся, что родитель это flex-контейнер */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px var(--padding-medium);
+    border-radius: var(--border-radius-medium);
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative; /* Для позиционирования popup меню */
+}
+
+.chat-title { /* Стили для заголовка */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1; /* Занимает доступное место */
+    margin-right: var(--padding-small); /* Отступ справа от заголовка */
+}
+
+
+.chat-actions {
+    /* Контейнер для кнопки опций */
+    display: flex; /* На случай, если тут будет больше одной кнопки */
+    align-items: center;
+    flex-shrink: 0; /* Не сжиматься */
+    /* Убираем абсолютное позиционирование и скрытие */
+    /* visibility: hidden; */ /* <-- УДАЛЕНО */
+    /* opacity: 0; */       /* <-- УДАЛЕНО */
+    /* position: absolute; */ /* <-- УДАЛЕНО */
+    /* right: var(--padding-medium); */ /* <-- УДАЛЕНО */
+    /* top: 50%; */ /* <-- УДАЛЕНО */
+    /* transform: translateY(-50%); */ /* <-- УДАЛЕНО */
+    /* transition: opacity 0.2s ease, visibility 0.2s ease; */ /* <-- Можно удалить */
+    /* Можно добавить небольшой отступ слева, если нужно */
+     margin-left: auto; /* Попробуем прижать вправо через auto margin */
+     padding-left: 5px; /* Небольшой отступ от названия */
+}
+
+/* Правило для :hover больше не нужно */
+/* .chat-history-item:hover .chat-actions { ... } */ /* <-- УДАЛЕН ЦЕЛИКОМ */
+
+
+/* Стили для самой кнопки .chat-options-btn остаются как были */
+.chat-options-btn {
+    padding: 6px;
+    line-height: 0;
+    border-radius: var(--border-radius-small);
+    color: var(--text-secondary);
+    background-color: transparent; /* Добавим прозрачный фон явно */
+}
+.chat-options-btn:hover {
+    background-color: var(--bg-element-hover);
+    color: var(--text-primary);
+}
+
+/* Стиль для кнопки, когда меню активно (опционально) */
+.chat-options-btn.menu-active {
+     background-color: var(--bg-element-hover);
+     color: var(--text-primary);
+}
+.chat-actions svg.feather {
+    color: var(--text-secondary);
+}
+.chat-actions:hover svg.feather {
+    color: var(--text-primary);
+}
+
+.sidebar-footer {
+    padding: var(--padding-medium) 0 0;
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--padding-medium);
+    flex-shrink: 0;
+}
+
+/* --- Переключатель временного чата (Улучшенный) --- */
+.temp-chat-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-grow: 1; /* Занимает доступное пространство слева */
+    min-width: 0; /* Предотвращает переполнение */
+    /* ДОБАВЛЕНО: Внутренние отступы и скругление для области клика и hover-эффекта */
+    padding: 8px 8px;
+    border-radius: var(--border-radius-medium); /* Скругление как у кнопок */
+    transition: background-color 0.2s ease;
+    margin-right: calc(var(--padding-small) / 2);
+    -webkit-tap-highlight-color: transparent; /* Убираем синее выделение при тапе на мобильных */
+}
+
+.temp-chat-toggle:hover {
+    /* ДОБАВЛЕНО: Фон при наведении для всей области */
+    background-color: var(--bg-element);
+}
+
+.temp-chat-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    /* ИСПОЛЬЗУЕМ: Основной цвет текста для лучшей читаемости */
+    color: var(--text-primary);
+    width: 100%;
+    /* Убрали transition отсюда, т.к. цвет не меняется при hover */
+}
+
+/* Скрываем стандартный чекбокс */
+.temp-chat-checkbox {
+    display: none;
+}
+
+/* Визуальный индикатор переключателя */
+.toggle-indicator {
+    width: 42px; /* Слегка шире для лучшего вида */
+    height: 24px;
+    background-color: var(--bg-element-secondary); /* Фон индикатора в состоянии "выкл" (чуть темнее основного фона элемента) */
+    /* ИЗМЕНЕНО: Полностью скругленный (форма пилюли) */
+    border-radius: 12px; /* Половина высоты */
+    position: relative;
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+    margin-right: 8px; /* Увеличим отступ от текста */
+    border: 1px solid var(--border-color); /* Тонкая рамка в состоянии "выкл" */
+    flex-shrink: 0; /* Не сжимается */
+}
+
+/* Круглый ползунок внутри индикатора */
+.toggle-indicator::before {
+    content: "";
+    position: absolute;
+    width: 18px; /* Размер ползунка */
+    height: 18px;
+    background-color: var(--text-secondary); /* Цвет ползунка в состоянии "выкл" */
+    border-radius: 50%;
+    /* Центрируем ползунок */
+    top: 2px; /* (24px высота - 18px ползунок - 2px рамка) / 2 = 2px */
+    left: 2px; /* Отступ слева */
+    transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Легкая тень для объема */
+}
+
+/* --- Стили при АКТИВНОМ чекбоксе (состояние "ВКЛ") --- */
+.temp-chat-checkbox:checked + .temp-chat-label .toggle-indicator {
+    background-color: var(--accent-color); /* Акцентный цвет фона */
+    border-color: transparent; /* Убираем рамку в активном состоянии */
+}
+
+.temp-chat-checkbox:checked + .temp-chat-label .toggle-indicator::before {
+    /* Сдвигаем ползунок вправо */
+    /* Расчет: Ширина (42) - Ширина ползунка (18) - Левый отступ (2) - Правый отступ (2) = 20px */
+    transform: translateX(18px); /* Может потребоваться подстроить на 1-2px */
+    background-color: white; /* Белый цвет ползунка в состоянии "вкл" */
+}
+
+/* Текст рядом с переключателем */
+.toggle-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 2; /* Для лучшего вертикального выравнивания с индикатором */
+    font-weight: 600; /* Делаем текст полужирным (или 700 для более жирного) */
+}
+
+/* --- Основная Область --- */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    /* ИЗМЕНЕНИЕ: Добавляем transition для плавного смещения */
+    transition: margin-left var(--sidebar-transition-duration) ease;
+    /* Сдвигаем контент вправо на ширину сайдбара (только на десктопе) */
+    margin-left: 0 !important;
+}
+
+/* --- Шапка чата --- */
+.chat-header {
+    padding: 0 var(--padding-large);
+    display: flex;
+    align-items: center;
+    position: relative; /* Необходимо для абсолютного позиционирования дочерних элементов */
+    flex-shrink: 0;
+    height: var(--header-height);
+    background-color: var(--bg-main);
+    z-index: 10;
+    gap: var(--padding-small);
+}
+
+/* --- НОВАЯ КНОПКА ОТКРЫТИЯ САЙДБАРА В ШАПКЕ --- */
+#open-sidebar-btn {
+    display: none; /* Скрыта по умолчанию */
+    order: 1;      /* Будет первой слева */
+    margin-right: 0; /* Убираем лишний отступ справа */
+}
+/* Кнопка открытия мобильного меню */
+.main-content .sidebar-toggle-button {
+    /* <<< ИЗМЕНЕНИЕ: Скрыта по умолчанию, порядок 1 */
+    display: none;
+    order: 1;
+    padding: 10px; /* Стиль самой кнопки */
+    margin: 0;     /* Стиль самой кнопки */
+    color: var(--text-primary); /* Стиль самой кнопки */
+}
+.header-spacer.mobile-only {
+    display: none;
+    width: calc(var(--icon-fixed-size) + 20px); /* Ширина = размер иконки + паддинги кнопки */
+    flex-shrink: 0;
+}
+
+/* Селектор моделей */
+.model-selector {
+    /* <<< ИЗМЕНЕНИЕ: Порядок 2, авто-отступы для центрирования с space-between */
+    order: 2;
+    margin-left: auto;
+    margin-right: auto;
+    /* Стили самого селектора */
+    display: flex;
+    position: relative;
+}
+.model-selector button#model-selector-button {
+    background-color: transparent;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: var(--border-radius-medium);
+    color: var(--text-primary);
+    font-size: 1.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(176, 176, 176, 0.3);
+}
+.model-selector button#model-selector-button:hover {
+    background-color: var(--bg-element-hover);
+}
+.model-selector .chevron-icon {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+.model-selector button#model-selector-button.open .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* --- Стили для попапа выбора модели --- */
+
+.model-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-element);
+    border-radius: var(--border-radius-large);
+    padding: var(--padding-small);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    z-index: 11;
+    min-width: 280px;
+    border: 1px solid var(--border-color);
+    max-height: calc(100vh - var(--header-height) - 40px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.model-popup ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+/* Стили для элементов списка моделей */
+.model-popup li {
+    padding: 12px 16px;
+    border-radius: var(--border-radius-medium);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    color: var(--text-primary); /* ИЗМЕНЕНО: Основной цвет текста */
+    font-weight: 600;         /* ИЗМЕНЕНО: Полужирный шрифт (600) */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.model-popup li:hover {
+    background-color: var(--bg-element-hover);
+    color: var(--text-primary); /* Цвет не меняется при наведении, т.к. уже основной */
+}
+/* Стиль для выбранного элемента (если используется класс .selected) */
+.model-popup li.selected {
+    color: var(--text-primary);
+    font-weight: 600; /* Убедимся, что остается жирным */
+}
+/* Стиль для галочки */
+.model-popup .checkmark {
+    color: var(--text-primary); /* ИЗМЕНЕНО: Белый цвет галочки (основной цвет текста) */
+    margin-left: 10px; /* Добавим небольшой отступ слева от галочки */
+    line-height: 0; /* Предотвращаем влияние высоты строки */
+}
+/* SVG галочки - размер уже задан глобально через svg.feather */
+.model-popup .checkmark svg.feather {
+    width: var(--icon-fixed-size) !important; /* Устанавливаем размер и ПЕРЕОПРЕДЕЛЯЕМ атрибут */
+    height: var(--icon-fixed-size) !important; /* Устанавливаем размер и ПЕРЕОПРЕДЕЛЯЕМ атрибут */
+    stroke-width: 2;
+    display: inline-block; /* Используем inline-block */
+    color: currentColor;
+    flex-shrink: 0;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+.hidden {
+    display: none !important;
+}
+.visible {
+    display: flex !important;
+}
+
+/* --- Область ЧАТА --- */
+.chat-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative; /* Необходимо для абсолютного позиционирования дочерних элементов */
+    display: flex;
+    flex-direction: column;
+}
+.chat-messages {
+    max-width: var(--content-max-width);
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    /* Отступы: Сверху, Горизонтальные, Снизу (для поля ввода) */
+    padding: var(--padding-large) var(--padding-small) 110px;
+    flex-shrink: 0; /* Предотвращает сжатие, когда мало сообщений */
+    /* Убираем стили, которые были в :has() */
+    /* min-height: 1px; */ /* Можно добавить, если нужно гарантировать минимальную высоту */
+    position: relative; /* Для z-index сообщений над плейсхолдером */
+    z-index: 2; /* Сообщения должны быть выше плейсхолдера */
+}
+
+
+
+
+/* --- Стиль Плейсхолдера (Пересмотренный) --- */
+/* Оставляем абсолютное позиционирование для десктопа, если оно там работало */
+.empty-chat-placeholder {
+    position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: calc(100% - 40px); max-width: 600px; /* Можно шире на десктопе */
+    padding: 20px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; user-select: none;
+    z-index: 1; pointer-events: none;
+    opacity: 1; visibility: visible;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.empty-chat-placeholder.hidden {
+    opacity: 0; visibility: hidden; pointer-events: none;
+}
+.empty-chat-placeholder.visible {
+    display: flex;
+}
+/* Стиль текста внутри плейсхолдера */
+.empty-chat-placeholder h2 {
+    font-weight: 600; font-size: 2.1em;
+    margin-bottom: 0; color: var(--text-primary); pointer-events: auto;
+}
+
+/* --- Область Ввода --- */
+.chat-input-area {
+    padding: var(--padding-medium) var(--padding-large);
+    background-color: var(--bg-main);
+    z-index: 5;
+    width: 100%;
+    margin: 0;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-input);
+    border: 1px solid rgba(176, 176, 176, 0.3);
+    border-radius: var(--border-radius-large);
+    padding: var(--padding-small);
+    width: 100%; /* Нужно для margin: auto */
+    margin: 0 auto; /* Центрирование */
+    max-width: var(--content-max-width); /* <<< ИСПОЛЬЗУЕМ переменную */
+    position: relative;
+    gap: var(--padding-small);
+}
+
+.message-input {
+    flex-grow: 1;
+    background-color: transparent;
+    border: none;
+    padding: 14px var(--padding-medium);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1.05em;
+    resize: none;
+    line-height: 1.6;
+    min-height: 52px;
+    max-height: 250px;
+    overflow-y: auto;
+    outline: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.message-input::placeholder {
+    color: var(--text-placeholder);
+}
+.message-input::-webkit-scrollbar {
+    width: 6px;
+}
+.message-input::-webkit-scrollbar-track {
+    background: transparent;
+}
+.message-input::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Кнопки в поле ввода */
+.input-area-button {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-medium);
+    background-color: transparent;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Оставляем для центровки иконки внутри кнопки */
+    padding: 0;
+    margin: 0;
+    /* align-self: flex-end; */   /* ЗАКОММЕНТИРОВАНО или УДАЛЕНО */
+    /* margin-bottom: 2px; */ /* ЗАКОММЕНТИРОВАНО или УДАЛЕНО */
+}
+.input-area-button:hover:not(:disabled) {
+    background-color: var(--bg-element-hover);
+    color: var(--text-primary);
+}
+
+/* Неактивные кнопки (+) и (глобус) */
+.input-area-button.disabled:not(.send-button) {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: transparent !important;
+}
+.input-area-button.disabled:not(.send-button) svg.feather {
+    color: var(--text-secondary);
+    opacity: 1 !important;
+}
+.input-area-button.disabled:not(.send-button):hover svg.feather {
+    color: var(--text-secondary);
+}
+
+/* Кнопка отправки (АКТИВНОЕ СОСТОЯНИЕ) */
+.input-area-button.send-button {
+    background-color: #FFFFFF; /* ИЗМЕНЕНО: Белый фон */
+    /* color наследуется, но мы переопределим для иконки ниже */
+    transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease; /* Убираем color из transition */
+}
+
+/* SVG иконка внутри АКТИВНОЙ кнопки отправки */
+.input-area-button.send-button:not(:disabled) svg.feather {
+    color: #000000; /* ИЗМЕНЕНО: Черный цвет иконки */
+}
+
+/* Эффект наведения для АКТИВНОЙ кнопки (можно сделать легкое затемнение или убрать) */
+.input-area-button.send-button:not(:disabled):hover {
+     background-color: #f5f5f5; /* ИЗМЕНЕНО: Очень светло-серый при наведении, почти белый */
+     /* Или можно оставить белым: background-color: #FFFFFF; */
+}
+
+/* Стили для НЕАКТИВНОЙ кнопки отправки */
+.input-area-button.send-button.disabled {
+    background-color: #FFFFFF !important;
+    opacity: 0.4; /* ИЗМЕНЕНО: Увеличена прозрачность (уменьшена непрозрачность) */
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* SVG иконка внутри НЕАКТИВНОЙ кнопки отправки */
+.input-area-button.send-button.disabled svg.feather {
+    color: #000000; /* ИЗМЕНЕНО: Черный цвет иконки */
+    /* Иконка будет полупрозрачной из-за opacity: 0.4 у родителя */
+}
+
+/* Убираем hover для НЕАКТИВНОЙ кнопки */
+ .input-area-button.send-button.disabled:hover {
+     background-color: #FFFFFF !important; /* Фон не меняется */
+     opacity: 0.4; /* ИЗМЕНЕНО: Прозрачность не меняется */
+ }
+  .input-area-button.send-button.disabled:hover svg.feather {
+     color: #000000; /* ИЗМЕНЕНО: Цвет иконки не меняется */
+  }
+/* ================================== */
+/* --- Стили Сообщений в Чате --- */
+/* ================================== */
+
+/* --- Основной контейнер сообщения --- */
+.message-container {
+    margin-bottom: var(--padding-large); /* Отступ между контейнерами сообщений */
+    display: flex;
+    max-width: 100%; /* 100% от родителя (.chat-messages) */
+    gap: var(--padding-small); /* Отступ между аватаром (если будет) и текстом */
+    position: relative; /* ОБЯЗАТЕЛЬНО для absolute позиционирования дочерних .message-actions */
+    /* Увеличиваем нижний отступ ЗНАЧИТЕЛЬНО, используя переменную */
+    padding-bottom: var(--message-container-bottom-padding); /* <<< ИСПОЛЬЗУЕМ УВЕЛИЧЕННУЮ ПЕРЕМЕННУЮ */
+}
+/* Выравнивание user/assistant (остается без изменений) */
+.message-container.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+.message-container.assistant-message {
+    align-self: flex-start;
+}
+
+/* --- "Блоб" для сообщения пользователя --- */
+.message-bubble {
+    background-color: var(--bg-element); /* Серый фон */
+    padding: 14px 20px; /* Внутренние отступы */
+    border-radius: var(--border-radius-large); /* Сильное скругление */
+    word-wrap: break-word; /* Перенос слов */
+    line-height: 1.55; /* Межстрочный интервал */
+    position: relative; /* Для возможного позиционирования элементов внутри */
+    min-width: 50px; /* Минимальная ширина */
+    color: var(--text-primary); /* <<< ДОБАВЛЕНО: Явный цвет текста */
+    display: block; /* <<< ДОБАВЛЕНО: Гарантируем блочное отображение */
+}
+
+/* --- Контейнер контента для ассистента (без фона) --- */
+.assistant-message .message-content {
+    padding: 0; /* Без лишних отступов */
+    word-wrap: break-word;
+    line-height: 1.55;
+    position: relative; /* Для возможного позиционирования элементов внутри */
+    /* Добавим небольшой отступ сверху/снизу для первого/последнего элемента */
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+/* --- Стилизация контента внутри сообщений (Markdown, Code, etc.) --- */
+.message-content > *:first-child,
+.message-bubble > *:first-child {
+    margin-top: 0; /* Убираем верхний отступ у первого элемента */
+}
+.message-content > *:last-child,
+.message-bubble > *:last-child {
+    margin-bottom: 0; /* Убираем нижний отступ у последнего элемента */
+}
+.message-content p,
+.message-bubble p {
+    margin-bottom: 0.8em; /* Отступ между параграфами */
+}
+
+/* ================================== */
+/* ---СТИЛИ ДЛЯ БЛОКОВ КОДА --- */
+/* ================================== */
+
+/* 1. Элемент <pre> - ГЛАВНЫЙ ВИЗУАЛЬНЫЙ КОНТЕЙНЕР С ЕДИНОЙ РАМКОЙ */
+.message-content pre,
+.message-bubble pre {
+    /* --- ОСНОВНЫЕ СТИЛИ КОНТЕЙНЕРА --- */
+    border: 1px solid var(--border-color);         /* <<< ЕДИНАЯ РАМКА >>> */
+    border-radius: var(--border-radius-medium);    /* <<< ЕДИНОЕ СКРУГЛЕНИЕ >>> */
+    margin: var(--padding-medium) 0;               /* Внешние отступы */
+    padding: 0;                                    /* <<< Убираем внутренний padding у pre >>> */
+    position: relative;                            /* Контекст для дочерних элементов */
+    overflow-x: auto;                              /* <<< Добавляем горизонтальную прокрутку >>> */
+    overflow-y: hidden;                            /* <<< Скрываем вертикальную прокрутку >>> */
+    background: none;                              /* Фон будут задавать дочерние элементы */
+    box-sizing: border-box;
+    max-width: 100%;                              /* <<< Ограничиваем максимальную ширину >>> */
+}
+
+/* Стилизация скроллбара для блоков кода (Webkit) */
+.message-content pre::-webkit-scrollbar,
+.message-bubble pre::-webkit-scrollbar {
+    height: 10px;
+}
+
+.message-content pre::-webkit-scrollbar-track,
+.message-bubble pre::-webkit-scrollbar-track {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 0 0 6px 6px; /* Скругление только снизу */
+}
+
+.message-content pre::-webkit-scrollbar-thumb,
+.message-bubble pre::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.message-content pre::-webkit-scrollbar-thumb:hover,
+.message-bubble pre::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Для Firefox */
+.message-content pre,
+.message-bubble pre {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+/* 2. Шапка Кода - ОБЫЧНАЯ, НЕ "ЛИПКАЯ", БЕЗ РАМКИ/СКРУГЛЕНИЯ */
+.code-block-header {
+    /* Убираем sticky */
+    position: relative; /* Обычное позиционирование */
+    z-index: 1;       /* На всякий случай, чуть выше code */
+
+    /* --- ВИЗУАЛЬНЫЕ СТИЛИ ШАПКИ --- */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #21262d;           /* <<< Фон шапки >>> */
+    padding: 6px var(--padding-medium);  /* Внутренние отступы шапки */
+    /* <<< Убираем рамку и скругление у шапки >>> */
+    border: none;
+    border-radius: 0;
+    /* Убираем border-bottom, т.к. рамка теперь общая */
+    /* border-bottom: 1px solid var(--border-color); */
+    color: var(--text-secondary);
+    font-size: 0.8em;
+    text-transform: lowercase;
+    font-family: inherit;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+
+
+
+/* Стили текста языка и кнопки копирования в шапке (без изменений) */
+.code-block-language {
+    font-size: 0.8em;
+    text-transform: lowercase;
+    font-family: inherit;
+    font-weight: 500;
+}
+.code-block-copy-button {
+    background: none; border: none; color: var(--text-secondary);
+    cursor: pointer; padding: 4px; border-radius: var(--border-radius-small);
+    line-height: 0; transition: background-color 0.2s ease, color 0.2s ease;
+}
+.code-block-copy-button:hover {
+    background-color: var(--bg-element-hover); color: var(--text-primary);
+}
+.code-block-copy-button svg {
+    width: 14px; height: 14px; stroke-width: 2; display: block;
+}
+.code-block-copy-button .copy-success-icon {
+     color: var(--accent-color);
+}
+
+
+/* 3. Элемент <code> внутри <pre> - БЛОК КОДА БЕЗ РАМКИ/СКРУГЛЕНИЯ */
+.message-content pre > code,
+.message-bubble pre > code {
+    display: block;
+    padding: var(--padding-medium);       /* <<< Внутренние отступы для текста кода >>> */
+    background-color: #0d1117;            /* <<< Фон кода >>> */
+    /* <<< Убираем рамку и скругление у code >>> */
+    border: none;
+    border-radius: 0;
+    /* Перенос строк - изменяем на pre для сохранения форматирования */
+    white-space: pre;                     /* <<< Сохраняем форматирование, но НЕ переносим автоматически >>> */
+    overflow-wrap: normal;                /* <<< Отключаем автоматический перенос >>> */
+    word-wrap: normal;                    /* <<< Отключаем автоматический перенос >>> */
+    overflow-x: auto;                     /* <<< Разрешаем горизонтальную прокрутку >>> */
+    box-sizing: border-box;
+    /* Стили текста */
+    color: #c9d1d9;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    position: relative; /* Можно убрать */
+    z-index: 0; /* Ниже шапки */
+    min-width: 0;                        /* <<< Позволяем уменьшаться при необходимости >>> */
+}
+
+/* 4. Чтобы подсветка кода (span) не ломала горизонтальную прокрутку */
+.message-content pre > code span,
+.message-bubble pre > code span {
+    white-space: pre !important;          /* <<< Сохраняем форматирование без переноса >>> */
+    word-wrap: normal !important;         /* <<< Отключаем перенос слов >>> */
+    overflow-wrap: normal !important;     /* <<< Отключаем перенос слов >>> */
+}
+/* --- Строчный код (Версия 4: Агрессивный подход) --- */
+.message-content p > code,
+.message-content li > code,
+.message-bubble p > code,
+.message-bubble li > code {
+    /* Базовые стили */
+    background-color: var(--bg-element-secondary);
+    padding: 3px 6px;
+    border-radius: var(--border-radius-small);
+    font-size: 0.85em;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    color: #cdd3da;
+    line-height: 1.5; /* Добавим для стабильности */
+    text-align: left;
+
+    /* --- Основные свойства для переноса `<code>` --- */
+    /* Позволяем браузеру нормально обрабатывать пробелы и переносы строк */
+    white-space: normal;
+    /* Разрешаем перенос слов */
+    word-wrap: break-word; /* (синоним overflow-wrap) */
+    overflow-wrap: break-word;
+    /* Разрешаем разрыв ТОЛЬКО между словами */
+    word-break: normal; /* Убедимся, что не break-all или keep-all */
+
+    /* Очень важно: Делаем сам <code> блочным элементом в строке,
+       чтобы он мог управлять переносом содержимого */
+    display: inline-block;
+    /* Ограничиваем максимальную ширину родительским контейнером */
+    max-width: 100%;
+    vertical-align: baseline; /* Выравнивание по базовой линии текста */
+}
+
+/* --- Строчный код (Версия 5: Фокус на pre-wrap и чистые span) --- */
+.message-content p > code,
+.message-content li > code,
+.message-bubble p > code,
+.message-bubble li > code {
+    /* Базовые стили */
+    background-color: var(--bg-element-secondary);
+    padding: 3px 6px;
+    border-radius: var(--border-radius-small);
+    font-size: 0.85em;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    color: #cdd3da;
+    line-height: 1.5;
+    text-align: left; /* Явно указываем выравнивание */
+
+    /* --- Основные свойства для переноса `<code>` --- */
+    /* ВАЖНО: Сохраняем пробелы/переносы И разрешаем перенос длинных строк/слов */
+    white-space: pre-wrap !important;
+    /* Дополнительно разрешаем разрыв очень длинных слов */
+    overflow-wrap: break-word !important;
+     /* Устанавливаем стандартный разрыв (НЕ break-all) */
+    word-break: normal !important;
+    /* Стандартное отображение */
+    display: inline;
+    vertical-align: baseline; /* Выравнивание по базовой линии */
+}
+
+/* --- Стили для SPAN ВНУТРИ строчного кода (от highlight.js) --- */
+/* Минимальные стили, чтобы не мешать переносу родителя */
+.message-content p > code span,
+.message-content li > code span,
+.message-bubble p > code span,
+.message-bubble li > code span {
+    /* Не меняем display */
+    /* Позволяем наследовать white-space, overflow-wrap, word-break */
+    white-space: inherit;
+    overflow-wrap: inherit;
+    word-break: inherit;
+    /* Сбрасываем стили, которые МОГУТ повлиять на компоновку */
+    margin: 0;
+    padding: 0;
+    vertical-align: baseline; /* Наследуем выравнивание */
+    background: none;         /* Убираем возможный фон */
+    border: none;             /* Убираем возможные рамки */
+    border-radius: 0;         /* Убираем возможное скругление */
+}
+
+/* ====================================================== */
+/* --- КОНЕЦ ОБНОВЛЕННЫХ СТИЛЕЙ ДЛЯ БЛОКОВ КОДА --- */
+/* ====================================================== */
+
+/* Строчный код */
+.message-content p > code,
+.message-content li > code,
+.message-bubble p > code,
+.message-bubble li > code {
+    background-color: var(--bg-element-secondary); /* Чуть темнее фон для строчного кода */
+    padding: 3px 6px;
+    border-radius: var(--border-radius-small); /* Маленькое скругление */
+    font-size: 0.85em;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    color: #cdd3da;
+    word-break: break-all; /* Разрыв длинных слов/идентификаторов */
+}
+
+/* Списки */
+.message-content ul, .message-content ol,
+.message-bubble ul, .message-bubble ol {
+    margin: 0.8em 0 0.8em 2em; /* Отступы списков */
+    padding-left: 0;
+}
+.message-content li,
+.message-bubble li {
+    margin-bottom: 0.4em; /* Отступ между элементами списка */
+}
+
+/* Цитаты */
+.message-content blockquote,
+.message-bubble blockquote {
+    margin: 0.8em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid var(--accent-color); /* Акцентная линия слева */
+    background-color: rgba(45, 212, 191, 0.05); /* Очень легкий акцентный фон */
+    color: var(--text-secondary); /* Более тусклый текст цитаты */
+}
+.message-content blockquote p,
+.message-bubble blockquote p {
+    margin-bottom: 0;
+}
+
+/* --- Контейнер для кнопок действий под сообщением --- */
+.message-actions {
+    display: flex; /* Располагаем кнопки в ряд */
+    align-items: center; /* Выравниваем их по вертикали */
+    gap: var(--message-actions-gap); /* Расстояние между кнопками */
+
+    position: absolute; /* Позиционируем относительно .message-container */
+    /* Отступ от нижнего края .message-container (внутри padding-bottom) */
+    bottom: var(--message-actions-bottom-offset); /* Используем переменную */
+
+    /* Убираем фон/границы/тени у самого контейнера */
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0; /* Без внутренних отступов у контейнера */
+    z-index: 1; /* На всякий случай, поверх контента */
+
+    /* ---- ЛОГИКА ВИДИМОСТИ ---- */
+    /* Базовое состояние: НЕВИДИМЫ (для user-message) */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* Показываем контейнер для USER message ТОЛЬКО при наведении */
+.user-message:hover .message-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Контейнер для ASSISTANT message ВСЕГДА ВИДИМ */
+.assistant-message .message-actions {
+    opacity: 1;
+    visibility: visible;
+    /* Убираем transition, т.к. он всегда видим и не должен "мигать" при загрузке */
+    transition: none;
+}
+
+/* ---- ЛОГИКА ГОРИЗОНТАЛЬНОГО ПОЗИЦИОНИРОВАНИЯ ---- */
+/* Позиционирование для USER message (справа) */
+.user-message .message-actions {
+    /* Отступ от правого края .message-container */
+    /* var(--padding-small) должен выровнять с правым краем текста в .chat-messages */
+    right: var(--padding-small);
+    left: auto;
+}
+
+/* Позиционирование для ASSISTANT message (слева) */
+.assistant-message .message-actions {
+    /* Отступ от левого края .message-container */
+    /* Устанавливаем left: 0, чтобы контейнер начинался с самого края */
+    left: 0; /* <<< ИЗМЕНЕНО */
+    right: auto;
+}
+.assistant-message:hover .message-actions {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Стили для самих кнопок действий (иконок) --- */
+.message-action-button {
+    padding: var(--message-icon-button-padding); /* <<< Используем переменную для паддинга */
+    line-height: 0;
+    border-radius: 8px; /* Можно немного уменьшить скругление */
+    /* Цвет кнопки (и иконки по умолчанию) берется из переменной */
+    color: var(--message-icon-color);
+    background-color: transparent;
+    cursor: pointer;
+    /* Переход только для фона, цвет иконки НЕ анимируем */
+    transition: background-color 0.2s ease;
+    border: none;
+    display: flex; /* Для центрирования иконки */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Эффект при наведении ТОЛЬКО на фон кнопки действия */
+.message-action-button:hover {
+    background-color: var(--bg-element-hover);
+    /* НЕ МЕНЯЕМ 'color' здесь, чтобы иконка оставалась --message-icon-color */
+}
+
+/* Дополнительный стиль для кнопки удаления при наведении НА НЕЕ */
+.message-action-button.delete-message-btn:hover {
+     color: #f87171; /* Иконка станет красной */
+     background-color: rgba(248, 113, 113, 0.1); /* Красный фон */
+}
+
+/* Стили для иконок Feather внутри кнопок действий */
+.message-action-button i[data-feather],
+.message-action-button svg.feather {
+    width: var(--message-icon-size) !important;   /* <<< Используем переменную для размера */
+    height: var(--message-icon-size) !important;  /* <<< Используем переменную для размера */
+    stroke-width: var(--message-icon-stroke-width); /* <<< Используем переменную для толщины */
+    display: block; /* block обычно лучше для SVG внутри flex */
+    /* Цвет иконки всегда наследуется от родительской кнопки .message-action-button */
+    /* Это значит, что она будет --message-icon-color по умолчанию */
+    /* и станет красной только если сама .delete-message-btn изменит свой color при hover */
+    color: currentColor;
+}
+
+/* --- Конец Секции Стилей Сообщений --- */
+/* --- Кастомные скроллбары --- */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+/* Убираем кнопки скроллбара глобально */
+::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 5px;
+    border: 2px solid var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+/* Кнопка "Новый чат" в шапке */
+#new-chat-btn-header {
+    /* <<< ИЗМЕНЕНИЕ: Скрыта по умолчанию, порядок 3, добавлен margin-left */
+    display: none;
+    order: 3;
+    margin-left: var(--padding-small);
+    margin-right: 0; /* Добавлено для ясности */
+    /* Стили самой кнопки */
+    padding: 10px;
+    /* Наследование от .icon-button .sidebar-action-button должно дать остальные стили */
+}
+/* Стили для СКРЫТОГО сайдбара на ДЕСКТОПЕ */
+.app-container.sidebar-collapsed .sidebar {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right: none; /* Убираем границу, если она была */
+}
+/* Скрываем содержимое шапки при схлопывании */
+.app-container.sidebar-collapsed .sidebar-header,
+.app-container.sidebar-collapsed .chat-history,
+.app-container.sidebar-collapsed .sidebar-footer {
+    opacity: 0;
+    pointer-events: none; /* Чтобы нельзя было кликнуть по невидимым элементам */
+}
+
+/* Дополнительные стили для таблиц на мобильных */
+@media (max-width: 768px) {
+    .table-wrapper {
+        margin: var(--padding-small) 0; /* Убираем отрицательные отступы */
+        max-width: calc(100vw - 40px); /* Ограничиваем ширину с учетом паддингов */
+    }
+    
+    /* Стили скроллбара для таблиц на мобильных уже определены ниже в основном блоке */
+}
+
+/* --- Адаптивность --- */
+@media (max-width: 768px) {
+    /* --- CSS Переменная для высоты поля ввода на мобильных --- */
+    :root { /* Или можно определить внутри .main-content */
+        /* Подберите это значение точнее, измерив высоту .chat-input-area в инспекторе */
+        --chat-input-area-mobile-height: 70px;
+    }
+
+    /* --- Сайдбар --- */
+    .sidebar {
+        position: fixed; top: 0; left: 0;
+        transform: translateX(-100%); /* Скрыт по умолчанию */
+        height: 100%; width: 85%; max-width: 300px;
+        z-index: 1001; border-right: 1px solid var(--border-color);
+        box-shadow: none;
+        /* Сбрасываем width для мобильных, чтобы transform работал корректно */
+        width: 85%; /* Или max-width */
+    }
+    /* Показываем сайдбар на мобильных при классе .open */
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 2px 0 15px rgba(0,0,0,0.4);
+    }
+    /* Возвращаем видимость элементов в шапке на мобильных */
+    .app-container.sidebar-collapsed .sidebar-header,
+    .app-container.sidebar-collapsed .chat-history,
+    .app-container.sidebar-collapsed .sidebar-footer {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    /* Убираем класс схлопывания на мобильных, если он случайно применился */
+    .app-container.sidebar-collapsed .sidebar {
+        width: 85%; /* Возвращаем ширину */
+        padding: var(--padding-medium); /* Возвращаем паддинги */
+        /* transform оставляем как есть для открытия/закрытия */
+    }
+    .sidebar-header #new-chat-btn { display: none; }
+
+    /* Показываем кнопку мобильного меню */
+    .main-content .sidebar-toggle-button {
+        /* <<< ИЗМЕНЕНИЕ: Показываем и устанавливаем порядок */
+        display: flex;
+        order: 1;
+    }
+    .header-spacer.mobile-only { display: none; }
+
+    /* --- Шапка чата --- */
+    .chat-header {
+        padding: 0 var(--padding-medium); display: flex;
+        justify-content: space-between; align-items: center;
+        height: var(--header-height); background-color: var(--bg-main);
+        z-index: 10; gap: var(--padding-small);
+        flex-shrink: 0; /* Не сжимать шапку */
+        margin: 0; box-sizing: border-box;
+    }
+    .chat-header #new-chat-btn-header {
+        display: inline-flex; margin: 0; padding: 10px; order: 3;
+    }
+    .model-selector {
+        position: relative; /* Убеждаемся, что не absolute */
+        left: auto;
+        top: auto;
+        transform: none;
+        order: 2;           /* Порядок для мобильной версии */
+        margin-left: auto;  /* Центрирование через margin */
+        margin-right: auto;
+   }
+
+    /* --- Основной контент --- */
+    .main-content {
+        height: 100vh; /* Или 100dvh */
+        display: flex; flex-direction: column;
+        overflow: hidden; /* Предотвращаем скролл родителя */
+        margin: 0; padding: 0; gap: 0; /* Убираем все отступы и промежутки */
+    }
+    /* --- Область ЧАТА --- */
+    .chat-area {
+        flex-grow: 1; /* Занимает все доступное вертикальное пространство */
+        overflow-y: auto; /* Скролл для сообщений */
+        overflow-x: hidden;
+        position: relative; /* <<< ВАЖНО: Устанавливаем контекст для абсолютного позиционирования дочерних элементов */
+        /* Убираем flex свойства, они больше не нужны для центрирования плейсхолдера */
+        /* display: flex; */
+        /* flex-direction: column; */
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0; /* Без внутренних отступов для chat-area */
+    }
+
+
+    /* Контейнер для сообщений */
+    .chat-messages {
+        /* Стили для отображения сообщений, когда они есть */
+        padding: var(--padding-large) 20px var(--padding-medium);
+        max-width: var(--content-max-width);
+        width: 100%;
+        margin: 0 auto; /* Горизонтальное центрирование */
+        flex-shrink: 0;
+        position: relative;
+        z-index: 2;
+        box-sizing: border-box;
+        /* Добавляем значительный отступ снизу, чтобы последние сообщения
+           не перекрывались фиксированным полем ввода */
+        padding-bottom: 100px; /* <<< Можете подстроить значение */
+    }
+
+    /* --- Стиль Плейсхолдера (Абсолютное Позиционирование) --- */
+    .empty-chat-placeholder {
+        /* --- Абсолютное позиционирование --- */
+        position: absolute;   /* Позиционируем относительно .chat-area */
+        top: calc(50% - var(--chat-input-area-mobile-height) / 2); /* Центрируем между шапкой и chat-input-area */
+        left: 50%;            /* Центрируем по горизонтали */
+        transform: translate(-50%, -50%); /* Точная центровка */
+        /* --- Убираем свойства Flexbox отсюда --- */
+        /* flex-grow: 1; */
+        /* display: flex; */
+        /* --- Конец Убираем --- */
+
+        /* Остальные визуальные стили */
+        width: calc(100% - 40px); /* Ширина с учетом боковых отступов */
+        max-width: 400px;         /* Максимальная ширина текста */
+        padding: 20px;            /* Внутренний отступ */
+        text-align: center;       /* Центрирование текста внутри */
+        user-select: none;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        z-index: 1;               /* Плейсхолдер под сообщениями */
+        pointer-events: none;     /* Не перехватывает клики */
+        box-sizing: border-box;
+        /* Нижний padding больше не нужен для позиционирования */
+        /* padding-bottom: ...; */
+    }
+    /* Стиль текста внутри плейсхолдера */
+    .empty-chat-placeholder h2 {
+        font-weight: 600;
+        font-size: 1.8em; /* Можно оставить или настроить */
+        margin-bottom: 0;
+        color: var(--text-primary);
+        pointer-events: auto; /* Разрешаем выделение текста */
+    }
+    /* Скрытие плейсхолдера (когда появляются сообщения) */
+    .empty-chat-placeholder.hidden {
+        /* Важно использовать display: none, чтобы он не мешал */
+        display: none !important;
+        /* Или, если нужна анимация исчезновения:
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        */
+    }
+
+    /* Контейнер сообщения */
+    .message-container {
+        width: 100%;
+        margin-top: 0;
+        /* Оставляем отступ МЕЖДУ сообщениями */
+        margin-bottom: var(--padding-large);
+        margin-left: 0; margin-right: 0;
+    }
+    /* Убираем нижний отступ у ПОСЛЕДНЕГО элемента внутри .chat-messages */
+    /* Это может быть .message-container или .empty-chat-placeholder */
+    .chat-messages > *:last-child {
+         margin-bottom: 100px !important; /* <<<< Убираем отступ у последнего элемента с !important */
+    }
+
+
+    /* --- Область Ввода (без изменений) --- */
+    .chat-input-area {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        z-index: 5; background-color: var(--bg-main);
+        flex-shrink: 0; margin: 0; width: 100%;
+        box-sizing: border-box; min-height: 80px; /* Пример */
+        padding: var(--padding-small) var(--padding-medium);
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .input-wrapper {
+        /* --- Возвращаем десктопные стили --- */
+        max-width: var(--content-max-width); /* <<< ВОЗВРАЩАЕМ максимальную ширину */
+        margin: 0 auto; /* <<< ВОЗВРАЩАЕМ центрирование */
+        padding: var(--padding-small); /* <<< ВОЗВРАЩАЕМ десктопный padding */
+        gap: var(--padding-small); /* <<< УБЕДИМСЯ, что gap десктопный */
+        /* --- Убираем мобильные переопределения --- */
+        /* height: 100%; */ /* <<< УДАЛЕНО: высота определяется контентом */
+
+        /* --- Оставляем базовые стили (должны наследоваться, но для ясности) --- */
+        display: flex;
+        align-items: center; /* Выравнивание по центру, как на десктопе */
+        background-color: var(--bg-input);
+        border: 1px solid rgba(176, 176, 176, 0.3);
+        border-radius: var(--border-radius-large);
+        position: relative; /* Оставляем, если нужно */
+        width: 100%; /* Занимает всю ширину родителя (.chat-input-area) */
+        box-sizing: border-box; /* Учитываем padding */
+    }
+    /* Поле ввода текста */
+    .message-input {
+        /* --- Возвращаем десктопные стили --- */
+        padding: 14px var(--padding-medium); /* <<< ВОЗВРАЩАЕМ десктопный padding */
+        min-height: 52px; /* <<< ВОЗВРАЩАЕМ десктопную мин. высоту */
+        font-size: 1.05em; /* <<< ВОЗВРАЩАЕМ десктопный размер шрифта */
+        /* --- Убираем мобильные переопределения --- */
+        /* align-self: stretch; */ /* <<< УДАЛЕНО: выравнивание по умолчанию */
+
+        /* --- Оставляем базовые стили --- */
+        flex-grow: 1;
+        background-color: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-family: inherit;
+        resize: none;
+        line-height: 1.6;
+        max-height: 250px; /* Можно оставить или изменить */
+        overflow-y: auto;
+        outline: none;
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+    /* Кнопки в области ввода */
+    .input-area-button {
+        /* --- Возвращаем десктопные стили --- */
+        width: 48px; /* <<< ВОЗВРАЩАЕМ десктопную ширину */
+        height: 48px; /* <<< ВОЗВРАЩАЕМ десктопную высоту */
+
+        /* --- Оставляем базовые стили --- */
+        flex-shrink: 0;
+        border-radius: var(--border-radius-medium);
+        background-color: transparent;
+        color: var(--text-primary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+        margin: 0; /* Убедимся, что нет лишних отступов */
+    }
+
+    /* Оверлей для мобильного меню */
+    .sidebar-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7); z-index: 1000;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        opacity: 0; visibility: hidden;
+        /* Добавляем размытие фона для единообразия */
+        -webkit-backdrop-filter: blur(3px);
+        backdrop-filter: blur(3px);
+    }
+    .sidebar-overlay:not(.hidden) { opacity: 1; visibility: visible; }
+
+    #desktop-sidebar-toggle {
+        display: none !important; /* Скрываем надежно */
+    }
+    /* Показываем кнопку "Новый чат" справа */
+    #new-chat-btn-header {
+        /* <<< ИЗМЕНЕНИЕ: Показываем и устанавливаем порядок/отступы */
+        display: inline-flex;
+        order: 3;
+        margin-left: var(--padding-small);
+        margin-right: 0;
+    }
+        /* Скрываем кнопку открытия (для десктопа) на мобильных */
+        #open-sidebar-btn { display: none !important; }
+
+        /* Скрываем десктопную кнопку скрытия в сайдбаре на мобильных */
+        #desktop-sidebar-toggle { display: none !important; }
+
+} /* Конец @media (max-width: 768px) */
+/* --- Исправление позиционирования попапа моделей на десктопе --- */
+@media (min-width: 769px) { /* Применяем стили для экранов шире 768px */
+    .chat-header {
+        justify-content: center; /* Центрируем единственный видимый элемент (.model-selector) */
+    }
+    #desktop-sidebar-toggle {
+        display: flex;
+    }
+    .app-container:not(.sidebar-collapsed) .main-content {
+        margin-left: var(--sidebar-width);
+    }
+    .app-container.sidebar-collapsed #new-chat-btn-header {
+        display: inline-flex;
+    }
+        /* Когда сайдбар СКРЫТ на десктопе */
+    .app-container.sidebar-collapsed .chat-header {
+        justify-content: flex-start; /* Выравниваем кнопки по левому краю */
+    }
+
+    .app-container.sidebar-collapsed #open-sidebar-btn {
+        display: inline-flex; /* Показываем кнопку открытия */
+    }
+
+    .app-container.sidebar-collapsed #new-chat-btn-header {
+        display: inline-flex; /* Показываем кнопку "Новый чат" */
+        order: 2;             /* Ставим её ВТОРОЙ, после кнопки открытия */
+        margin-left: var(--padding-small); /* Отступ слева от кнопки открытия */
+        margin-right: auto; /* Отодвигаем селектор моделей вправо */
+    }
+
+
+    /* Когда сайдбар ПОКАЗАН на десктопе - кнопки в шапке скрыты */
+    .app-container:not(.sidebar-collapsed) #open-sidebar-btn,
+    .app-container:not(.sidebar-collapsed) #new-chat-btn-header {
+        display: none;
+    }
+     /* Когда сайдбар ПОКАЗАН на десктопе - центрируем селектор */
+     .app-container:not(.sidebar-collapsed) .chat-header {
+         justify-content: center; /* Центрируем модель, т.к. другие кнопки скрыты */
+     }
+     .app-container:not(.sidebar-collapsed) .model-selector {
+        position: relative;   /* Возвращаем стандартное позиционирование */
+        left: auto;
+        top: auto;
+        transform: none;      /* Сбрасываем трансформацию */
+        order: 1;             /* Он первый (и единственный) */
+        margin-left: 0;       /* Убираем авто-отступы */
+        margin-right: 0;
+    }
+         /* Когда сайдбар СКРЫТ на десктопе */
+    .app-container.sidebar-collapsed .chat-header {
+        justify-content: space-between;
+    }
+
+    .app-container.sidebar-collapsed #open-sidebar-btn {
+        display: inline-flex; /* Показываем кнопку открытия */
+    }
+
+    .app-container.sidebar-collapsed #new-chat-btn-header {
+        display: inline-flex; /* Показываем кнопку "Новый чат" */
+        order: 2;             /* Ставим её ВТОРОЙ, после кнопки открытия */
+        margin-left: var(--padding-small); /* Отступ слева от кнопки открытия */
+        margin-right: 0; /* Убедимся, что правого авто-отступа нет */
+    }
+
+    .app-container.sidebar-collapsed .model-selector {
+        position: absolute;   /* Абсолютное позиционирование */
+        left: 50%;            /* Центрирование по горизонтали */
+        top: 50%;             /* Центрирование по вертикали */
+        transform: translate(-50%, -50%); /* Точная центровка */
+        margin-left: 0;       /* Убираем авто-отступы */
+        margin-right: 0;
+        order: initial;       /* Сбрасываем порядок */
+    }
+    /* Добавляем z-index кнопкам, чтобы они были поверх селектора */
+ .app-container.sidebar-collapsed #open-sidebar-btn,
+ .app-container.sidebar-collapsed #new-chat-btn-header {
+     position: relative; /* Чтобы z-index сработал */
+     z-index: 1;
+ }
+
+    /* Когда сайдбар ПОКАЗАН на десктопе - кнопки в шапке скрыты */
+    .app-container:not(.sidebar-collapsed) #open-sidebar-btn,
+    .app-container:not(.sidebar-collapsed) #new-chat-btn-header {
+        display: none;
+    }
+}
+/* --- Стили для кнопки опций чата --- */
+
+.chat-options-btn {
+    padding: 6px; /* Меньше отступ для кнопки с одной иконкой */
+    line-height: 0;
+    border-radius: var(--border-radius-small);
+    color: var(--text-secondary);
+}
+.chat-options-btn:hover {
+    background-color: var(--bg-element-hover);
+    color: var(--text-primary);
+}
+
+/* --- Стили для выпадающего меню опций --- */
+.chat-options-popup {
+    position: absolute; /* Позиционируется через JS */
+    background-color: var(--bg-element);
+    border-radius: var(--border-radius-medium); /* Чуть меньше, чем у селектора моделей */
+    padding: var(--padding-small);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1010; /* Выше сайдбара и оверлея */
+    min-width: 180px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    display: block; /* Используем block или flex */
+}
+
+.chat-options-popup ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.chat-options-popup li {
+    padding: 10px 14px;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 0.95em;
+    color: var(--text-primary);
+    font-weight: 500; /* Обычный вес */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.chat-options-popup li:hover {
+    background-color: var(--bg-element-hover);
+}
+
+/* --- Стили для выпадающего меню опций (исправленные иконки) --- */
+.chat-options-popup {
+    position: absolute;
+    background-color: var(--bg-element);
+    border-radius: var(--border-radius-medium);
+    padding: var(--padding-small);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1010;
+    min-width: 180px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    display: block;
+}
+
+.chat-options-popup ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.chat-options-popup li {
+    padding: 10px 14px;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    display: flex;         /* Используем flex для выравнивания */
+    align-items: center;   /* Выравниваем иконку и текст по центру вертикально */
+    font-size: 0.95em;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.chat-options-popup li:hover {
+    background-color: var(--bg-element-hover);
+}
+
+/* --- Новый, более точный селектор для SVG иконок в меню --- */
+.chat-options-popup li svg.feather {
+    width: 1.1em !important;   /* Уменьшаем размер (можешь подстроить: 1em, 1.2em) */
+    height: 1.1em !important;  /* Уменьшаем размер */
+    margin-right: 10px; /* Отступ иконки от текста */
+    stroke-width: 2;      /* Толщина линии иконки */
+    color: currentColor;  /* Наследует цвет от li */
+    flex-shrink: 0;     /* Предотвращает сжатие иконки */
+    /* vertical-align больше не нужен из-за flex */
+}
+/* Стиль для текста больше не нужен, так как flex выравнивает */
+/* .chat-options-popup li span { ... } */
+
+
+/* Стиль для пункта "Удалить" (остается как есть) */
+.chat-options-popup li.delete-option {
+    color: #f87171;
+}
+.chat-options-popup li.delete-option:hover {
+    background-color: rgba(248, 113, 113, 0.1);
+    color: #ef4444;
+}
+/* Убедимся, что цвет иконки в пункте "Удалить" тоже красный */
+.chat-options-popup li.delete-option svg.feather {
+     color: currentColor !important; /* Наследует красный цвет от li */
+}
+
+/* Стиль для пункта "Удалить" */
+.chat-options-popup li.delete-option {
+    color: #f87171; /* Светло-красный */
+}
+.chat-options-popup li.delete-option:hover {
+    background-color: rgba(248, 113, 113, 0.1); /* Легкий красный фон при наведении */
+    color: #ef4444; /* Более насыщенный красный при наведении */
+}
+
+/* --- Стили для модального окна подтверждения удаления --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* Более темный оверлей */
+    z-index: 1050; /* Выше всего остального */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    -webkit-backdrop-filter: blur(3px); /* Легкое размытие фона */
+    backdrop-filter: blur(3px);
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Плавное появление */
+}
+
+.confirmation-modal {
+    background-color: var(--bg-element); /* Такой же фон, как у элементов */
+    padding: var(--padding-large);
+    border-radius: var(--border-radius-large);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.confirmation-modal h3 {
+    margin-top: 0;
+    margin-bottom: var(--padding-medium);
+    font-size: 1.25em;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.confirmation-modal p {
+    margin-bottom: var(--padding-large);
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+
+.modal-button-container {
+    display: flex;
+    justify-content: space-between; /* Кнопки по краям */
+    gap: var(--padding-medium);
+}
+
+.modal-button {
+    flex-grow: 1; /* Растягиваем кнопки */
+    padding: 12px 20px;
+    border-radius: var(--border-radius-medium);
+    font-weight: 600;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    border: none;
+}
+
+.modal-button.cancel {
+    background-color: var(--bg-element-secondary); /* Фон кнопки отмены */
+    color: var(--text-primary);
+}
+.modal-button.cancel:hover {
+    background-color: var(--bg-element-hover);
+}
+
+.modal-button.delete {
+    background-color: #dc2626; /* Красный фон для кнопки удаления */
+    color: white;
+}
+.modal-button.delete:hover {
+    background-color: #ef4444; /* Светлее красный при наведении */
+}
+/* Стили для inline-редактирования названия чата */
+.chat-history-item .rename-input {
+    /* Убираем flex-grow */
+    /* flex-grow: 1; */
+    width: auto; /* Начнем с auto */
+    display: inline-block; /* Используем inline-block */
+    vertical-align: middle; /* Выравниваем */
+
+    /* Снова попробуем рассчитать ширину, но более аккуратно */
+    /* Ширина родителя (.chat-history-item) минус его паддинги (слева/справа)
+       минус ширина кнопки опций (примерно 30-40px) минус отступы */
+    /* Ширина кнопки: padding (6*2) + icon (1.1em ~ 18px) = ~30px */
+    /* Отступ между заголовком и кнопкой: var(--padding-small) = 10px */
+    /* Общая ширина кнопки и отступа ~40px */
+    /* Паддинги родителя: var(--padding-medium) * 2 = 36px */
+    /* Вычитаем примерно 40px + 36px = 76px */
+    /* width: calc(100% - 76px); */ /* Это все еще может быть неточно */
+
+    /* Альтернатива: Пусть flex решает, но ограничим максимальную ширину */
+    max-width: calc(100% - 45px); /* Оставляем ~45px справа под кнопку и отступы */
+
+    padding: 5px 8px;
+    border: 1px solid var(--accent-color);
+    background-color: var(--bg-element-secondary);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-small);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    outline: none;
+}
+
+/* Скрываем обычный заголовок во время редактирования */
+.chat-history-item.editing .chat-title {
+    display: none;
+}
+/* Показываем поле ввода только во время редактирования */
+.chat-history-item:not(.editing) .rename-input {
+    display: none;
+}
+/* Скрываем ТОЛЬКО оригинальный бабл пользователя при редактировании */
+.message-container.editing .message-bubble {
+    display: none;
+}
+/* Скрываем кнопки действий под сообщением во время редактирования */
+.message-container.editing .message-actions {
+    display: none !important; /* Используем !important для надежности переопределения */
+}
+
+/* Показываем редактор только при .editing */
+.message-editor {
+    display: none; /* По умолчанию скрыт */
+    flex-direction: column;
+    width: 100%; /* Растягиваем на всю ширину контейнера сообщения */
+    background-color: var(--bg-element); /* Фон как у сообщения юзера */
+    border-radius: var(--border-radius-large); /* Такое же скругление */
+    padding: var(--padding-small); /* Небольшие внутренние отступы */
+    border: 1px solid rgba(176, 176, 176, 0.3);
+    margin-top: 5px; /* Небольшой отступ сверху (опционально) */
+    /* Добавим немного отступа снизу, чтобы кнопки не прилипали */
+    margin-bottom: 5px;
+}
+
+/* Показываем редактор, когда у родителя есть класс .editing */
+.message-container.editing .message-editor {
+    display: flex;
+}
+
+.message-editor-textarea {
+    background-color: var(--bg-input); /* Фон поля ввода */
+    color: var(--text-primary);
+    border: none; /* Убираем границу */
+    border-radius: var(--border-radius-medium);
+    padding: 12px;
+    font-family: inherit;
+    font-size: 1em;
+    line-height: 1.5;
+    resize: vertical; /* Разрешаем менять высоту */
+    min-height: 60px; /* Минимальная высота */
+    max-height: 300px; /* Максимальная высота */
+    outline: none;
+    margin-bottom: var(--padding-small);
+    width: 100%; /* Занимает всю ширину */
+    box-sizing: border-box; /* Учитываем padding в ширине */
+}
+
+.message-editor-controls {
+    display: flex;
+    justify-content: flex-end; /* Кнопки справа */
+    gap: var(--padding-small);
+}
+
+.message-editor-button {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-medium);
+    font-weight: 600;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    border: none;
+    display: inline-flex; /* Используем inline-flex */
+    align-items: center;
+    gap: 6px;
+}
+ /* Стили для иконок внутри кнопок редактора */
+ .message-editor-button i[data-feather],
+ .message-editor-button svg.feather {
+     width: 1em;   /* Размер иконки */
+     height: 1em;
+     stroke-width: 2.2; /* Толщина линии */
+     flex-shrink: 0; /* Не сжимать иконку */
+ }
+
+.message-editor-button.cancel {
+    background-color: var(--bg-element-secondary);
+    color: var(--text-primary);
+}
+.message-editor-button.cancel:hover {
+    background-color: var(--bg-element-hover);
+}
+
+.message-editor-button.save {
+    background-color: var(--accent-color); /* Акцентный цвет */
+    color: var(--bg-sidebar); /* Темный текст на светлом акцентном фоне */
+}
+ .message-editor-button.save:hover {
+    background-color: var(--accent-color-hover);
+ }
+/* --- Конец стилей для Редактирования Сообщения --- */
+
+/* --- Стили для сообщения об остановке генерации --- */
+.message-container.stop-notification-message .message-content {
+    font-style: italic;
+    opacity: 0.7;
+    color: var(--text-secondary); /* Используем вторичный цвет текста */
+    padding: 5px 0; /* Небольшой вертикальный отступ */
+}
+
+
+/* Убедимся, что у этого сообщения нет фона-блоба (как у assistant) */
+.message-container.stop-notification-message {
+    align-self: flex-start; /* Выравнивание как у ассистента */
+}
+/* --- Стили для ЗАЛИТОЙ иконки СТОП (квадрат) --- */
+.input-area-button.send-button.stop-icon-active svg.feather-square {
+    fill: #000000; /* Черный цвет заливки (как у иконки стрелки) */
+    stroke: #000000; /* Черный цвет обводки */
+    /* Можно сделать обводку чуть тоньше, если нужно */
+    /* stroke-width: 1.5; */
+}
+
+/* --- Убедимся, что иконка СТРЕЛКИ всегда остается НЕЗАЛИТОЙ --- */
+.input-area-button.send-button svg.feather-arrow-up {
+    fill: none; /* Без заливки */
+    stroke: currentColor; /* Цвет обводки наследуется от кнопки */
+}
+
+/* --- Убедимся, что иконка КВАДРАТА (когда НЕ активна) тоже НЕЗАЛИТАЯ --- */
+/* Это на случай, если иконка квадрата будет использоваться где-то еще */
+.input-area-button.send-button:not(.stop-icon-active) svg.feather-square {
+   fill: none;
+   stroke: currentColor;
+}
+/* --- Уменьшение размера ТОЛЬКО иконки СТОП (квадрат) --- */
+.input-area-button.send-button.stop-icon-active svg.feather-square {
+    /* Устанавливаем размер чуть меньше стандартного для иконок в кнопке */
+    /* Можешь поиграть со значением 0.85em, если хочешь сделать ее еще меньше или чуть больше */
+    width: 1em !important;  /* Уменьшаем ширину */
+    height: 1em !important; /* Уменьшаем высоту */
+}
+/* --- Стили для индикатора загрузки ответа AI --- */
+.loading-indicator-container {
+    padding-bottom: 0 !important; /* Убираем лишний отступ у контейнера индикатора */
+    margin-bottom: var(--padding-large); /* Оставляем стандартный отступ между сообщениями */
+    /* Выравнивание как у сообщения ассистента уже задано классом assistant-message */
+    display: flex; /* Используем flex для внутреннего выравнивания */
+    flex-direction: column; /* Элементы внутри (круг, текст) идут друг под другом */
+    align-items: flex-start; /* Выравниваем по левому краю */
+}
+
+.pulsating-circle {
+    width: 24px; /* Размер круга */
+    height: 24px;
+    background-color: rgba(229, 229, 229, 0.8); /* Белый, полупрозрачный */
+    border-radius: 50%;
+    margin: 5px 0; /* Небольшие отступы сверху/снизу */
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Анимация пульсации */
+@keyframes pulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.9);
+        opacity: 0.7;
+    }
+}
+
+.loading-text {
+    font-size: 0.85em; /* Маленький шрифт */
+    font-style: italic; /* Курсив */
+    color: var(--text-secondary); /* Тусклый цвет */
+    margin-top: 5px; /* Отступ от круга */
+    display: none; /* Скрыт по умолчанию, показывается через JS */
+}
+
+/* --- Стили для сообщения об остановке генерации (уже должны быть) --- */
+.message-container.stop-notification-message .message-content {
+    font-style: italic;
+    opacity: 0.7;
+    color: var(--text-secondary);
+    padding: 5px 0;
+}
+.message-container.stop-notification-message {
+    align-self: flex-start;
+}
+
+/* --- Уменьшение размера ТОЛЬКО иконки СТОП (квадрат) (уже должно быть) --- */
+.input-area-button.send-button.stop-icon-active svg.feather-square {
+    width: 0.85em !important;
+    height: 0.85em !important;
+}
+/* --- Стили для сообщения об ошибке --- */
+.message-container.error-message {
+    padding-bottom: 48px; /* Оставляем место для кнопки */
+    /* Выравнивание как у assistant-message */
+    align-self: flex-start;
+    flex-direction: row;
+}
+
+.message-container.error-message .message-content {
+    color: #f87171; /* Красный цвет текста */
+    background-color: rgba(248, 113, 113, 0.05);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: var(--border-radius-medium);
+    padding: 10px 15px;
+    /* font-style: italic; Убрали */
+    word-wrap: break-word;
+    line-height: 1.5;
+    max-width: 100%;
+    position: relative; /* Нужно для позиционирования .message-actions */
+}
+
+/* Контейнер для кнопки "Повторить" под ошибкой */
+.message-container.error-message .message-actions {
+    /* Базовые стили из .message-actions */
+    display: flex;
+    align-items: center;
+    gap: var(--message-actions-gap);
+    position: absolute;
+    bottom: var(--message-actions-bottom-offset);
+    /* *** ИЗМЕНЕНИЕ: Позиционирование слева (как у ассистента) *** */
+    left: 0; /* <<< ИЗМЕНЕНО с 15px на 0 */
+    right: auto;
+    /* Видимость */
+    opacity: 1;
+    visibility: visible;
+    transition: none;
+    z-index: 1;
+}
+
+/* Стили для самой кнопки "Повторить" (остаются без изменений) */
+.message-container.error-message .message-actions .retry-error-btn {
+    /* Копируем стили из .message-action-button */
+    padding: var(--message-icon-button-padding);
+    line-height: 0;
+    border-radius: 8px;
+    color: var(--message-icon-color);
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: none;
+    display: inline-flex; /* Используем inline-flex или flex */
+    align-items: center;
+    justify-content: center;
+}
+.message-container.error-message .message-actions .retry-error-btn:hover {
+    background-color: var(--bg-element-hover);
+}
+
+/* Стили для иконки внутри кнопки "Повторить" (остаются без изменений) */
+.message-container.error-message .message-actions .retry-error-btn i[data-feather],
+.message-container.error-message .message-actions .retry-error-btn svg.feather {
+    width: var(--message-icon-size) !important;
+    height: var(--message-icon-size) !important;
+    stroke-width: var(--message-icon-stroke-width);
+    display: block;
+    color: currentColor;
+}
+
+/* --- Конец стилей для сообщения об ошибке --- */
+
+/* --- Enhanced Markdown Rendering Styles --- */
+
+
+
+/* Библиотеки подсветки часто оборачивают токены в span, которые могут мешать переносу */
+.message-content pre > code span,
+.message-bubble pre > code span {
+    white-space: pre-wrap !important;      /* <<< Принудительный перенос для SPAN */
+    word-wrap: break-word !important;      /* <<< Принудительный разрыв для SPAN */
+    overflow-wrap: break-word !important; /* <<< Принудительный разрыв для SPAN */
+    /* display: inline !important; */     /* <<< Можно раскомментировать, если span ведут себя как block */
+}
+
+/* --- Tables --- */
+/* Обертка для таблиц */
+.table-wrapper {
+    position: relative; /* Для позиционирования скроллбара */
+    max-width: 100%; /* Ограничивает ширину обертки родителем */
+    width: 100%; /* Занимает всю доступную ширину */
+    overflow-x: auto; /* Горизонтальный скролл только при необходимости */
+    overflow-y: hidden; /* Предотвращаем вертикальный скролл */
+    margin: var(--padding-medium) 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium);
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Стилизация скроллбара для таблиц (упрощенная версия) */
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Для Firefox */
+.table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.1);
+}
+
+/* Показываем скроллбар только при необходимости */
+.table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Table inside Wrapper */
+.table-wrapper table {
+    width: auto; /* Позволяем таблице расширяться по содержимому */
+    min-width: 100%; /* Минимум на всю ширину обертки */
+    border-collapse: separate; /* Изменяем на separate для лучшего контроля границ */
+    border-spacing: 0; /* Убираем промежутки между ячейками */
+    font-size: 0.95em;
+    margin: 0;
+    border: none; /* Граница теперь на обертке */
+    border-radius: 0;
+    white-space: nowrap; /* Предотвращаем перенос в ячейках по умолчанию */
+}
+
+/* Стили ячеек */
+.table-wrapper th,
+.table-wrapper td {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap; /* Предотвращаем перенос для сохранения структуры таблицы */
+    min-width: 80px; /* Минимальная ширина ячейки */
+}
+
+/* Убираем правую границу у последних ячеек в строке */
+.table-wrapper th:last-child,
+.table-wrapper td:last-child {
+    border-right: none;
+}
+
+/* Убираем нижнюю границу у ячеек в последней строке */
+.table-wrapper tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Убираем нижнюю границу у заголовков если нет tbody */
+.table-wrapper thead tr:last-child th {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Разрешаем перенос для длинного текста в конкретных ячейках */
+.table-wrapper td.wrap-content,
+.table-wrapper th.wrap-content {
+    white-space: normal;
+    max-width: 300px; /* Ограничиваем максимальную ширину для переноса */
+}
+
+/* Стили заголовка таблицы */
+.table-wrapper th {
+    background-color: transparent;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Первая колонка - убираем sticky позиционирование */
+.table-wrapper td:first-child,
+.table-wrapper th:first-child {
+    background-color: inherit;
+}
+
+/* Стили строк - убираем чередование цветов */
+.table-wrapper tbody tr:nth-child(even) {
+    background-color: transparent;
+}
+/* Убираем hover эффект для строк таблицы */
+.table-wrapper tbody tr:hover {
+    background-color: transparent;
+}
+
+/* Убираем фон у обычных ячеек */
+.table-wrapper td {
+    background-color: transparent;
+}
+
+/* Убеждаемся, что таблицы не выходят за пределы контейнера сообщений */
+.message-content .table-wrapper,
+.message-bubble .table-wrapper {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Убеждаемся, что контейнер сообщений не обрезает таблицы */
+.message-content {
+    overflow: visible; /* Позволяем содержимому быть видимым */
+    max-width: 100%; /* Ограничиваем максимальную ширину */
+}
+
+.message-bubble {
+    overflow: visible;
+    max-width: 100%;
+}
+
+/* Ограничиваем ширину самого контейнера сообщений */
+.chat-messages {
+    overflow-x: hidden; /* Предотвращаем горизонтальный скролл всего чата */
+    width: 100%;
+}
+
+/* Дополнительные стили для таблиц внутри сообщений */
+.message-content table,
+.message-bubble table {
+    max-width: none; /* Позволяем таблицам быть шире контейнера */
+    width: auto; /* Автоматическая ширина */
+    min-width: 100%; /* Минимальная ширина на всю ширину wrapper */
+}
+
+/* Убираем визуальный индикатор прокрутки */
+.table-wrapper::before {
+    display: none;
+}
+
+.table-wrapper[data-scrollable="true"]::before {
+    display: none;
+}
+
+/* Убираем визуальный индикатор с двумя стрелками */
+.table-wrapper::after {
+    display: none;
+}
+
+.table-wrapper[data-scrollable="true"]:hover::after {
+    display: none;
+}
+
+/* Мобильные стили для лучшей работы с touch */
+@media (hover: none) and (pointer: coarse) {
+    .table-wrapper {
+        /* Убираем лишний отступ и на мобильных */
+        padding-bottom: 0;
+    }
+    
+    .table-wrapper::-webkit-scrollbar {
+        height: 4px !important; /* Очень тонкий скроллбар и на мобильных */
+    }
+    
+    /* Убираем подсказку на мобильных */
+    .table-wrapper::after {
+        display: none;
+    }
+}
+
+
+
+
+
+      
+      
+/* --- Lists (ul, ol) - Попытка с управлением через padding-left на li --- */
+.message-content ul, .message-content ol,
+.message-bubble ul, .message-bubble ol {
+    margin-top: 0.8em;    /* Только вертикальные отступы для самого списка */
+    margin-bottom: 0.8em;
+    margin-left: 0;     /* Убираем внешний отступ слева у списка */
+    padding-left: 0;    /* Убираем внутренний отступ слева у списка */
+    list-style-position: outside; /* Маркеры снаружи */
+    list-style-type: none; /* <<< СБРАСЫВАЕМ стандартные маркеры */
+}
+
+.message-content li,
+.message-bubble li {
+    margin-bottom: 0.5em; /* Отступ между пунктами */
+    padding-left: 1.8em;  /* <<< ДОБАВЛЯЕМ ОТСТУП СЛЕВА ДЛЯ ТЕКСТА ПУНКТА */
+    position: relative;   /* <<< Нужно для позиционирования псевдо-маркера */
+}
+
+/* Добавляем маркеры через псевдоэлемент ::before */
+.message-content li::before,
+.message-bubble li::before {
+    content: ""; /* Пустое содержимое */
+    display: inline-block; /* Строчно-блочный */
+    width: 6px;            /* Ширина маркера */
+    height: 6px;           /* Высота маркера */
+    border-radius: 50%;    /* Круглый */
+    background-color: var(--text-secondary); /* Цвет маркера */
+    position: absolute;    /* Абсолютное позиционирование */
+    left: 0.6em;           /* <<< Положение маркера слева (внутри padding-left li) */
+    top: 0.6em;            /* <<< Вертикальное выравнивание маркера (подстройте) */
+}
+
+/* Маркеры для нумерованных списков (ol) */
+.message-content ol,
+.message-bubble ol {
+   counter-reset: list-counter; /* Инициализируем счетчик для OL */
+}
+
+.message-content ol > li, /* Только для прямых потомков OL */
+.message-bubble ol > li {
+    list-style: none; /* Убедимся, что стандартный маркер убран */
+}
+
+.message-content ol > li::before,
+.message-bubble ol > li::before {
+    content: counter(list-counter) "."; /* Используем счетчик */
+    counter-increment: list-counter;   /* Увеличиваем счетчик */
+    background-color: transparent;     /* Убираем фон (только текст) */
+    color: var(--text-secondary);      /* Цвет номера */
+    width: auto;                       /* Автоширина для номера */
+    height: auto;                      /* Автовысота */
+    border-radius: 0;                  /* Не круглый */
+    left: 0;                           /* <<< Положение номера слева (на самом краю) */
+    top: 0.1em;                        /* <<< Корректировка вертикального положения номера */
+    font-weight: bold;                 /* Жирный номер (опционально) */
+    min-width: 1.2em;                  /* Минимальная ширина для выравнивания */
+    text-align: right;                 /* Выравнивание номера по правому краю (чтобы точка была ровно) */
+    padding-right: 0.4em;              /* Небольшой отступ справа от номера */
+}
+
+
+/* Стили для ВЛОЖЕННЫХ списков (не меняем, т.к. li уже имеют padding) */
+.message-content li ul, .message-content li ol,
+.message-bubble li ul, .message-bubble li ol {
+   margin-top: 0.5em;
+   margin-bottom: 0.5em;
+   /* Дополнительные отступы для вложенных UL/OL не нужны,
+      т.к. их LI уже получают padding-left: 1.8em */
+}
+/* --- КОНЕЦ Секции списков --- */
+
+    
+
+    
+
+
+/* --- Horizontal Rules (hr) --- */
+.message-content hr,
+.message-bubble hr {
+    border: none;
+    height: 1px;
+    background-color: rgba(176, 176, 176, 0.2);
+    margin-top: 1.8em;
+    margin-bottom: 1.8em;
+}
+.message-content > hr:first-child,
+.message-bubble > hr:first-child {
+    margin-top: 0.5em;
+}
+.message-content > hr:last-child,
+.message-bubble > hr:last-child {
+    margin-bottom: 0.5em;
+}
+
+/* --- Добавляем Keyframes для анимации (если еще нет) --- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    /* Центрируем относительно transform-origin: center center (по умолчанию) */
+    from { transform: translate(-50%, -50%) scale(0.95); }
+    to { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* --- Styles for Chat Search Popup --- */
+
+/* Overlay (без изменений) */
+.chat-search-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1040;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Popup Container (изменения: padding-top, border) */
+.chat-search-popup {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    max-height: 70vh;
+    background-color: var(--bg-element);
+    border-radius: var(--border-radius-large);
+    /* --- ИЗМЕНЕНИЕ: Белая обводка --- */
+    border: 1px solid rgba(176, 176, 176, 0.3);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45);
+    z-index: 1045;
+    display: flex;
+    flex-direction: column;
+    /* --- ИЗМЕНЕНИЕ: Увеличен padding-top --- */
+    padding: var(--padding-medium);
+    padding-top: calc(var(--padding-medium) + 45px); /* <<< ЗНАЧИТЕЛЬНО УВЕЛИЧЕНО */
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeIn 0.2s ease-out 0.05s forwards, scaleUp 0.2s ease-out 0.05s forwards;
+}
+
+/* Close Button (изменения: фон, цвет иконки, hover) */
+.chat-search-close-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 10px;
+    border-radius: 50%;
+    line-height: 0;
+    /* --- ИЗМЕНЕНИЕ: Стили как у send-button --- */
+    background-color: white; /* Белый фон */
+    color: black;           /* Черный цвет для иконки */
+    transition: background-color 0.2s ease, opacity 0.2s ease; /* Убираем color из transition */
+}
+.chat-search-close-button:hover {
+    /* --- ИЗМЕНЕНИЕ: Легкий серый фон при наведении --- */
+    background-color: #f0f0f0; /* Очень светло-серый */
+    color: black;           /* Иконка остается черной */
+}
+/* Иконка внутри кнопки закрытия */
+.chat-search-close-button svg.feather {
+    width: 1.2em !important;
+    height: 1.2em !important;
+    /* --- ИЗМЕНЕНИЕ: Убедимся, что цвет берется из родителя (который теперь черный) --- */
+    stroke: currentColor; /* Используем цвет родительской кнопки */
+    fill: none; /* Иконки Feather обычно без заливки */
+}
+
+/* Search Input (без изменений) */
+.chat-search-input {
+    width: 100%;
+    padding: 14px 18px;
+    margin-bottom: var(--padding-medium);
+    margin-top: 0;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-medium);
+    font-size: 1.05em;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+.chat-search-input::placeholder {
+    color: var(--text-placeholder);
+    opacity: 0.8;
+}
+.chat-search-input:focus {
+    border-color: var(--accent-color);
+}
+
+/* Results List (без изменений в самом списке) */
+.chat-search-results-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--padding-small) 0 0 0;
+    flex-grow: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.chat-search-results-list::-webkit-scrollbar {
+    width: 7px;
+}
+.chat-search-results-list::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 5px 0;
+}
+.chat-search-results-list::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+.chat-search-results-list::-webkit-scrollbar-thumb:hover {
+     background-color: #777;
+}
+
+
+/* Result Item (изменение: добавлена обводка) */
+/* --- ИЗМЕНЕНИЕ: Селектор :not(.search-no-results) и добавлено свойство border --- */
+.chat-search-results-list li:not(.search-no-results) {
+    padding: 14px 18px;
+    border-radius: var(--border-radius-medium);
+    cursor: pointer;
+    font-size: 1em;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: background-color 0.15s ease, border-color 0.15s ease; /* Добавляем border-color в transition */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+    /* --- ИЗМЕНЕНИЕ: Добавлена обводка --- */
+    border: 1px solid var(--border-color); /* Стандартная обводка */
+}
+.chat-search-results-list li:last-child {
+    margin-bottom: 0;
+}
+
+.chat-search-results-list li:not(.search-no-results):hover {
+    background-color: var(--bg-element-hover);
+    /* --- ИЗМЕНЕНИЕ: Можно сделать обводку чуть заметнее при наведении (опционально) --- */
+    border-color: #555; /* Пример: более светлый серый */
+}
+
+/* No Results Message (без изменений) */
+.chat-search-results-list li.search-no-results {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    cursor: default;
+    background-color: transparent !important;
+    font-style: italic;
+    border-radius: var(--border-radius-medium);
+    margin-bottom: 0;
+    border: none; /* Убедимся, что у этого элемента нет рамки */
+}
+/* --- Стили для модального окна настроек --- */
+/* Используем существующий стиль оверлея, но добавляем специфичный класс */
+.modal-overlay.settings-overlay {
+    z-index: 1050; /* Убедимся, что выше других элементов */
+}
+
+/* Стили для самого модального окна */
+.settings-modal {
+    max-width: 550px; /* Чуть шире для текста */
+    text-align: left; /* Выравнивание текста по левому краю */
+    padding: var(--padding-large);
+}
+
+.settings-modal h3 {
+    text-align: center; /* Заголовок по центру */
+    margin-bottom: var(--padding-medium);
+}
+
+.settings-modal p {
+    margin-bottom: var(--padding-medium); /* Отступ под описанием */
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    text-align: center; /* Описание тоже по центру */
+}
+
+/* Стили для текстового поля */
+#system-instructions-textarea {
+    width: 100%;
+    min-height: 150px; /* Минимальная высота */
+    max-height: 40vh; /* Максимальная высота */
+    padding: 12px 16px;
+    margin-bottom: var(--padding-large); /* Отступ под полем ввода */
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border-radius: var(--border-radius-medium);
+    font-size: 1em; /* Стандартный размер шрифта */
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical; /* Позволяем изменять высоту */
+    outline: none;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+#system-instructions-textarea::placeholder {
+    color: var(--text-placeholder);
+    opacity: 0.8;
+}
+#system-instructions-textarea::-webkit-scrollbar {
+    width: 7px;
+}
+#system-instructions-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+#system-instructions-textarea::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+/* Контейнер кнопок уже стилизован через .modal-button-container */
+/* Кнопки Сохранить/Отмена наследуют стили .modal-button */
+.settings-modal .modal-button.save {
+    background-color: var(--accent-color); /* Акцентный цвет для сохранения */
+    color: var(--bg-sidebar);
+}
+.settings-modal .modal-button.save:hover {
+     background-color: var(--accent-color-hover);
+}
+
+/* Стили для кнопки Настройки в футере сайдбара, когда инструкции заданы */
+.sidebar-footer #settings-btn.has-instructions {
+    color: var(--accent-color); /* Подсвечиваем кнопку акцентным цветом */
+    /* Можно добавить легкое свечение или другую индикацию */
+    /* box-shadow: 0 0 8px rgba(var(--accent-color-rgb, 45, 212, 191), 0.5); */
+}
+/* --- Конец стилей для модального окна настроек --- */
+
+
+/* Вспомогательный класс hidden (убедимся, что он есть) */
+.hidden {
+    display: none !important;
+}
+
+/* --- Стили для общего меню настроек --- */
+.settings-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1060;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 20px;
+    box-sizing: border-box;
+    /* Добавляем размытие фона как в меню настройки системы промптов */
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+
+.settings-menu:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+.settings-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-menu::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+.settings-menu-content {
+    background: var(--bg-element);
+    border-radius: var(--border-radius-large);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    padding: var(--padding-large);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+@keyframes settingsModalIn {
+    0% {
+        transform: scale(0.7) translate3d(0, 30px, 0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+.settings-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--padding-large);
+    padding-bottom: var(--padding-medium);
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+    position: relative;
+}
+
+.settings-menu-header h3 {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.close-settings-btn {
+    padding: 12px;
+    border-radius: 50%;
+    color: #000000;
+    background-color: #ffffff;
+    border: none;
+    transition: background-color 0.2s ease;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-settings-btn:hover {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+.settings-menu-section {
+    margin-bottom: var(--padding-large);
+    background: transparent;
+    border-radius: var(--border-radius-medium);
+    padding: var(--padding-medium);
+    border: 1px solid var(--border-color);
+}
+
+.settings-menu-section h4 {
+    margin: 0 0 var(--padding-medium) 0;
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(229, 229, 229, 0.1);
+}
+
+.settings-menu-section h4::before {
+    content: '';
+    font-size: 0.9em;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--padding-medium);
+    margin-bottom: 12px;
+    border-radius: var(--border-radius-medium);
+    background: var(--bg-element-secondary);
+    border: 1px solid var(--border-color);
+    gap: var(--padding-medium);
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.setting-item:hover {
+    background: var(--bg-element-hover);
+    border-color: var(--border-color);
+}
+
+.setting-item:last-child {
+    margin-bottom: 0;
+}
+
+.setting-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.setting-icon {
+    width: 1.2em !important;
+    height: 1.2em !important;
+    stroke-width: 2;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--text-secondary);
+}
+
+.setting-text {
+    flex: 1;
+}
+
+.setting-label {
+    display: block;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 1.05em;
+    letter-spacing: 0.3px;
+}
+
+.setting-description {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+.setting-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* Стили для переключателя стриминга */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-checkbox {
+    display: none;
+}
+
+.toggle-label {
+    display: block;
+    width: 48px;
+    height: 28px;
+    background-color: #dc2626; /* Красный фон при выключенном стриминге */
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    background-color: white; /* Кружочек всегда белый */
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #16a34a; /* Зеленый фон при включенном стриминге */
+    border-color: transparent;
+}
+
+.toggle-checkbox:checked + .toggle-label .toggle-slider {
+    transform: translateX(20px);
+    background-color: white; /* Кружочек остается белым */
+}
+
+/* Стили для кнопки настройки системного промпта */
+.setting-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background-color: var(--accent-color);
+    color: var(--bg-sidebar);
+    border: none;
+    border-radius: var(--border-radius-medium);
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.setting-button:hover {
+    background-color: var(--accent-color-hover);
+}
+
+.setting-button:active {
+    transform: scale(0.96);
+}
+
+.setting-button i[data-feather],
+.setting-button svg.feather {
+    width: 1.1em !important;
+    height: 1.1em !important;
+    stroke-width: 2.5;
+    flex-shrink: 0;
+    filter: brightness(0.9);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .settings-menu {
+        width: 100%;
+        right: 0;
+    }
+    
+    .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--padding-small);
+    }
+    
+    .setting-control {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Оверлей для закрытия меню при клике вне его */
+.settings-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 1055;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.settings-menu-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* --- Конец стилей для общего меню настроек --- */
