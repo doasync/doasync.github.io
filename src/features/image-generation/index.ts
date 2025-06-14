@@ -28,6 +28,9 @@ export {
   clearGeneratedImages,
   removeGeneratedImage,
   sendImageToChat,
+  imageGenerationStarted,
+  imageGenerationUpdated,
+  imageGenerationCompleted,
   
   // Effects
   generateImageFx,
@@ -44,6 +47,7 @@ export {
   type ImageGenerationResponse,
   type GeneratedImage,
   type ImageGenerationModelInfo,
+  type ImageGenerationStatus,
   
   // Constants and helpers
   IMAGE_GENERATION_MODELS,

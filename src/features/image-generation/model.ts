@@ -8,11 +8,20 @@ import {
   ImageGenerationParams, 
   ImageGenerationResponse, 
   GeneratedImage,
+  ImageGenerationStatus,
   IMAGE_GENERATION_MODELS,
   getImageGenerationModelInfo
 } from "./types";
 
 const imageGenerationDomain = createDomain("imageGeneration");
+
+// Custom error class to track request ID through failures
+class ImageGenerationError extends Error {
+  constructor(message: string, public requestId: string) {
+    super(message);
+    this.name = 'ImageGenerationError';
+  }
+}
 
 // --- Stores ---
 
@@ -32,6 +41,12 @@ export const $isDialogOpen = imageGenerationDomain.store<boolean>(
 export const $generatedImages = imageGenerationDomain.store<GeneratedImage[]>(
   [], 
   { name: "generatedImages" }
+);
+
+// Track active generation requests with their IDs (maps effect execution to request ID)
+export const $activeGenerationRequests = imageGenerationDomain.store<Map<string, string>>(
+  new Map(), 
+  { name: "activeGenerationRequests" }
 );
 
 // Store for current prompt in dialog
@@ -149,6 +164,27 @@ export const removeGeneratedImage = imageGenerationDomain.event<string>("removeG
 // Send to chat functionality
 export const sendImageToChat = imageGenerationDomain.event<string>("sendImageToChat");
 
+// Parallel generation events
+export const imageGenerationStarted = imageGenerationDomain.event<{
+  id: string;
+  prompt: string;
+  model: string;
+  parameters: ImageGenerationParams;
+}>("imageGenerationStarted");
+
+export const imageGenerationUpdated = imageGenerationDomain.event<{
+  id: string;
+  status: ImageGenerationStatus;
+  error?: string;
+  progress?: number;
+}>("imageGenerationUpdated");
+
+export const imageGenerationCompleted = imageGenerationDomain.event<{
+  id: string;
+  url?: string;
+  b64_json?: string;
+}>("imageGenerationCompleted");
+
 // --- Effects ---
 
 // Load generated images history from localStorage
@@ -159,7 +195,7 @@ export const loadGeneratedImagesFx = imageGenerationDomain.effect<void, Generate
       const stored = localStorage.getItem('generatedImagesHistory');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Validate the structure
+        // Validate the structure and migrate old data
         if (Array.isArray(parsed)) {
           return parsed.filter(item => 
             item && 
@@ -168,7 +204,10 @@ export const loadGeneratedImagesFx = imageGenerationDomain.effect<void, Generate
             typeof item.prompt === 'string' &&
             typeof item.model === 'string' &&
             typeof item.timestamp === 'number'
-          );
+          ).map(item => ({
+            ...item,
+            status: item.status || 'completed', // Default to completed for existing images
+          }));
         }
       }
       return [];
@@ -233,19 +272,21 @@ export const clearGeneratedImagesFx = imageGenerationDomain.effect<void, void>({
 
 // Image generation effect
 export const generateImageFx = imageGenerationDomain.effect<
-  ImageGenerationParams & { apiKey: string; providerApiUrl: string },
-  ImageGenerationResponse,
+  ImageGenerationParams & { apiKey: string; providerApiUrl: string; requestId?: string },
+  { requestId: string; response: ImageGenerationResponse },
   Error
 >({
   name: "generateImageFx",
-  handler: async ({ apiKey, providerApiUrl, ...params }) => {
+  handler: async ({ apiKey, providerApiUrl, requestId, ...params }) => {
+    const currentRequestId = requestId || 'unknown';
+    
     if (!apiKey) {
-      throw new Error("API key is required for image generation");
+      throw new ImageGenerationError("API key is required for image generation", currentRequestId);
     }
 
     const modelInfo = getImageGenerationModelInfo(params.model);
     if (!modelInfo) {
-      throw new Error(`Unsupported image generation model: ${params.model}`);
+      throw new ImageGenerationError(`Unsupported image generation model: ${params.model}`, currentRequestId);
     }
 
     // Validate prompt length
@@ -309,7 +350,10 @@ export const generateImageFx = imageGenerationDomain.effect<
     }
 
     const result: ImageGenerationResponse = await response.json();
-    return result;
+    return {
+      requestId: requestId || 'unknown',
+      response: result
+    };
   },
 });
 
@@ -390,10 +434,10 @@ $imageGenerationSettingsPerModel.on(updateImageGenSettings, (allSettings, update
   };
 });
 
-// Update loading state
-$isGeneratingImage
-  .on(generateImageFx, () => true)
-  .reset(generateImageFx.finally);
+// Update loading state to reflect any active generations
+$isGeneratingImage.on($generatedImages, (_, images) => 
+  images.some(img => img.status === 'pending' || img.status === 'generating')
+);
 
 
 // Load images from localStorage when dialog opens
@@ -405,32 +449,8 @@ sample({
 // Update store when images are loaded
 $generatedImages.on(loadGeneratedImagesFx.doneData, (_, loadedImages) => loadedImages);
 
-// Enhanced image generation to include metadata and save to localStorage
-sample({
-  clock: generateImageFx.done,
-  source: $generatedImages,
-  fn: (existingImages, { params, result }) => {
-    const newImages: GeneratedImage[] = result.data.map((imageData) => ({
-      id: crypto.randomUUID(),
-      url: imageData.url,
-      b64_json: imageData.b64_json,
-      prompt: params.prompt,
-      model: params.model,
-      parameters: {
-        prompt: params.prompt,
-        model: params.model,
-        size: params.size,
-        quality: params.quality,
-        style: params.style,
-        n: params.n,
-      },
-      timestamp: result.created * 1000,
-    }));
-    
-    return [...existingImages, ...newImages];
-  },
-  target: $generatedImages,
-});
+// Note: Image generation completion is now handled by imageGenerationCompleted event
+// to support parallel generation with per-request tracking
 
 // Save all images to localStorage after generation
 sample({
@@ -469,13 +489,112 @@ $imageGenerationError.reset(generateImage);
 
 // --- Sample Connections ---
 
-// Connect generateImage event to generateImageFx effect with API key and provider URL
+// Create immediate placeholder when generation is requested
 sample({
   clock: generateImage,
+  source: $selectedImageGenModel,
+  fn: (selectedModel, params) => {
+    const id = crypto.randomUUID();
+    return {
+      id,
+      prompt: params.prompt,
+      model: selectedModel,
+      parameters: params,
+    };
+  },
+  target: imageGenerationStarted,
+});
+
+// Add placeholder to generated images store
+$generatedImages.on(imageGenerationStarted, (images, { id, prompt, model, parameters }) => {
+  console.log('Creating placeholder with ID:', id);
+  const newPlaceholder: GeneratedImage = {
+    id,
+    prompt,
+    model,
+    parameters,
+    timestamp: Date.now(),
+    status: 'pending' as ImageGenerationStatus,
+  };
+  return [newPlaceholder, ...images];
+});
+
+// Trigger actual API call after placeholder is created
+sample({
+  clock: imageGenerationStarted,
   source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl },
   filter: ({ apiKey }) => !!apiKey,
-  fn: ({ apiKey, providerApiUrl }, params) => ({ ...params, apiKey, providerApiUrl }),
+  fn: ({ apiKey, providerApiUrl }, { id, parameters }) => ({ 
+    ...parameters, 
+    apiKey, 
+    providerApiUrl,
+    requestId: id // Pass the ID to track this specific request
+  }),
   target: generateImageFx,
+});
+
+// Update placeholder status when generation starts
+sample({
+  clock: generateImageFx,
+  fn: (params) => ({
+    id: (params as any).requestId || 'unknown',
+    status: 'generating' as ImageGenerationStatus,
+  }),
+  target: imageGenerationUpdated,
+});
+
+// Handle generation completion
+sample({
+  clock: generateImageFx.doneData,
+  fn: ({ requestId, response }) => {
+    console.log('Image generation completed:', { requestId, response });
+    // Extract the first (and typically only) image from the response
+    const imageData = response.data[0];
+    console.log('Image data:', imageData);
+    return {
+      id: requestId,
+      url: imageData?.url,
+      b64_json: imageData?.b64_json,
+    };
+  },
+  target: imageGenerationCompleted,
+});
+
+// Handle generation errors
+sample({
+  clock: generateImageFx.failData,
+  fn: (error) => {
+    console.log('Image generation failed:', error);
+    // For errors, we'll need a different approach to map back to the specific request
+    // For now, this will be a limitation
+    return {
+      id: 'error-unknown',
+      status: 'error' as ImageGenerationStatus,
+      error: error.message,
+    };
+  },
+  target: imageGenerationUpdated,
+});
+
+// Update images when status changes
+$generatedImages.on(imageGenerationUpdated, (images, { id, status, error, progress }) => 
+  images.map(img => 
+    img.id === id 
+      ? { ...img, status, error, progress }
+      : img
+  )
+);
+
+// Update images when generation completes
+$generatedImages.on(imageGenerationCompleted, (images, { id, url, b64_json }) => {
+  console.log('Updating image completion:', { id, url, b64_json });
+  return images.map(img => {
+    if (img.id === id) {
+      console.log('Found matching image:', img.id, 'updating with:', { url, b64_json });
+      return { ...img, status: 'completed' as ImageGenerationStatus, url, b64_json };
+    }
+    return img;
+  });
 });
 
 

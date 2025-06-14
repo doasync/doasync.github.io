@@ -16,6 +16,7 @@ import {
   Chip,
   Alert,
   LinearProgress,
+  CircularProgress,
   IconButton,
   Card,
   CardMedia,
@@ -97,9 +98,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
   };
 
   const handleClose = () => {
-    if (!state.isGenerating) {
-      dialogClosed();
-    }
+    dialogClosed();
   };
 
   const handleSendToChat = (imageId: string) => {
@@ -112,17 +111,59 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
     removeGeneratedImage(imageId);
   };
 
-  const openImageInNewTab = (imageUrl: string) => {
-    window.open(imageUrl, "_blank");
+  const openImageInNewTab = (imageUrl: string, image?: any) => {
+    // If it's a data URL (base64), convert to blob URL for better browser support
+    if (imageUrl.startsWith("data:")) {
+      try {
+        // Extract base64 data and convert to blob
+        const base64Data = imageUrl.split(",")[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "image/png" });
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Open blob URL and clean up after a delay
+        const newWindow = window.open(blobUrl, "_blank");
+        if (newWindow) {
+          // Clean up blob URL after window loads or after a delay
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("Failed to convert data URL to blob:", error);
+        // Fallback to original method
+        window.open(imageUrl, "_blank");
+      }
+    } else {
+      // Regular URL, open directly
+      window.open(imageUrl, "_blank");
+    }
   };
 
   const downloadImage = (imageUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Handle both regular URLs and data URLs
+    if (imageUrl.startsWith("data:")) {
+      // For data URLs, use them directly - they work fine for downloads
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // For regular URLs, we might need to fetch and convert to blob for cross-origin downloads
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const isFormValid = state.prompt.trim().length > 0 && !!apiKey;
@@ -155,9 +196,6 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
       >
         {/* Generation Form */}
         <Box sx={{ pt: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Error Alert */}
-          {state.error && <Alert severity="error">{state.error}</Alert>}
-
           {/* No API Key Alert */}
           {!apiKey && (
             <Alert severity="warning">
@@ -171,7 +209,6 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
             <Select
               value={state.selectedModel}
               onChange={(e) => handleModelChange(e.target.value)}
-              disabled={state.isGenerating}
               label="Image Generation Model"
             >
               {state.availableModels.map((model: any) => (
@@ -199,10 +236,9 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
             label="Image Prompt"
             placeholder="Describe the image you want to generate..."
             multiline
-            rows={3}
+            rows={6}
             value={state.prompt}
             onChange={handlePromptChange}
-            disabled={state.isGenerating}
             fullWidth
             error={isPromptTooLong}
             helperText={
@@ -220,7 +256,6 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
               <Select
                 value={state.settings.size}
                 onChange={(e) => handleSettingChange("size", e.target.value)}
-                disabled={state.isGenerating}
                 label="Size"
               >
                 {state.supportedSizes.map((size: string) => (
@@ -237,7 +272,6 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
               <Select
                 value={state.settings.quality}
                 onChange={(e) => handleSettingChange("quality", e.target.value)}
-                disabled={state.isGenerating}
                 label="Quality"
               >
                 {state.supportedQualities.map((quality: string) => (
@@ -255,7 +289,6 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                 <Select
                   value={state.settings.style || ""}
                   onChange={(e) => handleSettingChange("style", e.target.value)}
-                  disabled={state.isGenerating}
                   label="Style"
                 >
                   {state.supportedStyles.map((style: string) => (
@@ -268,28 +301,24 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
             )}
           </Box>
 
+          {/* Error Alert - positioned near Generate button */}
+          {state.error && <Alert severity="error">{state.error}</Alert>}
+
           {/* Generate Button */}
           <Button
             onClick={handleGenerate}
             variant="contained"
-            disabled={!isFormValid || isPromptTooLong || state.isGenerating}
+            disabled={!isFormValid || isPromptTooLong}
             fullWidth
             sx={{ py: 1.5 }}
           >
-            {state.isGenerating ? (
-              <>
-                <LinearProgress sx={{ width: 100, mr: 2 }} />
-                Generating...
-              </>
-            ) : (
-              "Generate Image"
-            )}
+            {state.isGenerating ? "Generate Another Image" : "Generate Image"}
           </Button>
         </Box>
 
         {/* Generated Images History */}
         {state.generatedImages.length > 0 && (
-          <Box sx={{ mt: 3 }}>
+          <Box sx={{ mt: 1 }}>
             <Typography variant="h6" gutterBottom>
               Generated Images ({state.generatedImages.length})
             </Typography>
@@ -311,19 +340,80 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                       ? `data:image/png;base64,${image.b64_json}`
                       : "");
 
+                  const isCompleted = image.status === "completed";
+                  const isPending = image.status === "pending";
+                  const isGenerating = image.status === "generating";
+                  const isError = image.status === "error";
+
                   return (
                     <Card key={image.id} sx={{ height: "fit-content" }}>
-                      <CardMedia
-                        component="img"
-                        image={imageUrl}
-                        alt={`Generated: ${image.prompt.substring(0, 50)}...`}
-                        sx={{
-                          height: 200,
-                          objectFit: "cover",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => openImageInNewTab(imageUrl)}
-                      />
+                      {isCompleted ? (
+                        <CardMedia
+                          component="img"
+                          image={imageUrl}
+                          alt={`Generated: ${image.prompt.substring(0, 50)}...`}
+                          sx={{
+                            height: 200,
+                            objectFit: "cover",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => openImageInNewTab(imageUrl)}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            height: 200,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: isError
+                              ? "error.light"
+                              : "grey.100",
+                            color: isError
+                              ? "error.contrastText"
+                              : "text.secondary",
+                            position: "relative",
+                          }}
+                        >
+                          {isPending && (
+                            <>
+                              <CircularProgress size={40} sx={{ mb: 1 }} />
+                              <Typography variant="body2">Queued...</Typography>
+                            </>
+                          )}
+                          {isGenerating && (
+                            <>
+                              <CircularProgress size={40} sx={{ mb: 1 }} />
+                              <Typography variant="body2">
+                                Generating...
+                              </Typography>
+                              {image.progress !== undefined && (
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={image.progress}
+                                  sx={{ width: "80%", mt: 1 }}
+                                />
+                              )}
+                            </>
+                          )}
+                          {isError && (
+                            <>
+                              <Typography variant="body2" color="error">
+                                Generation Failed
+                              </Typography>
+                              {image.error && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ mt: 1, textAlign: "center", px: 1 }}
+                                >
+                                  {image.error}
+                                </Typography>
+                              )}
+                            </>
+                          )}
+                        </Box>
+                      )}
                       <CardContent sx={{ pb: 1 }}>
                         <Typography
                           variant="body2"
@@ -338,52 +428,92 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {image.model} • {image.parameters?.size} •{" "}
-                          {new Date(image.timestamp).toLocaleString()}
+                          {new Date(image.timestamp)
+                            .toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                            })
+                            .replace("/", "-")}{" "}
+                          {new Date(image.timestamp).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }
+                          )}
                         </Typography>
                       </CardContent>
                       <CardActions
                         sx={{ pt: 0, justifyContent: "space-between" }}
                       >
-                        <Box>
-                          <IconButton
-                            size="small"
-                            onClick={() => openImageInNewTab(imageUrl)}
-                            title="Open in new tab"
-                          >
-                            <FullscreenIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              downloadImage(
-                                imageUrl,
-                                `generated-image-${image.id}.png`
-                              )
-                            }
-                            title="Download"
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                        <Box>
-                          <Button
-                            size="small"
-                            startIcon={<SendIcon />}
-                            onClick={() => handleSendToChat(image.id)}
-                            variant="outlined"
-                            sx={{ mr: 1 }}
-                          >
-                            Send to Chat
-                          </Button>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveImage(image.id)}
-                            title="Delete"
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                        {isCompleted ? (
+                          <>
+                            <Box>
+                              <IconButton
+                                size="small"
+                                onClick={() => openImageInNewTab(imageUrl)}
+                                title="Open in new tab"
+                              >
+                                <FullscreenIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  downloadImage(
+                                    imageUrl,
+                                    `generated-image-${image.id}.png`
+                                  )
+                                }
+                                title="Download"
+                              >
+                                <DownloadIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <Box>
+                              <Button
+                                size="small"
+                                startIcon={<SendIcon />}
+                                onClick={() => handleSendToChat(image.id)}
+                                variant="outlined"
+                                sx={{ mr: 1 }}
+                              >
+                                Send to Chat
+                              </Button>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRemoveImage(image.id)}
+                                title="Delete"
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </>
+                        ) : (
+                          <>
+                            <Box>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {isPending && "Waiting to start..."}
+                                {isGenerating && "Generating image..."}
+                                {isError && "Failed to generate"}
+                              </Typography>
+                            </Box>
+                            <Box>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleRemoveImage(image.id)}
+                                title="Cancel/Delete"
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </>
+                        )}
                       </CardActions>
                     </Card>
                   );
@@ -394,9 +524,7 @@ export const ImageGenerationDialog: React.FC<ImageGenerationDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={handleClose} disabled={state.isGenerating}>
-          Close
-        </Button>
+        <Button onClick={handleClose}>Close</Button>
       </DialogActions>
     </Dialog>
   );

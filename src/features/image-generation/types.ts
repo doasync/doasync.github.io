@@ -25,6 +25,8 @@ export interface ImageGenerationResponse {
   };
 }
 
+export type ImageGenerationStatus = 'pending' | 'generating' | 'completed' | 'error';
+
 export interface GeneratedImage {
   id: string;
   url?: string;
@@ -33,6 +35,9 @@ export interface GeneratedImage {
   model: string;
   parameters: ImageGenerationParams;
   timestamp: number;
+  status: ImageGenerationStatus;
+  error?: string; // Error message if status is 'error'
+  progress?: number; // Progress percentage if supported by API
 }
 
 // Image generation models with their capabilities
