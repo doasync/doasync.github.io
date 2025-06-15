@@ -54,3 +54,64 @@
 │ │ needed for full PRD compliance.                                                       │ │
 │ ╰───────────────────────────────────────────────────────────────────────────────────────╯ │
 │                                                                                           │
+
+  ⎿ Plan: Create FRDs for All Existing Features
+
+    Based on my analysis, I found that 14 out of 17 features are missing FRD.md files.
+    Here's my plan to create comprehensive Feature Requirements Documents for each:
+
+    Features Needing FRDs (14 total):
+
+    Core Features (Priority 1)
+
+    1. api-config - API configuration and provider management
+    2. chat-settings - User preferences, API key, temperature, system prompt
+    3. models-select - Model selection with capability detection
+    4. chat-history - Chat persistence with IndexedDB
+
+    Audio/Speech Features (Priority 2)
+
+    5. audio-chat - Ephemeral audio features (in-message TTS/STT)
+    6. speech-to-text - Standalone transcription dialog
+    7. text-to-speech - Standalone TTS dialog
+    8. voice-models - Voice model configuration and management
+
+    Processing Features (Priority 3)
+
+    9. document-processing - File upload and text extraction
+    10. image-generation - AI image generation with DALL-E
+
+    UI Features (Priority 4)
+
+    11. ui-state - Global UI state management (dialogs, snackbars)
+    12. ui-layout - Responsive layout components
+    13. ui-core - Core UI utilities (theme, markdown renderer)
+
+    Analytics (Priority 5)
+
+    14. usage-info - Token counting and usage analytics
+
+    FRD Structure for Each Feature:
+
+    1. Overview - Purpose and scope
+    2. Goals - What the feature aims to achieve
+    3. User Stories - Key user scenarios
+    4. Functional Specifications - Detailed requirements
+    5. Technical Implementation - Architecture and state management
+    6. Integration Points - How it connects with other features
+    7. UI/UX Specifications - Interface details
+    8. Non-Functional Requirements - Performance, security
+    9. Testing Strategy - How to validate the feature
+    10. Future Enhancements - Planned improvements
+
+    Execution Plan:
+
+    1. Create FRD.md in each feature directory
+    2. Document current implementation based on code analysis
+    3. Include implementation status (since all are already built)
+    4. Add state management details from model.ts files
+    5. Document integration points between features
+    6. Include UI component specifications where applicable
+
+    This will provide complete documentation coverage for the entire codebase, making it
+     easier for developers to understand and maintain each feature.
