@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -13,12 +13,12 @@ import {
   ListItemText,
   Tab,
   Tabs,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import type { DocumentProcessingResult } from "../types";
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import type { DocumentProcessingResult } from '../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -64,29 +64,29 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   const formatFileSize = (bytes: number): string => {
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (
     <Card sx={{ mb: 2 }}>
       <CardHeader
         title={
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="h6" noWrap>
               {result.metadata.fileName}
             </Typography>
             <Chip
-              label={result.metadata.mimeType.split("/")[1].toUpperCase()}
+              label={result.metadata.mimeType.split('/')[1].toUpperCase()}
               size="small"
               color="primary"
             />
           </Box>
         }
         subheader={
-          <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
               {formatFileSize(result.metadata.fileSize)}
             </Typography>
@@ -133,14 +133,14 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
           {/* Preview Tab */}
           <TabPanel value={activeTab} index={0}>
-            <Box sx={{ maxHeight: maxPreviewHeight, overflow: "auto" }}>
+            <Box sx={{ maxHeight: maxPreviewHeight, overflow: 'auto' }}>
               {result.previewHtml ? (
                 <Box
                   dangerouslySetInnerHTML={{ __html: result.previewHtml }}
                   sx={{
-                    "& pre": {
-                      whiteSpace: "pre-wrap",
-                      fontFamily: "inherit",
+                    '& pre': {
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
                       margin: 0,
                     },
                   }}
@@ -158,13 +158,13 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <Box
               sx={{
                 maxHeight: maxPreviewHeight,
-                overflow: "auto",
-                backgroundColor: "grey.50",
+                overflow: 'auto',
+                backgroundColor: 'grey.50',
                 p: 2,
                 borderRadius: 1,
-                fontFamily: "monospace",
-                fontSize: "0.875rem",
-                whiteSpace: "pre-wrap",
+                fontFamily: 'monospace',
+                fontSize: '0.875rem',
+                whiteSpace: 'pre-wrap',
               }}
             >
               {result.extractedText}
@@ -176,7 +176,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <TabPanel value={activeTab} index={2}>
               <List
                 dense
-                sx={{ maxHeight: maxPreviewHeight, overflow: "auto" }}
+                sx={{ maxHeight: maxPreviewHeight, overflow: 'auto' }}
               >
                 {result.chunks.map((chunk, index) => (
                   <ListItem key={chunk.id} divider>
@@ -186,10 +186,10 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                         <Typography
                           variant="body2"
                           sx={{
-                            display: "-webkit-box",
+                            display: '-webkit-box',
                             WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
                           }}
                         >
                           {chunk.content}

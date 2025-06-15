@@ -1,16 +1,22 @@
 ### Plan: Localizing "Send/Generate" Button Loading State
 
-**Goal:** Decouple the "Send/Generate" button's loading state in the main chat and mini-chat components from the global `streamChatFx.pending` store, ensuring each button's state reflects only the streaming activity within its respective chat context.
+**Goal:** Decouple the "Send/Generate" button's loading state in the main chat
+and mini-chat components from the global `streamChatFx.pending` store, ensuring
+each button's state reflects only the streaming activity within its respective
+chat context.
 
 **Proposed Modifications:**
 
 1.  **Modify `src/features/chat/model.ts` (Main Chat)**
 
-    - **Current State:** The `$isGenerating` store for the main chat is currently derived directly from `streamChatFx.pending`.
+    - **Current State:** The `$isGenerating` store for the main chat is
+      currently derived directly from `streamChatFx.pending`.
     - **Action:**
 
-      - Remove the explicit `.on` handler that maps `streamChatFx.pending` to `$isGenerating`.
-      - Modify `$isGenerating` to be updated by events specific to the main chat's streaming lifecycle.
+      - Remove the explicit `.on` handler that maps `streamChatFx.pending` to
+        `$isGenerating`.
+      - Modify `$isGenerating` to be updated by events specific to the main
+        chat's streaming lifecycle.
 
     - **Specific Code Changes:**
 
@@ -19,14 +25,18 @@
         // Locate and remove this line or similar (exact line might vary based on code formatting):
         // $isGenerating.on(streamChatFx.pending, (_, pending) => pending);
         ```
-      - **Update `$isGenerating` on stream initiation:**
-        When `streamChatFx` is called for the main chat, the `streamRequestInitiated` event is emitted. We will use this to set `$isGenerating` to `true`.
+      - **Update `$isGenerating` on stream initiation:** When `streamChatFx` is
+        called for the main chat, the `streamRequestInitiated` event is emitted.
+        We will use this to set `$isGenerating` to `true`.
         ```typescript
         // Add or modify a handler in the $isGenerating store definition
         $isGenerating.on(streamRequestInitiated, () => true);
         ```
-      - **Update `$isGenerating` on stream completion/error/abort:**
-        The `onComplete`, `onError`, and `onAbort` callbacks are executed when the stream finishes for any reason. We will introduce a new internal event (`chatStreamFinished`) that these callbacks trigger, which will then set `$isGenerating` to `false`.
+      - **Update `$isGenerating` on stream completion/error/abort:** The
+        `onComplete`, `onError`, and `onAbort` callbacks are executed when the
+        stream finishes for any reason. We will introduce a new internal event
+        (`chatStreamFinished`) that these callbacks trigger, which will then set
+        `$isGenerating` to `false`.
 
         ```typescript
         // Define a new internal event for stream completion/error/abort
@@ -54,11 +64,14 @@
 
 2.  **Modify `src/features/mini-chat/model.ts` (Mini Chat)**
 
-    - **Current State:** The `loading` property within the `$miniChat` store is currently derived directly from `streamChatFx.pending`.
+    - **Current State:** The `loading` property within the `$miniChat` store is
+      currently derived directly from `streamChatFx.pending`.
     - **Action:**
 
-      - Remove the explicit `.on` handler that maps `streamChatFx.pending` to `$miniChat.loading`.
-      - Modify the `loading` property within `$miniChat` to be updated by events specific to the mini-chat's streaming lifecycle.
+      - Remove the explicit `.on` handler that maps `streamChatFx.pending` to
+        `$miniChat.loading`.
+      - Modify the `loading` property within `$miniChat` to be updated by events
+        specific to the mini-chat's streaming lifecycle.
 
     - **Specific Code Changes:**
 
@@ -70,8 +83,10 @@
         //     loading: pending,
         // }));
         ```
-      - **Update `loading` on stream initiation:**
-        The `miniChatStreamRequestInitiated` event is emitted when the mini-chat is about to start a stream. We will use this to set `$miniChat.loading` to `true`.
+      - **Update `loading` on stream initiation:** The
+        `miniChatStreamRequestInitiated` event is emitted when the mini-chat is
+        about to start a stream. We will use this to set `$miniChat.loading` to
+        `true`.
         ```typescript
         // Add a handler to $miniChat to set loading to true when a stream request is initiated
         $miniChat.on(miniChatStreamRequestInitiated, (state) => ({
@@ -80,14 +95,20 @@
         }));
         ```
       - **Ensure `loading` is set to `false` on stream completion/error/abort:**
-        The existing `_miniChatMessageCompleted`, `_miniChatMessageErrored`, and `_miniChatMessageAborted` events are already responsible for handling the completion, error, and abort states. We need to ensure that their respective `.on` handlers for `$miniChat` explicitly set the `loading` property to `false`. Based on `FIX_PLAN.md`, they already do this for `isLoading` on the specific message, but we need to ensure the top-level `loading` for the chat is also reset.
+        The existing `_miniChatMessageCompleted`, `_miniChatMessageErrored`, and
+        `_miniChatMessageAborted` events are already responsible for handling
+        the completion, error, and abort states. We need to ensure that their
+        respective `.on` handlers for `$miniChat` explicitly set the `loading`
+        property to `false`. Based on `FIX_PLAN.md`, they already do this for
+        `isLoading` on the specific message, but we need to ensure the top-level
+        `loading` for the chat is also reset.
 
         ```typescript
         // Verify and ensure 'loading: false' is set in these handlers for $miniChat:
         $miniChat.on(_miniChatMessageCompleted, (state, { placeholderId }) => ({
           ...state,
           messages: state.messages.map((msg) =>
-            msg.id === placeholderId ? { ...msg, isLoading: false } : msg
+            msg.id === placeholderId ? { ...msg, isLoading: false } : msg,
           ),
           loading: false, // <-- ENSURE THIS IS PRESENT
         }));
@@ -101,18 +122,18 @@
                 ? {
                     ...msg,
                     isLoading: false,
-                    content: `${msg.content || ""}\n\nError: ${error.message}`,
+                    content: `${msg.content || ''}\n\nError: ${error.message}`,
                   }
-                : msg
+                : msg,
             ),
             loading: false, // <-- ENSURE THIS IS PRESENT
-          })
+          }),
         );
 
         $miniChat.on(_miniChatMessageAborted, (state, { placeholderId }) => ({
           ...state,
           messages: state.messages.map((msg) =>
-            msg.id === placeholderId ? { ...msg, isLoading: false } : msg
+            msg.id === placeholderId ? { ...msg, isLoading: false } : msg,
           ),
           loading: false, // <-- ENSURE THIS IS PRESENT
         }));

@@ -1,26 +1,13 @@
 // Central API configuration for OpenAI-compatible providers
-
-import { $providerApiUrl } from "@/features/chat-settings";
-
-// Computed stores for different API endpoints
-export const $chatCompletionsUrl = $providerApiUrl.map(
-  (baseUrl) => `${baseUrl}/chat/completions`
-);
-
-export const $imageGenerationsUrl = $providerApiUrl.map(
-  (baseUrl) => `${baseUrl}/images/generations`
-);
-
-export const $modelsUrl = $providerApiUrl.map(
-  (baseUrl) => `${baseUrl}/models`
-);
+// This module provides pure functions for building API URLs
+// It does not depend on any other features to avoid circular dependencies
 
 /**
  * Generate standard headers for API requests
  */
 export function getApiHeaders(apiKey: string): Record<string, string> {
   return {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   };
 }

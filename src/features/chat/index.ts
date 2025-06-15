@@ -3,15 +3,58 @@
 // by other features or UI components.
 
 // Import types separately
-import { type Role, type Message, type Attachment, type MessageContentPart, type TextContentPart, type ImageContentPart, type AudioContentPart, type GeneratedImageContentPart, type DocumentContentPart, type MessageStatus } from "./types";
-import { type AudioMessage, type AudioOutputPart, type ExtendedMessageContentPart, type AudioContentPartExtended, isAudioInputPart, isAudioOutputPart, hasAudioContent, createAudioContentPart, createAudioOutputPart } from "./audio-types";
+import {
+  type Role,
+  type Message,
+  type Attachment,
+  type MessageContentPart,
+  type TextContentPart,
+  type ImageContentPart,
+  type AudioContentPart,
+  type GeneratedImageContentPart,
+  type DocumentContentPart,
+  type MessageStatus,
+} from './types';
+import {
+  type AudioMessage,
+  type AudioOutputPart,
+  type ExtendedMessageContentPart,
+  type AudioContentPartExtended,
+  isAudioInputPart,
+  isAudioOutputPart,
+  hasAudioContent,
+  createAudioContentPart,
+  createAudioOutputPart,
+} from './audio-types';
 
 // Export types
-export type { Role, Message, Attachment, MessageContentPart, TextContentPart, ImageContentPart, AudioContentPart, GeneratedImageContentPart, DocumentContentPart, MessageStatus };
+export type {
+  Role,
+  Message,
+  Attachment,
+  MessageContentPart,
+  TextContentPart,
+  ImageContentPart,
+  AudioContentPart,
+  GeneratedImageContentPart,
+  DocumentContentPart,
+  MessageStatus,
+};
 
 // Export audio types and utilities
-export type { AudioMessage, AudioOutputPart, ExtendedMessageContentPart, AudioContentPartExtended };
-export { isAudioInputPart, isAudioOutputPart, hasAudioContent, createAudioContentPart, createAudioOutputPart };
+export type {
+  AudioMessage,
+  AudioOutputPart,
+  ExtendedMessageContentPart,
+  AudioContentPartExtended,
+};
+export {
+  isAudioInputPart,
+  isAudioOutputPart,
+  hasAudioContent,
+  createAudioContentPart,
+  createAudioOutputPart,
+};
 
 export {
   // Stores - Likely needed by UI
@@ -24,6 +67,7 @@ export {
   $retryingMessageId, // Needed by MessageItem to show spinner
   $preventScroll, // Import scroll prevention state
   $scrollTrigger, // Explicit scroll trigger counter
+  $isMainInputFocused, // Needed by mini-chat for focus tracking
 
   // Events - Triggered by UI or other features
   messageTextChanged,
@@ -34,20 +78,20 @@ export {
   messageRetry, // Event triggered by MessageItem (takes Message object)
   setPreventScroll,
   generateResponseClicked, // <-- Export the new event for the UI
-  
+
   // File attachment events
   filesSelected,
-  
+
   // Image generation events
   imageGenerationRequested,
 
   // Events - Potentially needed by other features (e.g., history)
   initialChatSaveNeeded,
-  apiKeyMissing,
+  // apiKeyMissing moved to chat-settings feature
   userMessageCreated, // May be needed to trigger save in history
   mainInputFocused,
   scrollToLastMessageNeeded, // <-- Export assistant scroll event
   normalResponseProcessed, // <-- Export event for saving normal responses
   stopGenerationClicked,
   assistantResponseCompleted, // Added export
-} from "./model";
+} from './model';

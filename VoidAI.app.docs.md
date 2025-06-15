@@ -1,6 +1,7 @@
 # **Available Models**
 
-VoidAI provides access to a wide range of AI models from various providers. This page lists all currently available models organized by provider and type.
+VoidAI provides access to a wide range of AI models from various providers. This
+page lists all currently available models organized by provider and type.
 
 ## **OpenAI Models[ ](https://docs.voidai.app/docs/models#openai-models)**
 
@@ -15,7 +16,8 @@ VoidAI provides access to a wide range of AI models from various providers. This
   - gpt-4o-2024-08-06, gpt-4o-2024-11-20 (dated versions)
   - gpt-4o-mini, gpt-4o-mini-2024-07-18 (mini variants)
   - chatgpt-4o-latest (alias for the latest version)
-  - gpt-4o-search-preview-2025-03-11, gpt-4o-mini-search-preview-2025-03-11 (search preview)
+  - gpt-4o-search-preview-2025-03-11, gpt-4o-mini-search-preview-2025-03-11
+    (search preview)
 - **GPT-4 Series**
   - gpt-4.5-preview
   - gpt-4.1, gpt-4.1-mini, gpt-4.1-nano
@@ -40,9 +42,11 @@ VoidAI provides access to a wide range of AI models from various providers. This
 
 ### **Moderation Models[ ](https://docs.voidai.app/docs/models#moderation-models)**
 
-- omni-moderation-latest \- Advanced moderation model supporting both text and image inputs
+- omni-moderation-latest \- Advanced moderation model supporting both text and
+  image inputs
 - text-moderation-latest \- Legacy text-only moderation model
-- text-moderation-stable \- Stable version of the legacy text-only moderation model
+- text-moderation-stable \- Stable version of the legacy text-only moderation
+  model
 
 ## **Anthropic Models[ ](https://docs.voidai.app/docs/models#anthropic-models)**
 
@@ -51,7 +55,8 @@ VoidAI provides access to a wide range of AI models from various providers. This
 - **Claude 3.7 Series**
   - claude-3-7-sonnet-20250219, claude-3-7-sonnet-20250219-thinking
 - **Claude 3.5 Series**
-  - claude-3-5-sonnet-20241022, claude-3-5-sonnet-20240620, claude-3-5-haiku-20241022
+  - claude-3-5-sonnet-20241022, claude-3-5-sonnet-20240620,
+    claude-3-5-haiku-20241022
 - **Claude 3 Series**
   - claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
 - **Legacy Models**
@@ -96,8 +101,10 @@ VoidAI provides access to a wide range of AI models from various providers. This
 
 ### **Moderation Models[ ](https://docs.voidai.app/docs/models#moderation-models-1)**
 
-- mistral-moderation-latest \- Mistral's latest moderation model for content filtering
-- mistral-moderation-2411 \- Date-stamped version of Mistral's moderation model (November 2024 release)
+- mistral-moderation-latest \- Mistral's latest moderation model for content
+  filtering
+- mistral-moderation-2411 \- Date-stamped version of Mistral's moderation model
+  (November 2024 release)
 
 ### **Other Models[ ](https://docs.voidai.app/docs/models#other-models)**
 
@@ -170,7 +177,9 @@ _print_(response.choices\[0\].message.content)
 
 ## **Model Updates[ ](https://docs.voidai.app/docs/models#model-updates)**
 
-The list of available models is regularly updated as new models are added or existing ones are improved. You can always check the complete list programmatically through the API:
+The list of available models is regularly updated as new models are added or
+existing ones are improved. You can always check the complete list
+programmatically through the API:
 
 _from_ openai _import_ OpenAI
 
@@ -182,9 +191,14 @@ _for_ model _in_ models.data:
 
 # **Text Generation**
 
-**Provider Disclosure**: VoidAI offers text generation services powered by multiple providers, including OpenAI, Anthropic, Google, Mistral AI, X.AI, Deepseek, and more. The specific provider used depends on the model you select in your API call.
+**Provider Disclosure**: VoidAI offers text generation services powered by
+multiple providers, including OpenAI, Anthropic, Google, Mistral AI, X.AI,
+Deepseek, and more. The specific provider used depends on the model you select
+in your API call.
 
-VoidAI provides a powerful text generation API that's fully compatible with the OpenAI SDK. This guide will show you how to get started and make the most of the API.
+VoidAI provides a powerful text generation API that's fully compatible with the
+OpenAI SDK. This guide will show you how to get started and make the most of the
+API.
 
 ## **Basic Usage[ ](https://docs.voidai.app/docs/text-generation#basic-usage)**
 
@@ -204,7 +218,8 @@ base_url\="https://api.voidai.app/v1/"
 
 _\# Create a basic chat completion_
 
-messages \= \[{"role": "user", "content": "What is 1 \+ 1? Can you also give me the approach to it?"}\]
+messages \= \[{"role": "user", "content": "What is 1 \+ 1? Can you also give me
+the approach to it?"}\]
 
 response \= client.chat.completions.create(
 
@@ -222,7 +237,8 @@ _print_(assistant_response)
 
 ## **Conversation Memory[ ](https://docs.voidai.app/docs/text-generation#conversation-memory)**
 
-The chat completions API remembers the conversation context when you include previous messages in your requests. Here's how to build a conversation:
+The chat completions API remembers the conversation context when you include
+previous messages in your requests. Here's how to build a conversation:
 
 _from_ openai _import_ OpenAI
 
@@ -244,7 +260,8 @@ messages \= \[
 
 {"role": "user", "content": "You're really good at math\!"},
 
-{"role": "assistant", "content": "Thank you\! I'm glad I could help you with your math question."},
+{"role": "assistant", "content": "Thank you\! I'm glad I could help you with
+your math question."},
 
 {"role": "user", "content": "What was the first question I asked you?"}
 
@@ -264,7 +281,8 @@ _print_(assistant_response)
 
 ## **Building a Chat Application[ ](https://docs.voidai.app/docs/text-generation#building-a-chat-application)**
 
-You can easily create an interactive chat application that maintains conversation history:
+You can easily create an interactive chat application that maintains
+conversation history:
 
 _from_ openai _import_ OpenAI
 
@@ -338,13 +356,13 @@ messages\=\[{"role": "user", "content": "Write a short poem about AI"}\],
 
 temperature\=0.7, _\# Controls randomness (0-1)_
 
-max_tokens\=100, _\# Limits response length_
+max*tokens\=100, *\# Limits response length\_
 
-top_p\=0.9, _\# Nucleus sampling_
+top*p\=0.9, *\# Nucleus sampling\_
 
-frequency_penalty\=0, _\# Reduces repetition (-2 to 2\)_
+frequency*penalty\=0, *\# Reduces repetition (-2 to 2\)\_
 
-presence_penalty\=0, _\# Encourages new topics (-2 to 2\)_
+presence*penalty\=0, *\# Encourages new topics (-2 to 2\)\_
 
 stop\=\["Poem:", "---"\] _\# Stop sequence(s)_
 
@@ -354,7 +372,8 @@ _print_(response.choices\[0\].message.content)
 
 ## **Model Selection[ ](https://docs.voidai.app/docs/text-generation#model-selection)**
 
-VoidAI offers models from multiple providers. You can choose models based on your specific needs:
+VoidAI offers models from multiple providers. You can choose models based on
+your specific needs:
 
 _from_ openai _import_ OpenAI
 
@@ -402,7 +421,8 @@ _print_("Google response:", google_response.choices\[0\].message.content)
 
 _print_("Anthropic response:", anthropic_response.choices\[0\].message.content)
 
-For a complete list of available models and their providers, see the [Models](https://docs.voidai.app/docs/models) page.
+For a complete list of available models and their providers, see the
+[Models](https://docs.voidai.app/docs/models) page.
 
 ## **Available Models[ ](https://docs.voidai.app/docs/text-generation#available-models)**
 
@@ -424,23 +444,34 @@ _for_ model _in_ models.data:
 
 _print_(model.id)
 
-You can also view all available models at [https://api.voidai.app/v1/models](https://api.voidai.app/v1/models).
+You can also view all available models at
+[https://api.voidai.app/v1/models](https://api.voidai.app/v1/models).
 
 # **Image Generation**
 
-**Provider Disclosure**: VoidAI offers image generation services powered by multiple providers, including OpenAI's DALL·E and GPT-Image models, and Black Forest Labs' FLUX models. The specific provider used depends on the model you select in your API call.
+**Provider Disclosure**: VoidAI offers image generation services powered by
+multiple providers, including OpenAI's DALL·E and GPT-Image models, and Black
+Forest Labs' FLUX models. The specific provider used depends on the model you
+select in your API call.
 
 ### **Introduction[ ](https://docs.voidai.app/docs/image-generation#introduction)**
 
-The Images API provides methods for generating images based on text prompts using various models from different providers. When you make an API call, the request is routed to the appropriate provider's technology.
+The Images API provides methods for generating images based on text prompts
+using various models from different providers. When you make an API call, the
+request is routed to the appropriate provider's technology.
 
 ### **Generations[ ](https://docs.voidai.app/docs/image-generation#generations)**
 
-The image generations endpoint allows you to create an original image given a text prompt. When using OpenAI's GPT Image, images can have a size of 1024x1024, 1024x1792 or 1792x1024 pixels.
+The image generations endpoint allows you to create an original image given a
+text prompt. When using OpenAI's GPT Image, images can have a size of 1024x1024,
+1024x1792 or 1792x1024 pixels.
 
-By default, images are generated at hd quality. Square, standard quality images are the fastest to generate.
+By default, images are generated at hd quality. Square, standard quality images
+are the fastest to generate.
 
-You can request 1 image at a time with GPT Image and DALL·E 3 (request more by making parallel requests) or up to 10 images at a time using DALL·E 2 with the n parameter.
+You can request 1 image at a time with GPT Image and DALL·E 3 (request more by
+making parallel requests) or up to 10 images at a time using DALL·E 2 with the n
+parameter.
 
 _from_ openai _import_ OpenAI
 
@@ -520,15 +551,19 @@ image_response \= requests.get(image_url)
 image_response.raise_for_status()
 
 _\# Save the image_  
-_with_ open("generated_image.png", "wb") _as_ file:  
+_with_ open("generated*image.png", "wb") \_as* file:  
  file.write(image_response.content)
 
 _print_(f"Image saved to generated_image.png")
 
 **Audio Generation**  
-**Provider Disclosure**: VoidAI offers audio generation services powered by multiple providers, including OpenAI. The specific provider used depends on the model you select in your API call.
+**Provider Disclosure**: VoidAI offers audio generation services powered by
+multiple providers, including OpenAI. The specific provider used depends on the
+model you select in your API call.
 
-VoidAI supports audio output directly from the chat completions API, leveraging advanced technology from our provider partners. This allows you to generate spoken audio responses from various models. Audio capabilities let you:
+VoidAI supports audio output directly from the chat completions API, leveraging
+advanced technology from our provider partners. This allows you to generate
+spoken audio responses from various models. Audio capabilities let you:
 
 - Generate spoken audio summaries of text (text in, audio out)
 - Create voice responses for conversational AI applications
@@ -536,7 +571,8 @@ VoidAI supports audio output directly from the chat completions API, leveraging 
 
 ## **Quickstart[ ](https://docs.voidai.app/docs/audio-generation#quickstart)**
 
-To generate audio, you can use the chat completions endpoint with our Python SDK:
+To generate audio, you can use the chat completions endpoint with our Python
+SDK:
 
 _from_ openai _import_ OpenAI
 
@@ -596,7 +632,8 @@ You can request audio output in the following formats:
 
 ## **Continuing Conversations[ ](https://docs.voidai.app/docs/audio-generation#continuing-conversations)**
 
-You can build conversation chains that include audio by referencing previous audio responses:
+You can build conversation chains that include audio by referencing previous
+audio responses:
 
 _from_ openai _import_ OpenAI
 
@@ -686,17 +723,23 @@ _print_(second_response.choices\[0\].message.content)
 
 - Audio generation may increase response times compared to text-only outputs
 - Each model has different capabilities for generating audio
-- For the highest quality text-to-speech conversion for pre-determined text, consider using the dedicated TTS API
+- For the highest quality text-to-speech conversion for pre-determined text,
+  consider using the dedicated TTS API
 
 # **Text to Speech**
 
-**Provider Disclosure**: VoidAI offers text-to-speech services powered by multiple providers, including OpenAI and ElevenLabs. The specific provider used depends on the model you select in your API call.
+**Provider Disclosure**: VoidAI offers text-to-speech services powered by
+multiple providers, including OpenAI and ElevenLabs. The specific provider used
+depends on the model you select in your API call.
 
-Learn how to turn text into lifelike spoken audio using VoidAI's Text-to-Speech API, which leverages advanced TTS technology from various providers.
+Learn how to turn text into lifelike spoken audio using VoidAI's Text-to-Speech
+API, which leverages advanced TTS technology from various providers.
 
 ## **Overview[ ](https://docs.voidai.app/docs/text-to-speech#overview)**
 
-The Audio API provides a powerful speech endpoint based on advanced TTS (text-to-speech) technology from our partners. It supports a variety of natural-sounding voices and can be used to:
+The Audio API provides a powerful speech endpoint based on advanced TTS
+(text-to-speech) technology from our partners. It supports a variety of
+natural-sounding voices and can be used to:
 
 - Create narration for content like articles, stories, or educational materials
 - Generate spoken audio in multiple languages for global applications
@@ -705,7 +748,8 @@ The Audio API provides a powerful speech endpoint based on advanced TTS (text-to
 
 ## **Quickstart[ ](https://docs.voidai.app/docs/text-to-speech#quickstart)**
 
-The speech endpoint takes three key inputs: the model, the text to convert to audio, and the voice to use. A simple request looks like this:
+The speech endpoint takes three key inputs: the model, the text to convert to
+audio, and the voice to use. A simple request looks like this:
 
 _from_ pathlib _import_ Path
 
@@ -727,20 +771,25 @@ input\="Today is a wonderful day to build something people love\!"
 
 response.stream_to_file(speech_file_path)
 
-By default, the endpoint returns an MP3 file of the spoken audio, but it can be configured to output other formats.
+By default, the endpoint returns an MP3 file of the spoken audio, but it can be
+configured to output other formats.
 
 ## **Audio Quality Options[ ](https://docs.voidai.app/docs/text-to-speech#audio-quality-options)**
 
 VoidAI offers two quality tiers for text-to-speech:
 
-- **Standard Quality (tts-1)**: Optimized for real-time applications with lower latency
-- **High Definition (tts-1-hd)**: Enhanced audio quality with more natural sound, ideal for production-ready content
+- **Standard Quality (tts-1)**: Optimized for real-time applications with lower
+  latency
+- **High Definition (tts-1-hd)**: Enhanced audio quality with more natural
+  sound, ideal for production-ready content
 
-The standard model provides faster responses, while the HD model delivers superior audio quality at the cost of slightly higher latency.
+The standard model provides faster responses, while the HD model delivers
+superior audio quality at the cost of slightly higher latency.
 
 ## **Voice Options[ ](https://docs.voidai.app/docs/text-to-speech#voice-options)**
 
-VoidAI supports a comprehensive range of voices to match your specific use case and audience preferences:
+VoidAI supports a comprehensive range of voices to match your specific use case
+and audience preferences:
 
 - **alloy**: A versatile, neutral voice with a balanced tone
 - **ash**: A warm, mature voice with remarkable clarity
@@ -754,7 +803,9 @@ VoidAI supports a comprehensive range of voices to match your specific use case 
 - **shimmer**: A light, energetic voice with an engaging delivery
 - **verse**: A lyrical, expressive voice with dynamic range
 
-Each voice has unique characteristics that may be better suited for specific content. We recommend experimenting with different voices to find the one that best matches your desired tone and audience.
+Each voice has unique characteristics that may be better suited for specific
+content. We recommend experimenting with different voices to find the one that
+best matches your desired tone and audience.
 
 ## **Code Examples[ ](https://docs.voidai.app/docs/text-to-speech#code-examples)**
 
@@ -770,17 +821,19 @@ model\="tts-1-hd",
 
 voice\="nova",
 
-input\="Welcome to VoidAI's Text-to-Speech service. This is an example of the Nova voice."
+input\="Welcome to VoidAI's Text-to-Speech service. This is an example of the
+Nova voice."
 
 )
 
-_with_ open("welcome_message.mp3", "wb") _as_ file:
+_with_ open("welcome*message.mp3", "wb") \_as* file:
 
 file.write(response.content)
 
 ### **Streaming Real-Time Audio[ ](https://docs.voidai.app/docs/text-to-speech#streaming-real-time-audio)**
 
-For applications that require immediate audio feedback, you can stream the audio as it's being generated:
+For applications that require immediate audio feedback, you can stream the audio
+as it's being generated:
 
 _from_ openai _import_ OpenAI
 
@@ -792,7 +845,8 @@ model\="tts-1",
 
 voice\="shimmer",
 
-input\="This is a streaming test to demonstrate real-time audio generation. The audio begins playing before the entire file is generated.",
+input\="This is a streaming test to demonstrate real-time audio generation. The
+audio begins playing before the entire file is generated.",
 
 )
 
@@ -829,17 +883,26 @@ response_format\="flac"
 
 )
 
-_with_ open("high_quality_speech.flac", "wb") _as_ file:
+_with_ open("high*quality_speech.flac", "wb") \_as* file:
 
 file.write(response.content)
 
 ## **Multi-Language Support[ ](https://docs.voidai.app/docs/text-to-speech#multi-language-support)**
 
-VoidAI's TTS system supports a wide range of languages, allowing you to generate natural-sounding speech in many languages worldwide. The system is optimized for English but performs well across numerous languages:
+VoidAI's TTS system supports a wide range of languages, allowing you to generate
+natural-sounding speech in many languages worldwide. The system is optimized for
+English but performs well across numerous languages:
 
-Afrikaans, Arabic, Armenian, Azerbaijani, Belarusian, Bosnian, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, English, Estonian, Finnish, French, Galician, German, Greek, Hebrew, Hindi, Hungarian, Icelandic, Indonesian, Italian, Japanese, Kannada, Kazakh, Korean, Latvian, Lithuanian, Macedonian, Malay, Marathi, Maori, Nepali, Norwegian, Persian, Polish, Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish, Swahili, Swedish, Tagalog, Tamil, Thai, Turkish, Ukrainian, Urdu, Vietnamese, and Welsh.
+Afrikaans, Arabic, Armenian, Azerbaijani, Belarusian, Bosnian, Bulgarian,
+Catalan, Chinese, Croatian, Czech, Danish, Dutch, English, Estonian, Finnish,
+French, Galician, German, Greek, Hebrew, Hindi, Hungarian, Icelandic,
+Indonesian, Italian, Japanese, Kannada, Kazakh, Korean, Latvian, Lithuanian,
+Macedonian, Malay, Marathi, Maori, Nepali, Norwegian, Persian, Polish,
+Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish, Swahili,
+Swedish, Tagalog, Tamil, Thai, Turkish, Ukrainian, Urdu, Vietnamese, and Welsh.
 
-To generate speech in a specific language, simply provide the input text in that language:
+To generate speech in a specific language, simply provide the input text in that
+language:
 
 _from_ openai _import_ OpenAI
 
@@ -851,11 +914,12 @@ model\="tts-1-hd",
 
 voice\="alloy",
 
-input\="Bonjour\! Comment allez-vous aujourd'hui? J'espère que vous passez une excellente journée."
+input\="Bonjour\! Comment allez-vous aujourd'hui? J'espère que vous passez une
+excellente journée."
 
 )
 
-_with_ open("french_greeting.mp3", "wb") _as_ file:
+_with_ open("french*greeting.mp3", "wb") \_as* file:
 
 file.write(response.content)
 
@@ -863,7 +927,8 @@ file.write(response.content)
 
 ### **Speech Pacing and Pauses[ ](https://docs.voidai.app/docs/text-to-speech#speech-pacing-and-pauses)**
 
-You can use punctuation and formatting to control the pacing of generated speech:
+You can use punctuation and formatting to control the pacing of generated
+speech:
 
 - Use commas for short pauses
 - Use periods for longer pauses
@@ -874,8 +939,10 @@ You can use punctuation and formatting to control the pacing of generated speech
 
 For difficult words or names, consider these approaches:
 
-- Use phonetic spelling: "The patient's myocardial infarction (pronounced my-oh-KAR-dee-ul in-FARK-shun) required immediate attention."
-- Break words into syllables with hyphens: "Please contact Dr. Ng (pronounced En-Gee) for more information."
+- Use phonetic spelling: "The patient's myocardial infarction (pronounced
+  my-oh-KAR-dee-ul in-FARK-shun) required immediate attention."
+- Break words into syllables with hyphens: "Please contact Dr. Ng (pronounced
+  En-Gee) for more information."
 
 ### **Optimizing for Production Use[ ](https://docs.voidai.app/docs/text-to-speech#optimizing-for-production-use)**
 
@@ -883,20 +950,27 @@ For production applications:
 
 1. Cache commonly used phrases rather than generating them repeatedly
 2. Use the streaming API for real-time applications
-3. Consider using the standard model for faster generation when latency is critical
+3. Consider using the standard model for faster generation when latency is
+   critical
 4. Use the HD model for content that will be reused or requires higher quality
 
 **Speech to Text**  
-**Provider Disclosure**: VoidAI offers speech-to-text services powered by multiple providers, primarily OpenAI. The specific provider used depends on the model you select in your API call.
+**Provider Disclosure**: VoidAI offers speech-to-text services powered by
+multiple providers, primarily OpenAI. The specific provider used depends on the
+model you select in your API call.
 
-Convert audio recordings into accurate text transcriptions with VoidAI's Speech-to-Text API, which leverages powerful technology from our provider partners.
+Convert audio recordings into accurate text transcriptions with VoidAI's
+Speech-to-Text API, which leverages powerful technology from our provider
+partners.
 
 ## **Overview[ ](https://docs.voidai.app/docs/speech-to-text#overview)**
 
-VoidAI's Audio API provides two primary speech recognition endpoints powered by advanced technology:
+VoidAI's Audio API provides two primary speech recognition endpoints powered by
+advanced technology:
 
 - **Transcriptions**: Convert speech to text in the original language
-- **Translations**: Convert speech to English text, regardless of the source language
+- **Translations**: Convert speech to English text, regardless of the source
+  language
 
 ### **Available Models[ ](https://docs.voidai.app/docs/speech-to-text#available-models)**
 
@@ -908,7 +982,8 @@ We offer a range of models with different capabilities:
 | gpt-4o-mini-transcribe | Improved accuracy model  | Higher quality transcriptions with faster processing              |
 | gpt-4o-transcribe      | Premium accuracy model   | Highest quality transcriptions for professional use               |
 
-All models support files up to 25MB in these formats: mp3, mp4, mpeg, mpga, m4a, wav, and webm.
+All models support files up to 25MB in these formats: mp3, mp4, mpeg, mpga, m4a,
+wav, and webm.
 
 ## **Getting Started[ ](https://docs.voidai.app/docs/speech-to-text#getting-started)**
 
@@ -942,7 +1017,8 @@ _print_(transcription.text)
 
 ### **Response Formats[ ](https://docs.voidai.app/docs/speech-to-text#response-formats)**
 
-By default, the API returns JSON responses. For whisper-1, you can request various formats:
+By default, the API returns JSON responses. For whisper-1, you can request
+various formats:
 
 | Format       | Description                 | Use Case                               |
 | ------------ | --------------------------- | -------------------------------------- |
@@ -1006,7 +1082,8 @@ _print_(translation.text)
 
 ### **Word-Level Timestamps[ ](https://docs.voidai.app/docs/speech-to-text#word-level-timestamps)**
 
-For precise synchronization with video or audio, you can get timestamps for each word:
+For precise synchronization with video or audio, you can get timestamps for each
+word:
 
 _from_ openai _import_ OpenAI
 
@@ -1038,11 +1115,12 @@ html_transcript \= "\<div class='interactive-transcript'\>"
 
 _for_ word _in_ transcript.words:
 
-html_transcript \+= f"\<span data-start='{word\['start'\]}' data-end='{word\['end'\]}'\>{word\['word'\]}\</span\> "
+html_transcript \+= f"\<span data-start='{word\['start'\]}'
+data-end='{word\['end'\]}'\>{word\['word'\]}\</span\> "
 
 html_transcript \+= "\</div\>"
 
-_with_ open("interactive_transcript.html", "w") _as_ f:
+_with_ open("interactive*transcript.html", "w") \_as* f:
 
 f.write(html_transcript)
 
@@ -1110,9 +1188,10 @@ _\# Load and split the audio_
 
 long_audio \= AudioSegment.from_mp3("long_lecture.mp3")
 
-chunk_length_ms \= 10 \* 60 \* 1000 _\# 10 minutes_
+chunk*length_ms \= 10 \* 60 \* 1000 *\# 10 minutes\_
 
-chunks \= \[long_audio\[i:i\+chunk_length_ms\] _for_ i _in_ range(0, len(long_audio), chunk_length_ms)\]
+chunks \= \[long*audio\[i:i\+chunk_length_ms\] \_for* i _in_ range(0,
+len(long_audio), chunk_length_ms)\]
 
 _\# Process each chunk with context for better continuity_
 
@@ -1164,8 +1243,6 @@ _try_:
 
        *print*(f"Chunk {i\+1}/{len(chunks)} transcribed")
 
-
-
 _finally_:
 
        *\# Clean up temporary file*
@@ -1176,7 +1253,7 @@ _finally_:
 
 _\# Save complete transcript_
 
-_with_ open("complete_transcript.txt", "w", encoding\="utf-8") _as_ f:
+_with_ open("complete*transcript.txt", "w", encoding\="utf-8") \_as* f:
 
 f.write(full_transcript)
 
@@ -1254,7 +1331,8 @@ You are a specialized transcription editor. Your task is to:
 
 3\. Correct grammatical errors while preserving the original meaning
 
-4\. Format speaker transitions with "Speaker 1:", "Speaker 2:", etc. when detected
+4\. Format speaker transitions with "Speaker 1:", "Speaker 2:", etc. when
+detected
 
 5\. Do not add or remove content beyond these corrections
 
@@ -1282,11 +1360,11 @@ corrected_transcript \= response.choices\[0\].message.content
 
 _\# Save both versions for comparison_
 
-_with_ open("raw_transcript.txt", "w", encoding\="utf-8") _as_ f:
+_with_ open("raw*transcript.txt", "w", encoding\="utf-8") \_as* f:
 
 f.write(raw_transcription.text)
 
-_with_ open("corrected_transcript.txt", "w", encoding\="utf-8") _as_ f:
+_with_ open("corrected*transcript.txt", "w", encoding\="utf-8") \_as* f:
 
 f.write(corrected_transcript)
 

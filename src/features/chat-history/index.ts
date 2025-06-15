@@ -1,7 +1,7 @@
 // Public API for the chat-history feature
 
 // Import types separately
-import { type ChatSession, type ChatHistoryIndex } from "./types";
+import { type ChatSession, type ChatHistoryIndex } from './types';
 
 // Export types
 export type { ChatSession, ChatHistoryIndex };
@@ -28,8 +28,8 @@ export {
   // Effects - Generally kept internal, triggered by events above
   // loadChatHistoryIndexFx,
   // loadSpecificChatFx,
-  // saveChatFx,
+  saveChatFx, // Needed by mini-chat for expanding conversations
   // deleteChatFx,
   // editChatTitleFx,
   generateTitleFx,
-} from "./model";
+} from './model';

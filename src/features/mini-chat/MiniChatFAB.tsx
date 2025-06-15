@@ -1,9 +1,9 @@
-import React from "react";
-import { Fab } from "@mui/material";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import { useUnit } from "effector-react";
-import { $miniChat, restoreMiniChat } from "./model";
-import { $isMobileDrawerOpen } from "@/features/ui-state/model"; // Import drawer state
+import React from 'react';
+import { Fab } from '@mui/material';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import { useUnit } from 'effector-react';
+import { $miniChat, restoreMiniChat } from './model';
+import { $isMobileDrawerOpen } from '@/features/ui-state'; // Import drawer state
 
 export const MiniChatFAB: React.FC = () => {
   const { isMinimized, isOpen } = useUnit($miniChat);
@@ -22,11 +22,11 @@ export const MiniChatFAB: React.FC = () => {
       color="primary"
       aria-label="Restore mini chat"
       sx={{
-        position: "sticky", // Use sticky to keep it fixed relative to scroll container
+        position: 'sticky', // Use sticky to keep it fixed relative to scroll container
         bottom: 0, // Adjusted to avoid overlap with the bottom bar
         right: 0,
         zIndex: 10000, // Ensure it's above other elements, including the potentially hidden dialog
-        alignSelf: "flex-end", // Override parent centering
+        alignSelf: 'flex-end', // Override parent centering
         flexShrink: 0, // Prevent shrinking
       }}
       onClick={() => restoreMiniChat()}

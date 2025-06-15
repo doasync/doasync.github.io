@@ -1,6 +1,6 @@
 /**
  * EphemeralAudioPlayer Component
- * 
+ *
  * Displays temporary TTS audio generated from text messages.
  * This audio is session-only and not persisted to chat history.
  */
@@ -49,9 +49,9 @@ export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
       {/* Header with temporary indicator */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <VolumeUp sx={{ fontSize: 18, color: '#bad1ff' }} />
-        <Typography 
-          variant="subtitle2" 
-          sx={{ 
+        <Typography
+          variant="subtitle2"
+          sx={{
             color: '#bad1ff',
             fontWeight: 'bold',
           }}
@@ -59,20 +59,33 @@ export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
           Speech
         </Typography>
         {audioData.model && (
-          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic' }}
+          >
             • {audioData.model}
           </Typography>
         )}
         {audioData.voice && (
-          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontStyle: 'italic' }}
+          >
             • {audioData.voice}
           </Typography>
         )}
-        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-          • {new Date(audioData.timestamp).toLocaleTimeString('en-GB', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontStyle: 'italic' }}
+        >
+          •{' '}
+          {new Date(audioData.timestamp).toLocaleTimeString('en-GB', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
           })}
         </Typography>
       </Box>
@@ -90,9 +103,7 @@ export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
       {/* Error state */}
       {audioData.error && (
         <Alert severity="error" variant="outlined" sx={{ mt: 1 }}>
-          <Typography variant="body2">
-            {audioData.error}
-          </Typography>
+          <Typography variant="body2">{audioData.error}</Typography>
         </Alert>
       )}
 
@@ -101,10 +112,10 @@ export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
         <audio
           controls
           src={audioData.url}
-          style={{ 
-            width: '100%', 
+          style={{
+            width: '100%',
             height: '32px',
-            marginTop: '4px'
+            marginTop: '4px',
           }}
           onError={(e) => {
             console.error('Audio playback error:', e);
@@ -115,7 +126,6 @@ export const EphemeralAudioPlayer: React.FC<EphemeralAudioPlayerProps> = ({
           Your browser does not support the audio element.
         </audio>
       )}
-
     </Box>
   );
 };

@@ -1,16 +1,16 @@
 /**
  * Ephemeral Audio Chat Components
- * 
+ *
  * UI components for displaying temporary audio and transcript data
  * that is never persisted to chat history.
  */
 
-export { 
+export {
   EphemeralAudioPlayer,
-  type EphemeralAudioPlayerProps 
+  type EphemeralAudioPlayerProps,
 } from './EphemeralAudioPlayer';
 
-export { 
+export {
   EphemeralTranscript,
-  type EphemeralTranscriptProps 
+  type EphemeralTranscriptProps,
 } from './EphemeralTranscript';

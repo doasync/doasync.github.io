@@ -1,12 +1,21 @@
-import { STTResponse, TranscribeParams, ResponseFormatOption, STTModel } from './types';
+import {
+  STTResponse,
+  TranscribeParams,
+  ResponseFormatOption,
+  STTModel,
+} from './types';
 import { $apiKey, $providerApiUrl } from '../chat-settings/model';
 
-export async function transcribeAudio(params: TranscribeParams): Promise<STTResponse> {
+export async function transcribeAudio(
+  params: TranscribeParams,
+): Promise<STTResponse> {
   const apiKey = $apiKey.getState();
   const providerUrl = $providerApiUrl.getState();
-  
+
   if (!apiKey) {
-    throw new Error('API key is not set. Please configure your API key in settings.');
+    throw new Error(
+      'API key is not set. Please configure your API key in settings.',
+    );
   }
 
   // VoidAI only supports transcriptions endpoint
@@ -16,7 +25,7 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
   const formData = new FormData();
   formData.append('file', params.file);
   formData.append('model', params.model);
-  
+
   // Add optional prompt for context/domain-specific terms
   if (params.prompt?.trim()) {
     formData.append('prompt', params.prompt.trim());
@@ -42,7 +51,7 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: formData,
     });
@@ -52,7 +61,11 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
       try {
         const errorData = await response.json();
         // Check for different error message formats from VoidAI API
-        errorMessage = errorData.error?.message || errorData.message || errorData.detail || errorMessage;
+        errorMessage =
+          errorData.error?.message ||
+          errorData.message ||
+          errorData.detail ||
+          errorMessage;
       } catch {
         errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
       }
@@ -69,7 +82,10 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
         duration: undefined,
         segments: undefined,
       };
-    } else if (params.responseFormat === 'srt' || params.responseFormat === 'vtt') {
+    } else if (
+      params.responseFormat === 'srt' ||
+      params.responseFormat === 'vtt'
+    ) {
       // SRT and VTT formats return subtitles as plain text
       const rawText = await response.text();
       return {
@@ -83,7 +99,7 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
       // JSON and verbose_json formats
       const rawText = await response.text();
       const data = JSON.parse(rawText);
-      
+
       // Validate response has required text field
       if (!data.text) {
         throw new Error('No transcription text in response');
@@ -91,7 +107,7 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
 
       return {
         text: data.text,
-        rawResponse: rawText,  // Store the original JSON string
+        rawResponse: rawText, // Store the original JSON string
         language: data.language,
         duration: data.duration,
         segments: data.segments,
@@ -100,19 +116,27 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
   } catch (error) {
     // Handle network-level errors (Failed to fetch, CORS, timeout, etc.)
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Network error: Unable to connect to transcription service. Please check your internet connection and try again.');
+      throw new Error(
+        'Network error: Unable to connect to transcription service. Please check your internet connection and try again.',
+      );
     }
-    
+
     // Re-throw with more user-friendly error messages for API errors
     if (error instanceof Error) {
       if (error.message.includes('401')) {
-        throw new Error('Invalid API key. Please check your API key in settings.');
+        throw new Error(
+          'Invalid API key. Please check your API key in settings.',
+        );
       } else if (error.message.includes('413')) {
         throw new Error('File size too large. Maximum file size is 25MB.');
       } else if (error.message.includes('415')) {
-        throw new Error('Unsupported file format. Please use MP3, MP4, MPEG, MPGA, M4A, WAV, or WEBM.');
+        throw new Error(
+          'Unsupported file format. Please use MP3, MP4, MPEG, MPGA, M4A, WAV, or WEBM.',
+        );
       } else if (error.message.includes('Audio file might be corrupted')) {
-        throw new Error('Audio file might be corrupted or unsupported. Try using a different audio file or convert to a supported format (MP3, WAV, M4A).');
+        throw new Error(
+          'Audio file might be corrupted or unsupported. Try using a different audio file or convert to a supported format (MP3, WAV, M4A).',
+        );
       }
       throw error;
     }
@@ -120,20 +144,32 @@ export async function transcribeAudio(params: TranscribeParams): Promise<STTResp
   }
 }
 
-export function validateAudioFile(file: File): { isValid: boolean; error?: string } {
+export function validateAudioFile(file: File): {
+  isValid: boolean;
+  error?: string;
+} {
   // Check file type
   const supportedFormats = [
-    'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/mpeg4-generic',
-    'audio/x-mpeg', 'audio/mpga', 'audio/x-mpga',
-    'audio/m4a', 'audio/x-m4a',
-    'audio/wav', 'audio/wave', 'audio/x-wav',
-    'audio/webm'
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/mp4',
+    'audio/mpeg4-generic',
+    'audio/x-mpeg',
+    'audio/mpga',
+    'audio/x-mpga',
+    'audio/m4a',
+    'audio/x-m4a',
+    'audio/wav',
+    'audio/wave',
+    'audio/x-wav',
+    'audio/webm',
   ];
-  
+
   if (!supportedFormats.includes(file.type)) {
     return {
       isValid: false,
-      error: 'Unsupported file format. Please use MP3, MP4, MPEG, MPGA, M4A, WAV, or WEBM files.'
+      error:
+        'Unsupported file format. Please use MP3, MP4, MPEG, MPGA, M4A, WAV, or WEBM files.',
     };
   }
 
@@ -142,7 +178,7 @@ export function validateAudioFile(file: File): { isValid: boolean; error?: strin
   if (file.size > maxSize) {
     return {
       isValid: false,
-      error: 'File size exceeds 25MB limit. Please use a smaller file.'
+      error: 'File size exceeds 25MB limit. Please use a smaller file.',
     };
   }
 
@@ -154,28 +190,28 @@ export const RESPONSE_FORMAT_OPTIONS: ResponseFormatOption[] = [
   {
     value: 'json',
     label: 'JSON',
-    description: 'Simple JSON with text'
+    description: 'Simple JSON with text',
   },
   {
     value: 'text',
     label: 'Plain Text',
-    description: 'Plain text response for simple integration'
+    description: 'Plain text response for simple integration',
   },
   {
     value: 'srt',
     label: 'SRT',
-    description: 'SubRip subtitle format for video captioning'
+    description: 'SubRip subtitle format for video captioning',
   },
   {
     value: 'vtt',
     label: 'WebVTT',
-    description: 'Web Video Text Tracks for web video captioning'
+    description: 'Web Video Text Tracks for web video captioning',
   },
   {
     value: 'verbose_json',
     label: 'Verbose JSON',
-    description: 'Detailed JSON with metadata for advanced applications'
-  }
+    description: 'Detailed JSON with metadata for advanced applications',
+  },
 ];
 
 // Available STT models from VoidAI documentation
@@ -188,26 +224,28 @@ export const STT_MODELS: STTModel[] = [
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text', 'srt', 'verbose_json', 'vtt'],
     defaultResponseFormat: 'text',
-    hasLimitedParams: false
+    hasLimitedParams: false,
   },
   {
     id: 'gpt-4o-mini-transcribe',
     name: 'GPT-4o Mini Transcribe',
-    description: 'Higher quality model with improved accuracy (limited parameters)',
+    description:
+      'Higher quality model with improved accuracy (limited parameters)',
     maxFileSize: 25 * 1024 * 1024,
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text'],
     defaultResponseFormat: 'text',
-    hasLimitedParams: true
+    hasLimitedParams: true,
   },
   {
     id: 'gpt-4o-transcribe',
     name: 'GPT-4o Transcribe',
-    description: 'Premium quality model for highest accuracy (limited parameters)',
+    description:
+      'Premium quality model for highest accuracy (limited parameters)',
     maxFileSize: 25 * 1024 * 1024,
     supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
     supportedResponseFormats: ['json', 'text'],
     defaultResponseFormat: 'text',
-    hasLimitedParams: true
-  }
+    hasLimitedParams: true,
+  },
 ];

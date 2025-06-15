@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { showMiniChatToolbar, hideMiniChatToolbar } from "./model";
+import { useEffect, useRef } from 'react';
+import { showMiniChatToolbar, hideMiniChatToolbar } from './model';
 
 export function useMiniChatTextSelection() {
   // Ref must be called at the top level of the hook
@@ -19,10 +19,10 @@ export function useMiniChatTextSelection() {
         clientX = event.clientX;
         clientY = event.clientY;
         // For touch events, check touches for move/start, changedTouches for end
-      } else if ("touches" in event && event.touches.length > 0) {
+      } else if ('touches' in event && event.touches.length > 0) {
         clientX = event.touches[0].clientX;
         clientY = event.touches[0].clientY;
-      } else if ("changedTouches" in event && event.changedTouches.length > 0) {
+      } else if ('changedTouches' in event && event.changedTouches.length > 0) {
         // Fallback for touchend using changedTouches
         clientX = event.changedTouches[0].clientX;
         clientY = event.changedTouches[0].clientY;
@@ -70,7 +70,7 @@ export function useMiniChatTextSelection() {
           return;
         }
 
-        const isInChatMessage = node.closest(".chat-message");
+        const isInChatMessage = node.closest('.chat-message');
         if (!isInChatMessage) {
           cancelMiniChatToolbar();
           return;
@@ -97,34 +97,34 @@ export function useMiniChatTextSelection() {
 
     // Use selectionchange event for more reliable detection
     // Add listeners to continuously capture pointer/touch position
-    document.addEventListener("mousedown", updateLastPointerCoords);
-    document.addEventListener("mousemove", updateLastPointerCoords);
-    document.addEventListener("touchstart", updateLastPointerCoords, {
+    document.addEventListener('mousedown', updateLastPointerCoords);
+    document.addEventListener('mousemove', updateLastPointerCoords);
+    document.addEventListener('touchstart', updateLastPointerCoords, {
       passive: true,
     }); // Use passive for touchmove performance
-    document.addEventListener("touchmove", updateLastPointerCoords, {
+    document.addEventListener('touchmove', updateLastPointerCoords, {
       passive: true,
     });
     // Keep up/end listeners as well for final position capture
-    document.addEventListener("mouseup", updateLastPointerCoords);
-    document.addEventListener("touchend", updateLastPointerCoords);
+    document.addEventListener('mouseup', updateLastPointerCoords);
+    document.addEventListener('touchend', updateLastPointerCoords);
 
-    document.addEventListener("selectionchange", handleSelection);
+    document.addEventListener('selectionchange', handleSelection);
 
     const hideToolbarListener = () => hideMiniChatToolbar();
-    document.addEventListener("scroll", hideToolbarListener, true);
+    document.addEventListener('scroll', hideToolbarListener, true);
 
     return () => {
       // Remove selectionchange listener
       // Remove all added listeners
-      document.removeEventListener("mousedown", updateLastPointerCoords);
-      document.removeEventListener("mousemove", updateLastPointerCoords);
-      document.removeEventListener("touchstart", updateLastPointerCoords);
-      document.removeEventListener("touchmove", updateLastPointerCoords);
-      document.removeEventListener("mouseup", updateLastPointerCoords);
-      document.removeEventListener("touchend", updateLastPointerCoords);
-      document.removeEventListener("selectionchange", handleSelection);
-      document.removeEventListener("scroll", hideToolbarListener, true);
+      document.removeEventListener('mousedown', updateLastPointerCoords);
+      document.removeEventListener('mousemove', updateLastPointerCoords);
+      document.removeEventListener('touchstart', updateLastPointerCoords);
+      document.removeEventListener('touchmove', updateLastPointerCoords);
+      document.removeEventListener('mouseup', updateLastPointerCoords);
+      document.removeEventListener('touchend', updateLastPointerCoords);
+      document.removeEventListener('selectionchange', handleSelection);
+      document.removeEventListener('scroll', hideToolbarListener, true);
     };
   }, []);
 }

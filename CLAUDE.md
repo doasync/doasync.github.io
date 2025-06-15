@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Commands
 
@@ -15,7 +16,8 @@ npm run lint       # Run ESLint
 
 ## Architecture Overview
 
-This is a Next.js chat application using Effector for state management. The app integrates with OpenAI-compatible API for LLM interactions.
+This is a Next.js chat application using Effector for state management. The app
+integrates with OpenAI-compatible API for LLM interactions.
 
 ### Key Technologies
 
@@ -27,7 +29,8 @@ This is a Next.js chat application using Effector for state management. The app 
 
 ### Feature-Based Architecture
 
-The codebase follows a feature-oriented structure where each feature is self-contained:
+The codebase follows a feature-oriented structure where each feature is
+self-contained:
 
 ```
 src/features/
@@ -82,13 +85,20 @@ sample({
 
 ### Key Implementation Notes
 
-1. **API Integration**: The app integrates with unified API for LLM interactions, with automatic model capability detection for vision, audio, and other features.
+1. **API Integration**: The app integrates with unified API for LLM
+   interactions, with automatic model capability detection for vision, audio,
+   and other features.
 
-2. **Chat Streaming**: The `chat-stream` feature is stateless and reusable. It manages SSE connections with proper cleanup via AbortController for real-time responses.
+2. **Chat Streaming**: The `chat-stream` feature is stateless and reusable. It
+   manages SSE connections with proper cleanup via AbortController for real-time
+   responses.
 
-3. **Multimodal Support**: Messages support text, images, and file attachments. Vision models are automatically selected when images are attached via the `autoSelectModelForCapabilities` system.
+3. **Multimodal Support**: Messages support text, images, and file attachments.
+   Vision models are automatically selected when images are attached via the
+   `autoSelectModelForCapabilities` system.
 
-4. **Message Handling**: Messages support rich content including Markdown, LaTeX math (KaTeX), code highlighting (Prism), and Mermaid diagrams.
+4. **Message Handling**: Messages support rich content including Markdown, LaTeX
+   math (KaTeX), code highlighting (Prism), and Mermaid diagrams.
 
 5. **Storage**:
 
@@ -97,11 +107,16 @@ sample({
    - Auto-save is debounced to prevent excessive writes
    - Message drafts are persisted per chat session
 
-6. **API Integration**: All LLM calls go through an API provider endpoint with OpenAI-compatible format. The app supports multiple providers (OpenAI, Anthropic, Google, etc.) through VoidAI, for example.
+6. **API Integration**: All LLM calls go through an API provider endpoint with
+   OpenAI-compatible format. The app supports multiple providers (OpenAI,
+   Anthropic, Google, etc.) through VoidAI, for example.
 
-7. **Audio Features**: Standalone STT (Speech-to-Text) and TTS (Text-to-Speech) dialogs provide transcription and voice generation without affecting main chat.
+7. **Audio Features**: Standalone STT (Speech-to-Text) and TTS (Text-to-Speech)
+   dialogs provide transcription and voice generation without affecting main
+   chat.
 
-8. **Static Export**: The app is configured for static export (`output: 'export'`), meaning no server-side rendering.
+8. **Static Export**: The app is configured for static export
+   (`output: 'export'`), meaning no server-side rendering.
 
 ### Development Guidelines
 
@@ -172,3 +187,12 @@ The app supports uploading various file types:
 ## Development Advice
 
 - Always run `npm run build` to test static export compatibility
+
+## Coding Guidelines
+
+- Don't use default exports
+
+```
+
+</invoke>
+```

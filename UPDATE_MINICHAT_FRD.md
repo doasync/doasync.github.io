@@ -2,95 +2,167 @@
 
 #### Goal:
 
-To update `src/features/mini-chat/FRD.md` to accurately reflect the current implementation, align with the `PRD.md` and `src/features/chat-stream/FRD.md`, and provide clear, comprehensive documentation for developers.
+To update `src/features/mini-chat/FRD.md` to accurately reflect the current
+implementation, align with the `PRD.md` and `src/features/chat-stream/FRD.md`,
+and provide clear, comprehensive documentation for developers.
 
 #### Key Areas for Update:
 
 1.  **Introduction/Overview (Section 1):**
 
-    - **Action:** Emphasize its role as a "lightweight, contextual chat interface" (`PRD.md`:154) and its integration with the `chat-stream` feature for real-time responses.
-    - **Reason:** The current overview is a bit generic. Highlighting its streaming capabilities and contextual nature from the PRD and chat-stream FRD will make it more accurate.
+    - **Action:** Emphasize its role as a "lightweight, contextual chat
+      interface" (`PRD.md`:154) and its integration with the `chat-stream`
+      feature for real-time responses.
+    - **Reason:** The current overview is a bit generic. Highlighting its
+      streaming capabilities and contextual nature from the PRD and chat-stream
+      FRD will make it more accurate.
 
 2.  **Scope — Behavioral Paradigm Fit (Section 2):**
 
-    - **Action:** Re-evaluate and refine the behavior around `Ask` and `Explain` when a mini chat is _active_ and new text is selected.
-      - `"Ask"` button: Confirm it pastes selected text into the input _without sending_, allowing edit.
-      - `"Explain"` button: Confirm it immediately prefixes a predefined message and _sends instantly_.
-    - **Action:** Explicitly mention the behavior when the mini-chat is _minimized_ and `Ask`/`Explain` are clicked (it restores it first).
-    - **Reason:** The current FRD partially covers this, but the code (`src/features/mini-chat/MiniChatToolbar.tsx`) explicitly handles restoration if minimized, which should be documented.
+    - **Action:** Re-evaluate and refine the behavior around `Ask` and `Explain`
+      when a mini chat is _active_ and new text is selected.
+      - `"Ask"` button: Confirm it pastes selected text into the input _without
+        sending_, allowing edit.
+      - `"Explain"` button: Confirm it immediately prefixes a predefined message
+        and _sends instantly_.
+    - **Action:** Explicitly mention the behavior when the mini-chat is
+      _minimized_ and `Ask`/`Explain` are clicked (it restores it first).
+    - **Reason:** The current FRD partially covers this, but the code
+      (`src/features/mini-chat/MiniChatToolbar.tsx`) explicitly handles
+      restoration if minimized, which should be documented.
 
 3.  **User Stories (Section 3):**
 
-    - **Action:** Add a user story related to stopping ongoing generation within the mini-chat.
-    - **Action:** Add a user story about the ability to minimize and restore the mini-chat.
-    - **Reason:** The `stopMiniChatGenerationClicked` event and `minimizeMiniChat`/`restoreMiniChat` functionality are present in the code (`src/features/mini-chat/MiniChatDialog.tsx`, `src/features/mini-chat/model.ts`, `src/features/mini-chat/MiniChatFAB.tsx`) but not explicitly covered by user stories.
+    - **Action:** Add a user story related to stopping ongoing generation within
+      the mini-chat.
+    - **Action:** Add a user story about the ability to minimize and restore the
+      mini-chat.
+    - **Reason:** The `stopMiniChatGenerationClicked` event and
+      `minimizeMiniChat`/`restoreMiniChat` functionality are present in the code
+      (`src/features/mini-chat/MiniChatDialog.tsx`,
+      `src/features/mini-chat/model.ts`,
+      `src/features/mini-chat/MiniChatFAB.tsx`) but not explicitly covered by
+      user stories.
 
 4.  **Functional Specifications (Section 4):**
 
     - **4.1 Context-Based Text Selection:**
 
-      - **Action:** Detail how `src/features/mini-chat/useTextSelection.ts` detects selection within `.chat-message` elements and positions the toolbar. Mention the debounce mechanism.
-      - **Reason:** This is a crucial part of the feature's activation, and `src/features/mini-chat/useTextSelection.ts` provides specific implementation details (e.g., `chat-message` class, debounce) that should be documented.
+      - **Action:** Detail how `src/features/mini-chat/useTextSelection.ts`
+        detects selection within `.chat-message` elements and positions the
+        toolbar. Mention the debounce mechanism.
+      - **Reason:** This is a crucial part of the feature's activation, and
+        `src/features/mini-chat/useTextSelection.ts` provides specific
+        implementation details (e.g., `chat-message` class, debounce) that
+        should be documented.
 
     - **4.2 Ask Flow:**
 
-      - **Action:** Clearly state that if the mini-chat is minimized, it will be restored first. Then, if open, it quotes the text into the input; if closed, it opens with quoted text and position.
-      - **Reason:** Align with `src/features/mini-chat/MiniChatToolbar.tsx` implementation.
+      - **Action:** Clearly state that if the mini-chat is minimized, it will be
+        restored first. Then, if open, it quotes the text into the input; if
+        closed, it opens with quoted text and position.
+      - **Reason:** Align with `src/features/mini-chat/MiniChatToolbar.tsx`
+        implementation.
 
     - **4.3 Explain Flow:**
 
-      - **Action:** Clearly state that if the mini-chat is minimized, it will be restored first. Then, if open, it sends the explanation prompt immediately; if closed, it opens and then sends the explanation prompt.
-      - **Reason:** Align with `src/features/mini-chat/MiniChatToolbar.tsx` implementation.
+      - **Action:** Clearly state that if the mini-chat is minimized, it will be
+        restored first. Then, if open, it sends the explanation prompt
+        immediately; if closed, it opens and then sends the explanation prompt.
+      - **Reason:** Align with `src/features/mini-chat/MiniChatToolbar.tsx`
+        implementation.
 
     - **4.4 Mini Chat Panel:**
 
-      - **Action:** Add details about the visual states: `isOpen`, `isCompact`, `isMinimized`, `loading`.
-      - **Action:** Explicitly state that messages are rendered using `Typography` and `Paper` components, and mention basic styling for user/assistant messages.
-      - **Action:** Describe the input field's behavior: multiline, `TextField` with `SendIcon` (or `StopIcon` when loading).
-      - **Action:** Add a new sub-section for **4.4.1 Streaming Responses**: Detail how `chat-stream` is integrated for real-time message generation, including the `LinearProgress` bar for loading state. Mention the `stopMiniChatGenerationClicked` event and `StopIcon` for cancellation.
-      - **Reason:** The current description is sparse. The `src/features/mini-chat/MiniChatDialog.tsx` and `src/features/mini-chat/model.ts` files contain many UI/behavioral details for the panel and its streaming integration that need to be documented.
+      - **Action:** Add details about the visual states: `isOpen`, `isCompact`,
+        `isMinimized`, `loading`.
+      - **Action:** Explicitly state that messages are rendered using
+        `Typography` and `Paper` components, and mention basic styling for
+        user/assistant messages.
+      - **Action:** Describe the input field's behavior: multiline, `TextField`
+        with `SendIcon` (or `StopIcon` when loading).
+      - **Action:** Add a new sub-section for **4.4.1 Streaming Responses**:
+        Detail how `chat-stream` is integrated for real-time message generation,
+        including the `LinearProgress` bar for loading state. Mention the
+        `stopMiniChatGenerationClicked` event and `StopIcon` for cancellation.
+      - **Reason:** The current description is sparse. The
+        `src/features/mini-chat/MiniChatDialog.tsx` and
+        `src/features/mini-chat/model.ts` files contain many UI/behavioral
+        details for the panel and its streaming integration that need to be
+        documented.
 
     - **4.5 Expand to Full Chat:**
 
-      - **Action:** Clarify the "Preserves input if expanded" (`PRD.md`:163) based on user clarification: sent messages are migrated, AND any _unsent draft text_ in the mini-chat input is transferred to the main chat's input.
-      - **Action:** Detail the `expandMiniChatFx` logic: creates a new chat session, maps mini-chat messages, applies mini-chat's model, main chat's temperature/system prompt, saves to IndexedDB (`saveChatFx`), and then selects the new chat (`chatSelected`). Also, it clears the mini-chat state.
-      - **Action:** Mention the UI changes: sets mobile drawer to "history" and closes it.
-      - **Reason:** This section needs significant expansion to cover the `expandMiniChatFx` implementation in `src/features/mini-chat/model.ts` and the clarified PRD requirement.
+      - **Action:** Clarify the "Preserves input if expanded" (`PRD.md`:163)
+        based on user clarification: sent messages are migrated, AND any _unsent
+        draft text_ in the mini-chat input is transferred to the main chat's
+        input.
+      - **Action:** Detail the `expandMiniChatFx` logic: creates a new chat
+        session, maps mini-chat messages, applies mini-chat's model, main chat's
+        temperature/system prompt, saves to IndexedDB (`saveChatFx`), and then
+        selects the new chat (`chatSelected`). Also, it clears the mini-chat
+        state.
+      - **Action:** Mention the UI changes: sets mobile drawer to "history" and
+        closes it.
+      - **Reason:** This section needs significant expansion to cover the
+        `expandMiniChatFx` implementation in `src/features/mini-chat/model.ts`
+        and the clarified PRD requirement.
 
     - **4.6 Closure & Lifecycle:**
-      - **Action:** Reiterate that closing discards ephemeral data. Add `resetMiniChat` event.
-      - **Action:** Add a new sub-section for **4.6.1 Minimization/Restoration**: Describe the `minimizeMiniChat` and `restoreMiniChat` events, and the logic behind auto-minimization (`$shouldMinimize`, `$isMobileDrawerOpen`, `$isModelSelectorActive`, `$isMainInputFocused`). Explain the role of `src/features/mini-chat/MiniChatFAB.tsx` in restoring.
+      - **Action:** Reiterate that closing discards ephemeral data. Add
+        `resetMiniChat` event.
+      - **Action:** Add a new sub-section for **4.6.1
+        Minimization/Restoration**: Describe the `minimizeMiniChat` and
+        `restoreMiniChat` events, and the logic behind auto-minimization
+        (`$shouldMinimize`, `$isMobileDrawerOpen`, `$isModelSelectorActive`,
+        `$isMainInputFocused`). Explain the role of
+        `src/features/mini-chat/MiniChatFAB.tsx` in restoring.
       - **Reason:** Minimization is a significant lifecycle aspect not covered.
 
 5.  **Non-Functional Specifications (Section 5):**
 
-    - **Action:** Update the tech stack to specifically mention `react-draggable` for drag functionality, and `eventsource-parser` (via `chat-stream`) for streaming.
-    - **Action:** Emphasize the Effector integration with `chat-stream` and how `src/features/mini-chat/model.ts` acts as a consumer. Refer to `src/features/chat-stream/FRD.md` for details on `streamChatFx` and its callbacks.
-    - **Reason:** More detailed technical alignment with the actual implementation and dependencies.
+    - **Action:** Update the tech stack to specifically mention
+      `react-draggable` for drag functionality, and `eventsource-parser` (via
+      `chat-stream`) for streaming.
+    - **Action:** Emphasize the Effector integration with `chat-stream` and how
+      `src/features/mini-chat/model.ts` acts as a consumer. Refer to
+      `src/features/chat-stream/FRD.md` for details on `streamChatFx` and its
+      callbacks.
+    - **Reason:** More detailed technical alignment with the actual
+      implementation and dependencies.
 
 6.  **Acceptance Criteria (Section 6):**
 
     - **Action:** Add new criteria for:
       - A progress indicator (LinearProgress) is shown during streaming.
-      - A "Stop" button appears during streaming and successfully cancels generation.
+      - A "Stop" button appears during streaming and successfully cancels
+        generation.
       - The mini-chat can be minimized and restored via the FAB.
       - Unsent input is transferred upon expansion.
-    - **Action:** Refine existing criteria to be more precise based on code review.
+    - **Action:** Refine existing criteria to be more precise based on code
+      review.
     - **Reason:** To ensure the FRD covers all implemented functionality.
 
 7.  **Constraints & Risks (Section 7):**
 
-    - **Action:** Add "API key must be present for streaming to work" (derived from `src/features/mini-chat/model.ts` filter).
-    - **Action:** Mention that the `chat-stream` module is stateless and relies on the `mini-chat` module for message state management and `streamId` generation.
-    - **Reason:** Important constraints from the underlying `chat-stream` integration.
+    - **Action:** Add "API key must be present for streaming to work" (derived
+      from `src/features/mini-chat/model.ts` filter).
+    - **Action:** Mention that the `chat-stream` module is stateless and relies
+      on the `mini-chat` module for message state management and `streamId`
+      generation.
+    - **Reason:** Important constraints from the underlying `chat-stream`
+      integration.
 
 8.  **Success Metrics / Definition of Done (Section 8):**
 
-    - **Action:** Potentially add metrics related to streaming performance (though `chat-stream` covers core streaming, Mini-chat's UI responsiveness during stream is relevant).
+    - **Action:** Potentially add metrics related to streaming performance
+      (though `chat-stream` covers core streaming, Mini-chat's UI responsiveness
+      during stream is relevant).
     - **Reason:** To ensure the success metrics are comprehensive.
 
 9.  **Out of Scope (Section 9):**
-    - **Action:** Review and ensure it still aligns with the current scope and doesn't contradict any newly added features.
+    - **Action:** Review and ensure it still aligns with the current scope and
+      doesn't contradict any newly added features.
     - **Reason:** Keep the document accurate.
 
 #### Mermaid Diagram for Mini Chat Core Flow:

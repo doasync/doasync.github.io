@@ -1,20 +1,17 @@
-import React, { useState } from "react";
-import { useUnit } from "effector-react";
-import TextField from "@mui/material/TextField";
-import Autocomplete from "@mui/material/Autocomplete";
-import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
+import React, { useState } from 'react';
+import { useUnit } from 'effector-react';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 import {
   $availableModels,
   $isLoadingModels, // Corrected import name
   fetchModels,
-  ModelInfo, // Assuming ModelInfo type is exported from models-select
   $showFreeOnly,
-} from "@/features/models-select/model";
-import {
-  $miniChatModelId,
-  miniChatModelSelected,
-} from "@/features/mini-chat/model";
+} from '@/features/models-select';
+import type { ModelInfo } from '@/features/models-select/types';
+import { $miniChatModelId, miniChatModelSelected } from './model';
 
 export const MiniChatModelSelector: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -33,7 +30,7 @@ export const MiniChatModelSelector: React.FC = () => {
     let list = availableModels;
     if (showFreeOnly) {
       list = list.filter(
-        (m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0"
+        (m) => m.pricing?.prompt === '0' && m.pricing?.completion === '0',
       );
     }
     return list;
@@ -53,7 +50,7 @@ export const MiniChatModelSelector: React.FC = () => {
 
   const handleChange = (
     _event: React.SyntheticEvent,
-    newValue: ModelInfo | null
+    newValue: ModelInfo | null,
   ) => {
     if (newValue) {
       miniChatModelSelected(newValue.id);
@@ -64,7 +61,7 @@ export const MiniChatModelSelector: React.FC = () => {
     <Box sx={{ my: 1 }}>
       <Autocomplete
         id="mini-chat-model-selector"
-        sx={{ width: "100%" }}
+        sx={{ width: '100%' }}
         open={open}
         onOpen={handleOpen}
         onClose={handleClose}

@@ -4,11 +4,11 @@ import {
   createEffect,
   sample,
   combine,
-} from "effector";
-import { $currentChatSession, ChatSession } from "@/features/chat-history";
-import { $currentChatTokens } from "@/features/chat";
-import { navigatorStorageEstimate } from "./utils";
-import { calculateApiCost } from "./utils";
+} from 'effector';
+import { $currentChatSession, ChatSession } from '@/features/chat-history';
+import { $currentChatTokens } from '@/features/chat';
+import { navigatorStorageEstimate } from './utils';
+import { calculateApiCost } from './utils';
 
 interface UsageStatsParams {
   chatSession: ChatSession | null;
@@ -36,7 +36,7 @@ export const $usageStats = createStore({
 export const $contextWindowPercent = $usageStats.map((stats) =>
   stats.contextTokensMax > 0
     ? (stats.contextTokensUsed / stats.contextTokensMax) * 100
-    : 0
+    : 0,
 );
 
 // Effect to fetch storage info
@@ -66,10 +66,18 @@ export const calculateUsageStatsFx = createEffect(
     const apiCost = calculateApiCost(
       tokensSent,
       tokensReceived,
-      pricing ? { 
-        prompt: typeof pricing.prompt === 'string' ? parseFloat(pricing.prompt) : (pricing.prompt || 0),
-        completion: typeof pricing.completion === 'string' ? parseFloat(pricing.completion) : (pricing.completion || 0)
-      } : undefined
+      pricing
+        ? {
+            prompt:
+              typeof pricing.prompt === 'string'
+                ? parseFloat(pricing.prompt)
+                : pricing.prompt || 0,
+            completion:
+              typeof pricing.completion === 'string'
+                ? parseFloat(pricing.completion)
+                : pricing.completion || 0,
+          }
+        : undefined,
     );
 
     return {
@@ -80,7 +88,7 @@ export const calculateUsageStatsFx = createEffect(
       apiCost,
       chatId: chatSession?.id ?? null,
     };
-  }
+  },
 );
 
 // When refreshUsageInfo is triggered, fetch storage info

@@ -1,6 +1,6 @@
-import React from "react";
-import { Paper, Button, Stack } from "@mui/material";
-import { useUnit } from "effector-react";
+import React from 'react';
+import { Paper, Button, Stack } from '@mui/material';
+import { useUnit } from 'effector-react';
 import {
   $miniChatToolbar,
   hideMiniChatToolbar,
@@ -9,7 +9,7 @@ import {
   updateMiniChatInput,
   sendMiniChatMessage,
   restoreMiniChat, // Import restore event
-} from "./model";
+} from './model';
 
 export const MiniChatToolbar: React.FC = () => {
   const toolbar = useUnit($miniChatToolbar);
@@ -26,15 +26,15 @@ export const MiniChatToolbar: React.FC = () => {
     if (miniChat.isOpen) {
       // If already open, just update the input (quoting)
       updateMiniChatInput(
-        miniChat.input === ""
+        miniChat.input === ''
           ? `> ${toolbar.selectionText}\n`
-          : `${miniChat.input}\n> ${toolbar.selectionText}\n`
+          : `${miniChat.input}\n> ${toolbar.selectionText}\n`,
       );
     } else {
       // If closed, open it with the quoted text and position
       miniChatOpened({
         initialInput:
-          miniChat.input === ""
+          miniChat.input === ''
             ? `> ${toolbar.selectionText}\n`
             : `${miniChat.input}\n> ${toolbar.selectionText}\n`,
         startCompact: true, // Signal to start compact
@@ -60,7 +60,7 @@ export const MiniChatToolbar: React.FC = () => {
       // No need to clear input first.
       sendMiniChatMessage(explainPrompt);
     } else {
-      miniChatOpened({ initialInput: "" });
+      miniChatOpened({ initialInput: '' });
       sendMiniChatMessage(explainPrompt);
     }
     // Clear the window selection before hiding the toolbar
@@ -72,7 +72,7 @@ export const MiniChatToolbar: React.FC = () => {
     <Paper
       elevation={4}
       sx={{
-        position: "absolute",
+        position: 'absolute',
         top: toolbar.y, // Use coordinates directly from hook (offset is calculated there)
         left: toolbar.x, // Use coordinates directly from hook (offset is calculated there)
         zIndex: 9999,
@@ -80,7 +80,7 @@ export const MiniChatToolbar: React.FC = () => {
     >
       <Stack direction="column" spacing={1} padding={1}>
         <Button size="small" variant="contained" onClick={handleAsk}>
-          {miniChat.isOpen ? "Quote" : "Ask"} {/* Dynamic label */}
+          {miniChat.isOpen ? 'Quote' : 'Ask'} {/* Dynamic label */}
         </Button>
         {/* Conditionally render Explain button only if mini-chat input is empty */}
         {!miniChat.input.trim() && (

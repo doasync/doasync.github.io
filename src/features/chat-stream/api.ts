@@ -1,12 +1,12 @@
-import { createParser } from "eventsource-parser";
+import { createParser } from 'eventsource-parser';
 import {
   StreamChatParams,
   EventSourceParserEvent,
   isParsedDataEvent,
   isCompletionEvent,
   APIParsedChunkData,
-} from "./types";
-import { buildChatCompletionsUrl } from "@/features/api-config";
+} from './types';
+import { buildChatCompletionsUrl } from '@/features/api-config';
 
 /**
  * Performs the actual fetch request and processes the SSE stream.
@@ -23,9 +23,9 @@ import { buildChatCompletionsUrl } from "@/features/api-config";
  * Helper function to detect if any message contains audio content
  */
 function hasAudioContent(messages: StreamChatParams['messages']): boolean {
-  return messages.some(message => {
+  return messages.some((message) => {
     if (typeof message.content === 'string') return false;
-    return message.content.some(part => part.type === 'input_audio');
+    return message.content.some((part) => part.type === 'input_audio');
   });
 }
 
@@ -39,17 +39,19 @@ function supportsAudio(model: string): boolean {
     'gemini-2.5-flash-preview-05-20',
     'gemini-2.5-flash-preview-native-audio-dialog',
   ];
-  
+
   const modelLower = model.toLowerCase();
-  return audioModels.includes(model) ||
-         modelLower.includes('gpt-4o-audio') ||
-         modelLower.includes('native-audio') ||
-         (modelLower.includes('gemini') && modelLower.includes('2.5'));
+  return (
+    audioModels.includes(model) ||
+    modelLower.includes('gpt-4o-audio') ||
+    modelLower.includes('native-audio') ||
+    (modelLower.includes('gemini') && modelLower.includes('2.5'))
+  );
 }
 
 export async function fetchChatStream(
   params: StreamChatParams, // streamId is now inside params
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   const {
     streamId, // Destructure streamId from params
@@ -85,7 +87,7 @@ export async function fetchChatStream(
   // Add audio parameters if needed and supported
   if (needsAudio && modelSupportsAudio) {
     requestBody.modalities = modalities || ['text', 'audio'];
-    
+
     if (audio || modalities?.includes('audio')) {
       requestBody.audio = {
         voice: audio?.voice || 'alloy',
@@ -100,9 +102,9 @@ export async function fetchChatStream(
   try {
     const chatCompletionsUrl = buildChatCompletionsUrl(providerApiUrl);
     const response = await fetch(chatCompletionsUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
         // Add any other required headers e.g., HTTP-Referer, X-Title
       },
@@ -120,13 +122,14 @@ export async function fetchChatStream(
       }
       throw new Error(
         `API Error (${response.status}): ${
-          (errorPayload as { error?: { message?: string } })?.error?.message || response.statusText
-        }`
+          (errorPayload as { error?: { message?: string } })?.error?.message ||
+          response.statusText
+        }`,
       );
     }
 
     if (!response.body) {
-      throw new Error("Response body is missing.");
+      throw new Error('Response body is missing.');
     }
 
     const decoder = new TextDecoder();
@@ -150,30 +153,35 @@ export async function fetchChatStream(
         try {
           const jsonData: APIParsedChunkData = JSON.parse(event.data);
           // console.log(`[Stream ${streamId}] Data chunk received:`, jsonData);
-          
+
           // Check if this is an error response
           if ('error' in jsonData) {
             const errorData = jsonData as { error: { message?: string } };
             console.error(`[Stream ${streamId}] API Error:`, errorData.error);
             onError({
               streamId,
-              error: new Error(`API Error: ${errorData.error.message || 'Unknown error'}`),
+              error: new Error(
+                `API Error: ${errorData.error.message || 'Unknown error'}`,
+              ),
             });
             return;
           }
-          
+
           // Validate chunk structure before passing to callback
           if (!jsonData.choices || !Array.isArray(jsonData.choices)) {
-            console.warn(`[Stream ${streamId}] Chunk missing choices array:`, jsonData);
+            console.warn(
+              `[Stream ${streamId}] Chunk missing choices array:`,
+              jsonData,
+            );
             return; // Skip this chunk but continue stream
           }
-          
+
           onChunk({ streamId, chunk: jsonData });
         } catch (parseError) {
           console.error(
             `[Stream ${streamId}] Error parsing JSON chunk:`,
             event.data,
-            parseError
+            parseError,
           );
           // Decide if a single parse error should terminate the stream
           // For now, report error but let the stream continue if possible
@@ -199,7 +207,7 @@ export async function fetchChatStream(
       if (signal.aborted) {
         // This check might be redundant if reader.read() throws AbortError reliably,
         // but provides an extra safety layer.
-        throw new DOMException("Stream aborted by signal", "AbortError");
+        throw new DOMException('Stream aborted by signal', 'AbortError');
       }
 
       const { done, value } = await reader.read();
@@ -219,7 +227,7 @@ export async function fetchChatStream(
       parser.feed(decoder.decode(value, { stream: true }));
     }
   } catch (error: unknown) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (error instanceof Error && error.name === 'AbortError') {
       // console.log(`[Stream ${streamId}] Aborted.`);
       onAbort({ streamId });
       // Do not re-throw AbortError, let the promise resolve successfully
@@ -228,9 +236,12 @@ export async function fetchChatStream(
       // Handle other errors (network, initial response error, parsing errors thrown, etc.)
       console.error(
         `[Stream ${streamId}] Error during fetch or stream processing:`,
-        error
+        error,
       );
-      onError({ streamId, error: error instanceof Error ? error : new Error(String(error)) });
+      onError({
+        streamId,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
       // Re-throw the error so the wrapping Effector effect rejects
       throw error;
     }

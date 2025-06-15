@@ -18,7 +18,8 @@ The transcription process shows:
 - Language detection indicator (Not planned)
 ```
 
-Actually, I understood now that this is Transcription integration to the chat messages. Let's merge it with the Phase 4:
+Actually, I understood now that this is Transcription integration to the chat
+messages. Let's merge it with the Phase 4:
 
 ```
 Users can send and receive audio messages:

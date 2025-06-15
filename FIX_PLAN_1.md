@@ -2,25 +2,29 @@
 
 ## 1. Goal Recap
 
-Enable robust streaming functionality in the Mini Chat component, ensuring user messages are displayed, assistant placeholders appear, content streams in, and network requests are correctly initiated and managed.
+Enable robust streaming functionality in the Mini Chat component, ensuring user
+messages are displayed, assistant placeholders appear, content streams in, and
+network requests are correctly initiated and managed.
 
 ## 2. Proposed Changes (`src/features/mini-chat/model.ts`)
 
 ### 2.1. Introduce `_addMiniChatUserMessage` Event and Handler
 
-This event will be responsible for adding the user's message to the `$miniChat` store, ensuring it appears in the UI immediately.
+This event will be responsible for adding the user's message to the `$miniChat`
+store, ensuring it appears in the UI immediately.
 
 - **Define event:**
 
   ```typescript
   // Around line 160, with other events
   export const _addMiniChatUserMessage = createEvent<MiniChatMessage>(
-    "addMiniChatUserMessage"
+    'addMiniChatUserMessage',
   );
   ```
 
-- **Add handler to `$miniChat` store:**
-  Modify the `$miniChat` store definition to react to this new event. Also, move the input clearing and compact state update here, as they should happen when the user actually sends their message.
+- **Add handler to `$miniChat` store:** Modify the `$miniChat` store definition
+  to react to this new event. Also, move the input clearing and compact state
+  update here, as they should happen when the user actually sends their message.
 
   ```typescript
   // Inside $miniChat.on(miniChatOpened...) chain, around line 201
@@ -38,7 +42,8 @@ This event will be responsible for adding the user's message to the `$miniChat` 
 
 ### 2.2. Adjust `_addPlaceholderMessage` Handler
 
-Since input clearing and compact state updates are moved to `_addMiniChatUserMessage`, remove them from `_addPlaceholderMessage`.
+Since input clearing and compact state updates are moved to
+`_addMiniChatUserMessage`, remove them from `_addPlaceholderMessage`.
 
 - **Modify `$miniChat.on(_addPlaceholderMessage, ...)`:**
   ```typescript
@@ -55,9 +60,12 @@ Since input clearing and compact state updates are moved to `_addMiniChatUserMes
 
 ### 2.3. Refactor Message Sending Logic for Sequential Execution
 
-The current `split` mechanism handles branches concurrently. To ensure the user message is added, then the placeholder, then the API call is made, we will remove the `split` and chain `sample`s.
+The current `split` mechanism handles branches concurrently. To ensure the user
+message is added, then the placeholder, then the API call is made, we will
+remove the `split` and chain `sample`s.
 
-- **Remove `triggerMiniChatStream` event and the entire `split` block (lines 337-364).**
+- **Remove `triggerMiniChatStream` event and the entire `split` block (lines
+  337-364).**
 
 - **Create a new internal event to prepare and trigger the stream payload:**
   This event will carry all the necessary data to subsequent steps.
@@ -72,12 +80,12 @@ The current `split` mechanism handles branches concurrently. To ensure the user 
   };
 
   const _prepareAndTriggerStream = createEvent<PrepareStreamPayload>(
-    "prepareAndTriggerMiniChatStream"
+    'prepareAndTriggerMiniChatStream',
   );
   ```
 
-- **Modify `sendMiniChatMessage`'s `sample`:**
-  This `sample` will now target the new `_prepareAndTriggerStream` event.
+- **Modify `sendMiniChatMessage`'s `sample`:** This `sample` will now target the
+  new `_prepareAndTriggerStream` event.
 
   ```typescript
   // Replace the existing sample for sendMiniChatMessage, around line 367
@@ -91,7 +99,7 @@ The current `split` mechanism handles branches concurrently. To ensure the user 
     filter: ({ apiKey }) => !!apiKey,
     fn: (
       { apiKey, model, currentMessages },
-      messageText
+      messageText,
     ): PrepareStreamPayload => {
       // Specify return type
       // 1. Generate IDs
@@ -100,13 +108,13 @@ The current `split` mechanism handles branches concurrently. To ensure the user 
 
       // 2. Create User and Placeholder Messages
       const userMessage: MiniChatMessage = {
-        role: "user",
+        role: 'user',
         content: messageText,
       };
       const placeholderMessage: MiniChatMessage = {
         id: placeholderId, // Assign ID to placeholder
-        role: "assistant",
-        content: "",
+        role: 'assistant',
+        content: '',
         isLoading: true,
       };
 
@@ -156,8 +164,9 @@ The current `split` mechanism handles branches concurrently. To ensure the user 
   });
   ```
 
-- **Chain `sample`s to orchestrate sequential updates and API call:**
-  These samples will react to `_prepareAndTriggerStream` and trigger subsequent actions in the correct order.
+- **Chain `sample`s to orchestrate sequential updates and API call:** These
+  samples will react to `_prepareAndTriggerStream` and trigger subsequent
+  actions in the correct order.
 
   ```typescript
   // After the sendMiniChatMessage sample, where the old split used to be.
@@ -192,7 +201,8 @@ The current `split` mechanism handles branches concurrently. To ensure the user 
 
 ### 2.4. Wire `$miniChat.loading` to `streamChatFx.pending`
 
-This will ensure the global loading state of the Mini Chat accurately reflects whether a streaming request is in progress.
+This will ensure the global loading state of the Mini Chat accurately reflects
+whether a streaming request is in progress.
 
 - **Add `.on` handler to `$miniChat`:**
   ```typescript

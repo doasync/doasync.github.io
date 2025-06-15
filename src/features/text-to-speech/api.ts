@@ -1,5 +1,5 @@
-import { TTSParams, TTSResponse, VoiceProvider, AudioFormat } from "./types";
-import { $apiKey, $providerApiUrl } from "../chat-settings/model";
+import { TTSParams, TTSResponse, VoiceProvider, AudioFormat } from './types';
+import { $apiKey, $providerApiUrl } from '../chat-settings/model';
 
 interface ProviderConfig {
   endpoint: string;
@@ -9,13 +9,13 @@ interface ProviderConfig {
 }
 
 async function getProviderConfig(
-  provider: VoiceProvider
+  provider: VoiceProvider,
 ): Promise<ProviderConfig> {
   const apiKey = $apiKey.getState();
   const providerUrl = $providerApiUrl.getState();
 
   if (!apiKey) {
-    throw new Error("API key is not set");
+    throw new Error('API key is not set');
   }
 
   const baseConfigs: Record<VoiceProvider, ProviderConfig> = {
@@ -23,17 +23,17 @@ async function getProviderConfig(
       endpoint: `${providerUrl}/audio/speech`,
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: (params) => ({
         model: params.model,
         input: params.text,
         voice: params.voice,
         response_format: params.format,
-        ...(params.speed && params.model !== "gpt-4o-mini-tts"
+        ...(params.speed && params.model !== 'gpt-4o-mini-tts'
           ? { speed: params.speed }
           : {}),
-        ...(params.instructions && params.model === "gpt-4o-mini-tts"
+        ...(params.instructions && params.model === 'gpt-4o-mini-tts'
           ? { instructions: params.instructions }
           : {}),
       }),
@@ -45,25 +45,25 @@ async function getProviderConfig(
         const audio = await response.arrayBuffer();
         return {
           audio,
-          format: "mp3", // Default format
+          format: 'mp3', // Default format
         };
       },
     },
     openai: {
-      endpoint: "https://api.openai.com/v1/audio/speech",
+      endpoint: 'https://api.openai.com/v1/audio/speech',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: (params) => ({
         model: params.model,
         input: params.text,
         voice: params.voice,
         response_format: params.format,
-        ...(params.speed && params.model !== "gpt-4o-mini-tts"
+        ...(params.speed && params.model !== 'gpt-4o-mini-tts'
           ? { speed: params.speed }
           : {}),
-        ...(params.instructions && params.model === "gpt-4o-mini-tts"
+        ...(params.instructions && params.model === 'gpt-4o-mini-tts'
           ? { instructions: params.instructions }
           : {}),
       }),
@@ -75,7 +75,7 @@ async function getProviderConfig(
         const audio = await response.arrayBuffer();
         return {
           audio,
-          format: "mp3",
+          format: 'mp3',
         };
       },
     },
@@ -83,7 +83,7 @@ async function getProviderConfig(
       endpoint: `${providerUrl}/audio/speech`,
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: (params) => ({
         // OpenAI-style fields for compatibility
@@ -91,37 +91,44 @@ async function getProviderConfig(
         input: params.text,
         voice: params.voice,
         response_format: params.format,
-        ...(params.speed && params.speed !== 1.0 ? { speed: params.speed } : {}),
-        
+        ...(params.speed && params.speed !== 1.0
+          ? { speed: params.speed }
+          : {}),
+
         // Gemini-style fields for native support
-        contents: [{
-          parts: [{
-            text: params.text
-          }]
-        }],
+        contents: [
+          {
+            parts: [
+              {
+                text: params.text,
+              },
+            ],
+          },
+        ],
         generationConfig: {
-          responseModalities: ["AUDIO"],
+          responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: params.voice
-              }
-            }
-          }
-        }
+                voiceName: params.voice,
+              },
+            },
+          },
+        },
       }),
       parseResponse: async (response) => {
         if (!response.ok) {
           const error = await response.text();
           throw new Error(`TTS failed: ${error}`);
         }
-        
+
         // Try to parse as JSON first (Gemini native response)
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-          
+          const audioData =
+            data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
           if (audioData) {
             // Convert base64 to ArrayBuffer (Gemini native response)
             const binaryString = atob(audioData);
@@ -129,19 +136,19 @@ async function getProviderConfig(
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
-            
+
             return {
               audio: bytes.buffer,
-              format: "wav",
+              format: 'wav',
             };
           }
         }
-        
+
         // Fallback to binary audio data (OpenAI-style response)
         const audio = await response.arrayBuffer();
         return {
           audio,
-          format: "wav", // Gemini TTS always returns WAV format
+          format: 'wav', // Gemini TTS always returns WAV format
         };
       },
     },
@@ -150,24 +157,28 @@ async function getProviderConfig(
   return baseConfigs[provider];
 }
 
-
 export async function generateSpeechStream(
   params: TTSParams,
-  onChunk?: (chunk: ArrayBuffer) => void
+  onChunk?: (chunk: ArrayBuffer) => void,
 ): Promise<Response> {
   // Handle GPT-4o audio models that use chat completions endpoint
-  if (params.model === 'gpt-4o-audio-preview' || params.model === 'gpt-4o-audio-preview-2024-12-17') {
+  if (
+    params.model === 'gpt-4o-audio-preview' ||
+    params.model === 'gpt-4o-audio-preview-2024-12-17'
+  ) {
     const result = await generateSpeechWithChatCompletions(params);
     const blob = new Blob([result.audio]);
     return new Response(blob);
   }
 
   // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
-  const provider: VoiceProvider = params.model.startsWith('gemini-') ? "gemini" : "voidai";
+  const provider: VoiceProvider = params.model.startsWith('gemini-')
+    ? 'gemini'
+    : 'voidai';
   const config = await getProviderConfig(provider);
-    
+
   const response = await fetch(config.endpoint, {
-    method: "POST",
+    method: 'POST',
     headers: config.headers,
     body: JSON.stringify(config.body(params)),
   });
@@ -209,16 +220,21 @@ export async function generateSpeechStream(
 
 export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
   // Handle GPT-4o audio models that use chat completions endpoint
-  if (params.model === 'gpt-4o-audio-preview' || params.model === 'gpt-4o-audio-preview-2024-12-17') {
+  if (
+    params.model === 'gpt-4o-audio-preview' ||
+    params.model === 'gpt-4o-audio-preview-2024-12-17'
+  ) {
     return await generateSpeechWithChatCompletions(params);
   }
 
   // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
-  const provider: VoiceProvider = params.model.startsWith('gemini-') ? "gemini" : "voidai";
+  const provider: VoiceProvider = params.model.startsWith('gemini-')
+    ? 'gemini'
+    : 'voidai';
   const config = await getProviderConfig(provider);
-    
+
   const response = await fetch(config.endpoint, {
-    method: "POST",
+    method: 'POST',
     headers: config.headers,
     body: JSON.stringify(config.body(params)),
   });
@@ -232,22 +248,24 @@ export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
 }
 
 // Special handler for GPT-4o audio models using chat completions endpoint
-async function generateSpeechWithChatCompletions(params: TTSParams): Promise<TTSResponse> {
+async function generateSpeechWithChatCompletions(
+  params: TTSParams,
+): Promise<TTSResponse> {
   const apiKey = $apiKey.getState();
   const providerUrl = $providerApiUrl.getState();
 
   if (!apiKey) {
-    throw new Error("API key is not set");
+    throw new Error('API key is not set');
   }
 
   // Map audio format names to chat completions format
   const formatMapping: Record<string, string> = {
-    'mp3': 'mp3',
-    'wav': 'wav',
-    'opus': 'opus',
-    'flac': 'flac',
-    'pcm': 'pcm16',
-    'aac': 'wav' // AAC not supported, fallback to WAV
+    mp3: 'mp3',
+    wav: 'wav',
+    opus: 'opus',
+    flac: 'flac',
+    pcm: 'pcm16',
+    aac: 'wav', // AAC not supported, fallback to WAV
   };
 
   const audioFormat = formatMapping[params.format] || 'mp3';
@@ -256,22 +274,22 @@ async function generateSpeechWithChatCompletions(params: TTSParams): Promise<TTS
     model: params.model,
     messages: [
       {
-        role: "user",
-        content: params.text
-      }
+        role: 'user',
+        content: params.text,
+      },
     ],
-    modalities: ["text", "audio"],
+    modalities: ['text', 'audio'],
     audio: {
       voice: params.voice,
-      format: audioFormat
-    }
+      format: audioFormat,
+    },
   };
 
   const response = await fetch(`${providerUrl}/chat/completions`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
   });
@@ -282,13 +300,13 @@ async function generateSpeechWithChatCompletions(params: TTSParams): Promise<TTS
   }
 
   const data = await response.json();
-  
+
   // Extract audio data from the response
   const choice = data.choices?.[0];
   const audioData = choice?.message?.audio?.data;
-  
+
   if (!audioData) {
-    throw new Error("No audio data in chat completions response");
+    throw new Error('No audio data in chat completions response');
   }
 
   // Convert base64 to ArrayBuffer
@@ -300,6 +318,6 @@ async function generateSpeechWithChatCompletions(params: TTSParams): Promise<TTS
 
   return {
     audio: bytes.buffer,
-    format: audioFormat === 'pcm16' ? 'pcm' : audioFormat as AudioFormat,
+    format: audioFormat === 'pcm16' ? 'pcm' : (audioFormat as AudioFormat),
   };
 }

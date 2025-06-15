@@ -1,9 +1,9 @@
 /**
  * Ephemeral Audio Chat Feature
- * 
+ *
  * CRITICAL: This module manages TEMPORARY audio data only.
  * Generated TTS audio and STT transcripts are session-only and must NEVER:
- * - Be saved to IndexedDB 
+ * - Be saved to IndexedDB
  * - Be sent to chat completions API
  * - Be persisted beyond the current session
  */
@@ -11,10 +11,10 @@
 import { createEffect, sample, createDomain } from 'effector';
 import { debug } from 'patronum/debug';
 import { persist } from 'effector-storage/local';
-import type { 
-  EphemeralMessageData, 
-  InChatSettings, 
-  ToggleMessageAudioPayload, 
+import type {
+  EphemeralMessageData,
+  InChatSettings,
+  ToggleMessageAudioPayload,
   ToggleMessageTranscriptPayload,
   AudioGenerationPayload,
   TranscriptionPayload,
@@ -23,7 +23,7 @@ import type {
   AudioGenerationError,
   TranscriptionError,
   AudioToggleAction,
-  TranscriptToggleAction
+  TranscriptToggleAction,
 } from './types';
 
 // Create domain for audio chat
@@ -37,7 +37,8 @@ const audioChatDomain = createDomain('audio-chat');
  * Core ephemeral data store - contains temporary audio/transcript data
  * CRITICAL: This store is deliberately NOT persisted to avoid pollution of chat history
  */
-export const $ephemeralMessageData = audioChatDomain.createStore<EphemeralMessageData>({});
+export const $ephemeralMessageData =
+  audioChatDomain.createStore<EphemeralMessageData>({});
 
 // =====================================================================
 // SETTINGS STORES (Persisted to localStorage only)
@@ -51,17 +52,18 @@ export const $inChatTtsModel = audioChatDomain.createStore<string>('tts-1-hd');
 /**
  * In-Chat Transcription Model selection (persisted to localStorage)
  */
-export const $inChatTranscriptionModel = audioChatDomain.createStore<string>('whisper-1');
+export const $inChatTranscriptionModel =
+  audioChatDomain.createStore<string>('whisper-1');
 
 // Persist settings to localStorage (NOT IndexedDB)
-persist({ 
-  store: $inChatTtsModel, 
-  key: 'inChatTtsModel'
+persist({
+  store: $inChatTtsModel,
+  key: 'inChatTtsModel',
 });
 
-persist({ 
-  store: $inChatTranscriptionModel, 
-  key: 'inChatTranscriptionModel'
+persist({
+  store: $inChatTranscriptionModel,
+  key: 'inChatTranscriptionModel',
 });
 
 // =====================================================================
@@ -71,12 +73,14 @@ persist({
 /**
  * Toggle TTS audio for a text message
  */
-export const toggleMessageAudio = audioChatDomain.createEvent<ToggleMessageAudioPayload>();
+export const toggleMessageAudio =
+  audioChatDomain.createEvent<ToggleMessageAudioPayload>();
 
 /**
- * Toggle STT transcript for an audio message  
+ * Toggle STT transcript for an audio message
  */
-export const toggleMessageTranscript = audioChatDomain.createEvent<ToggleMessageTranscriptPayload>();
+export const toggleMessageTranscript =
+  audioChatDomain.createEvent<ToggleMessageTranscriptPayload>();
 
 /**
  * Clear ephemeral data for a specific message
@@ -96,7 +100,8 @@ export const setInChatTtsModel = audioChatDomain.createEvent<string>();
 /**
  * Update in-chat transcription model selection
  */
-export const setInChatTranscriptionModel = audioChatDomain.createEvent<string>();
+export const setInChatTranscriptionModel =
+  audioChatDomain.createEvent<string>();
 
 // =====================================================================
 // INTERNAL EVENTS
@@ -110,20 +115,30 @@ const audioToggleProcessed = audioChatDomain.createEvent<AudioToggleAction>();
 /**
  * Internal event for processing transcript toggle actions
  */
-const transcriptToggleProcessed = audioChatDomain.createEvent<TranscriptToggleAction>();
+const transcriptToggleProcessed =
+  audioChatDomain.createEvent<TranscriptToggleAction>();
 
 /**
  * Internal events for audio generation lifecycle
  */
-const audioGenerationStarted = audioChatDomain.createEvent<{ messageId: string; model: string }>();
-const audioGenerationCompleted = audioChatDomain.createEvent<AudioGenerationResult>();
-const audioGenerationFailed = audioChatDomain.createEvent<AudioGenerationError>();
+const audioGenerationStarted = audioChatDomain.createEvent<{
+  messageId: string;
+  model: string;
+}>();
+const audioGenerationCompleted =
+  audioChatDomain.createEvent<AudioGenerationResult>();
+const audioGenerationFailed =
+  audioChatDomain.createEvent<AudioGenerationError>();
 
 /**
  * Internal events for transcription lifecycle
  */
-const transcriptionStarted = audioChatDomain.createEvent<{ messageId: string; model: string }>();
-const transcriptionCompleted = audioChatDomain.createEvent<TranscriptionResult>();
+const transcriptionStarted = audioChatDomain.createEvent<{
+  messageId: string;
+  model: string;
+}>();
+const transcriptionCompleted =
+  audioChatDomain.createEvent<TranscriptionResult>();
 const transcriptionFailed = audioChatDomain.createEvent<TranscriptionError>();
 
 // =====================================================================
@@ -134,13 +149,19 @@ const transcriptionFailed = audioChatDomain.createEvent<TranscriptionError>();
  * Generate TTS audio for in-message use
  * Reuses existing TTS API adapter from text-to-speech feature
  */
-export const generateInMessageTTSFx = createEffect<AudioGenerationPayload, AudioGenerationResult>();
+export const generateInMessageTTSFx = createEffect<
+  AudioGenerationPayload,
+  AudioGenerationResult
+>();
 
 /**
  * Generate STT transcript for in-message use
  * Reuses existing STT API adapter from speech-to-text feature
  */
-export const generateInMessageSTTFx = createEffect<TranscriptionPayload, TranscriptionResult>();
+export const generateInMessageSTTFx = createEffect<
+  TranscriptionPayload,
+  TranscriptionResult
+>();
 
 // =====================================================================
 // API INTEGRATION IMPLEMENTATIONS
@@ -170,7 +191,7 @@ generateInMessageTTSFx.use(async ({ messageId, text, model }) => {
 
     // Create blob from ArrayBuffer
     const audioBlob = new Blob([ttsResult.audio], { type: 'audio/mp3' });
-    
+
     // Create blob URL for temporary use
     const audioUrl = URL.createObjectURL(audioBlob);
 
@@ -181,7 +202,9 @@ generateInMessageTTSFx.use(async ({ messageId, text, model }) => {
     };
   } catch (error) {
     console.error('TTS generation failed:', error);
-    throw new Error(error instanceof Error ? error.message : 'TTS generation failed');
+    throw new Error(
+      error instanceof Error ? error.message : 'TTS generation failed',
+    );
   }
 });
 
@@ -214,7 +237,9 @@ generateInMessageSTTFx.use(async ({ messageId, audioUrl, model }) => {
     };
   } catch (error) {
     console.error('Transcription failed:', error);
-    throw new Error(error instanceof Error ? error.message : 'Transcription failed');
+    throw new Error(
+      error instanceof Error ? error.message : 'Transcription failed',
+    );
   }
 });
 
@@ -246,8 +271,9 @@ sample({
   clock: toggleMessageAudio,
   source: [$ephemeralMessageData, $inChatTtsModel],
   fn: ([ephemeralData, ttsModel], { messageId, messageText }) => {
-    const currentData = (ephemeralData as EphemeralMessageData)[messageId]?.audio;
-    
+    const currentData = (ephemeralData as EphemeralMessageData)[messageId]
+      ?.audio;
+
     if (currentData?.isVisible) {
       // Hide existing audio
       return { type: 'hide' as const, messageId };
@@ -256,11 +282,11 @@ sample({
       return { type: 'show' as const, messageId };
     } else {
       // Generate new audio
-      return { 
-        type: 'generate' as const, 
-        messageId, 
-        text: messageText, 
-        model: ttsModel as string 
+      return {
+        type: 'generate' as const,
+        messageId,
+        text: messageText,
+        model: ttsModel as string,
       };
     }
   },
@@ -272,8 +298,9 @@ sample({
   clock: toggleMessageTranscript,
   source: [$ephemeralMessageData, $inChatTranscriptionModel],
   fn: ([ephemeralData, sttModel], { messageId, audioUrl }) => {
-    const currentData = (ephemeralData as EphemeralMessageData)[messageId]?.transcript;
-    
+    const currentData = (ephemeralData as EphemeralMessageData)[messageId]
+      ?.transcript;
+
     if (currentData?.isVisible) {
       // Hide existing transcript
       return { type: 'hide' as const, messageId };
@@ -282,11 +309,11 @@ sample({
       return { type: 'show' as const, messageId };
     } else {
       // Generate new transcript
-      return { 
-        type: 'generate' as const, 
-        messageId, 
-        audioUrl, 
-        model: sttModel as string 
+      return {
+        type: 'generate' as const,
+        messageId,
+        audioUrl,
+        model: sttModel as string,
       };
     }
   },
@@ -299,7 +326,11 @@ sample({
   filter: (action) => action.type === 'generate',
   fn: (action) => {
     if (action.type === 'generate') {
-      return { messageId: action.messageId, text: action.text, model: action.model };
+      return {
+        messageId: action.messageId,
+        text: action.text,
+        model: action.model,
+      };
     }
     throw new Error('Invalid action type');
   },
@@ -312,7 +343,11 @@ sample({
   filter: (action) => action.type === 'generate',
   fn: (action) => {
     if (action.type === 'generate') {
-      return { messageId: action.messageId, audioUrl: action.audioUrl, model: action.model };
+      return {
+        messageId: action.messageId,
+        audioUrl: action.audioUrl,
+        model: action.model,
+      };
     }
     throw new Error('Invalid action type');
   },
@@ -435,89 +470,101 @@ sample({
 // Handle generation failures
 sample({
   clock: generateInMessageTTSFx.fail,
-  fn: ({ params, error }) => ({ 
-    messageId: params.messageId, 
-    error: error.message || 'TTS generation failed' 
+  fn: ({ params, error }) => ({
+    messageId: params.messageId,
+    error: error.message || 'TTS generation failed',
   }),
   target: audioGenerationFailed,
 });
 
 sample({
   clock: generateInMessageSTTFx.fail,
-  fn: ({ params, error }) => ({ 
-    messageId: params.messageId, 
-    error: error.message || 'Transcription failed' 
+  fn: ({ params, error }) => ({
+    messageId: params.messageId,
+    error: error.message || 'Transcription failed',
   }),
   target: transcriptionFailed,
 });
 
 // Update ephemeral store for successful completion
-$ephemeralMessageData.on(audioGenerationCompleted, (ephemeralData, { messageId, audioUrl, voice }) => ({
-  ...ephemeralData,
-  [messageId]: {
-    ...(ephemeralData[messageId] || {}),
-    audio: {
-      ...(ephemeralData[messageId]?.audio || {}),
-      url: audioUrl,
-      isLoading: false,
-      isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
-      model: ephemeralData[messageId]?.audio?.model ?? '',
-      voice,
-      timestamp: Date.now(),
+$ephemeralMessageData.on(
+  audioGenerationCompleted,
+  (ephemeralData, { messageId, audioUrl, voice }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...(ephemeralData[messageId] || {}),
+      audio: {
+        ...(ephemeralData[messageId]?.audio || {}),
+        url: audioUrl,
+        isLoading: false,
+        isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
+        model: ephemeralData[messageId]?.audio?.model ?? '',
+        voice,
+        timestamp: Date.now(),
+      },
     },
-  },
-}));
+  }),
+);
 
-$ephemeralMessageData.on(transcriptionCompleted, (ephemeralData, { messageId, transcript, format }) => ({
-  ...ephemeralData,
-  [messageId]: {
-    ...(ephemeralData[messageId] || {}),
-    transcript: {
-      ...(ephemeralData[messageId]?.transcript || {}),
-      text: transcript,
-      isLoading: false,
-      isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
-      model: ephemeralData[messageId]?.transcript?.model ?? '',
-      format,
-      timestamp: Date.now(),
+$ephemeralMessageData.on(
+  transcriptionCompleted,
+  (ephemeralData, { messageId, transcript, format }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...(ephemeralData[messageId] || {}),
+      transcript: {
+        ...(ephemeralData[messageId]?.transcript || {}),
+        text: transcript,
+        isLoading: false,
+        isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
+        model: ephemeralData[messageId]?.transcript?.model ?? '',
+        format,
+        timestamp: Date.now(),
+      },
     },
-  },
-}));
+  }),
+);
 
 // Update ephemeral store for failures
-$ephemeralMessageData.on(audioGenerationFailed, (ephemeralData, { messageId, error }) => ({
-  ...ephemeralData,
-  [messageId]: {
-    ...(ephemeralData[messageId] || {}),
-    audio: {
-      ...(ephemeralData[messageId]?.audio || {}),
-      url: ephemeralData[messageId]?.audio?.url ?? '',
-      isLoading: false,
-      isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
-      model: ephemeralData[messageId]?.audio?.model ?? '',
-      voice: ephemeralData[messageId]?.audio?.voice ?? '',
-      error,
-      timestamp: Date.now(),
+$ephemeralMessageData.on(
+  audioGenerationFailed,
+  (ephemeralData, { messageId, error }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...(ephemeralData[messageId] || {}),
+      audio: {
+        ...(ephemeralData[messageId]?.audio || {}),
+        url: ephemeralData[messageId]?.audio?.url ?? '',
+        isLoading: false,
+        isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
+        model: ephemeralData[messageId]?.audio?.model ?? '',
+        voice: ephemeralData[messageId]?.audio?.voice ?? '',
+        error,
+        timestamp: Date.now(),
+      },
     },
-  },
-}));
+  }),
+);
 
-$ephemeralMessageData.on(transcriptionFailed, (ephemeralData, { messageId, error }) => ({
-  ...ephemeralData,
-  [messageId]: {
-    ...(ephemeralData[messageId] || {}),
-    transcript: {
-      ...(ephemeralData[messageId]?.transcript || {}),
-      text: ephemeralData[messageId]?.transcript?.text ?? '',
-      isLoading: false,
-      isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
-      model: ephemeralData[messageId]?.transcript?.model ?? '',
-      format: ephemeralData[messageId]?.transcript?.format ?? '',
-      error,
-      timestamp: Date.now(),
+$ephemeralMessageData.on(
+  transcriptionFailed,
+  (ephemeralData, { messageId, error }) => ({
+    ...ephemeralData,
+    [messageId]: {
+      ...(ephemeralData[messageId] || {}),
+      transcript: {
+        ...(ephemeralData[messageId]?.transcript || {}),
+        text: ephemeralData[messageId]?.transcript?.text ?? '',
+        isLoading: false,
+        isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
+        model: ephemeralData[messageId]?.transcript?.model ?? '',
+        format: ephemeralData[messageId]?.transcript?.format ?? '',
+        error,
+        timestamp: Date.now(),
+      },
     },
-  },
-}));
+  }),
+);
 
 // Clear ephemeral data
 sample({
@@ -525,12 +572,12 @@ sample({
   source: $ephemeralMessageData,
   fn: (ephemeralData, messageId) => {
     const { [messageId]: removed, ...rest } = ephemeralData;
-    
+
     // Clean up blob URLs to prevent memory leaks
     if (removed?.audio?.url) {
       URL.revokeObjectURL(removed.audio.url);
     }
-    
+
     return rest;
   },
   target: $ephemeralMessageData,
@@ -542,12 +589,12 @@ sample({
   source: $ephemeralMessageData,
   fn: (ephemeralData) => {
     // Clean up all blob URLs to prevent memory leaks
-    Object.values(ephemeralData).forEach(messageData => {
+    Object.values(ephemeralData).forEach((messageData) => {
       if (messageData.audio?.url) {
         URL.revokeObjectURL(messageData.audio.url);
       }
     });
-    
+
     return {};
   },
   target: $ephemeralMessageData,
@@ -563,12 +610,13 @@ sample({
  */
 const autoCleanupFx = createEffect(() => {
   const ephemeralData = $ephemeralMessageData.getState();
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
-  
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
   Object.entries(ephemeralData).forEach(([messageId, data]) => {
     const audioOld = data.audio && data.audio.timestamp < oneHourAgo;
-    const transcriptOld = data.transcript && data.transcript.timestamp < oneHourAgo;
-    
+    const transcriptOld =
+      data.transcript && data.transcript.timestamp < oneHourAgo;
+
     if (audioOld || transcriptOld) {
       clearEphemeralData(messageId);
     }
@@ -576,9 +624,12 @@ const autoCleanupFx = createEffect(() => {
 });
 
 // Run auto-cleanup every 30 minutes
-setInterval(() => {
-  autoCleanupFx();
-}, 30 * 60 * 1000);
+setInterval(
+  () => {
+    autoCleanupFx();
+  },
+  30 * 60 * 1000,
+);
 
 // =====================================================================
 // DEBUGGING

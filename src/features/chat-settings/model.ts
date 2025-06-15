@@ -1,59 +1,74 @@
-import {
-  createDomain,
-  sample,
-  combine,
-} from "effector";
-import { debug } from "patronum/debug";
+import { createDomain, sample, combine } from 'effector';
+import { debug } from 'patronum/debug';
+import { appStarted } from '@/app';
 
 // Define LocalStorage keys
-const API_KEY_LS_KEY = "provider_api_key";
-const PROVIDER_API_URL_LS_KEY = "provider_api_url";
-const TEMPERATURE_LS_KEY = "default_temperature";
-const SYSTEM_PROMPT_LS_KEY = "default_system_prompt";
+const API_KEY_LS_KEY = 'provider_api_key';
+const PROVIDER_API_URL_LS_KEY = 'provider_api_url';
+const TEMPERATURE_LS_KEY = 'default_temperature';
+const SYSTEM_PROMPT_LS_KEY = 'default_system_prompt';
 
 // Legacy key for migration
-const LEGACY_API_KEY_LS_KEY = "voidai_api_key";
+const LEGACY_API_KEY_LS_KEY = 'voidai_api_key';
 
 // Default values
 const DEFAULT_TEMPERATURE = 0.7;
-const DEFAULT_SYSTEM_PROMPT = "";
-const DEFAULT_PROVIDER_API_URL = "https://api.voidai.app/v1";
+const DEFAULT_SYSTEM_PROMPT = '';
+const DEFAULT_PROVIDER_API_URL = 'https://api.voidai.app/v1';
 
-const settingsDomain = createDomain("settings");
+const settingsDomain = createDomain('settings');
 
 // --- Events ---
 // Triggered to initiate loading settings from LocalStorage (e.g., on app start)
-export const loadSettings = settingsDomain.event("loadSettings");
+export const loadSettings = settingsDomain.event('loadSettings');
 // Triggered when settings have been successfully loaded from LocalStorage
 const settingsLoaded = settingsDomain.event<{
   apiKey: string;
   providerApiUrl: string;
   temperature: number;
   systemPrompt: string;
-}>("settingsLoaded");
+}>('settingsLoaded');
 // Triggered by UI input changes
-export const apiKeyChanged = settingsDomain.event<string>("apiKeyChanged");
-export const providerApiUrlChanged = settingsDomain.event<string>("providerApiUrlChanged");
+export const apiKeyChanged = settingsDomain.event<string>('apiKeyChanged');
+export const providerApiUrlChanged = settingsDomain.event<string>(
+  'providerApiUrlChanged',
+);
 export const temperatureChanged =
-  settingsDomain.event<number>("temperatureChanged");
+  settingsDomain.event<number>('temperatureChanged');
 export const systemPromptChanged = settingsDomain.event<string>(
-  "systemPromptChanged"
+  'systemPromptChanged',
 );
 
+// Event triggered when API key is missing (moved from chat feature)
+export const apiKeyMissing = settingsDomain.event('apiKeyMissing');
+
+// API Key dialog events (moved from ui-state to avoid circular dependency)
+export const showApiKeyDialog = settingsDomain.event('showApiKeyDialog');
+export const hideApiKeyDialog = settingsDomain.event('hideApiKeyDialog');
+
 // --- Stores ---
-export const $apiKey = settingsDomain.store<string>("", { name: "apiKey" });
-export const $providerApiUrl = settingsDomain.store<string>(DEFAULT_PROVIDER_API_URL, { name: "providerApiUrl" });
+export const $apiKey = settingsDomain.store<string>('', { name: 'apiKey' });
+export const $providerApiUrl = settingsDomain.store<string>(
+  DEFAULT_PROVIDER_API_URL,
+  { name: 'providerApiUrl' },
+);
 export const $temperature = settingsDomain.store<number>(DEFAULT_TEMPERATURE, {
-  name: "temperature",
+  name: 'temperature',
 });
 export const $systemPrompt = settingsDomain.store<string>(
   DEFAULT_SYSTEM_PROMPT,
-  { name: "systemPrompt" }
+  { name: 'systemPrompt' },
 );
 // Store to track if initial settings load is complete
 export const $settingsLoaded = settingsDomain
-  .store<boolean>(false, { name: "settingsLoaded" })
+  .store<boolean>(false, { name: 'settingsLoaded' })
   .on(settingsLoaded, () => true);
+
+// API Key dialog store (moved from ui-state to avoid circular dependency)
+export const $isApiKeyDialogOpen = settingsDomain
+  .store(false, { name: 'isApiKeyDialogOpen' })
+  .on(showApiKeyDialog, () => true)
+  .on(hideApiKeyDialog, () => false);
 
 // Combine settings into a single store for easier saving
 const $settings = combine({
@@ -67,16 +82,21 @@ const $settings = combine({
 // Effect to load settings from LocalStorage
 const loadSettingsFx = settingsDomain.effect<
   void,
-  { apiKey: string; providerApiUrl: string; temperature: number; systemPrompt: string },
+  {
+    apiKey: string;
+    providerApiUrl: string;
+    temperature: number;
+    systemPrompt: string;
+  },
   Error
 >({
-  name: "loadSettingsFx",
+  name: 'loadSettingsFx',
   handler: async () => {
     // Load API key with migration from legacy key
-    let apiKey = localStorage.getItem(API_KEY_LS_KEY) ?? "";
+    let apiKey = localStorage.getItem(API_KEY_LS_KEY) ?? '';
     if (!apiKey) {
       // Migrate from legacy key
-      const legacyApiKey = localStorage.getItem(LEGACY_API_KEY_LS_KEY) ?? "";
+      const legacyApiKey = localStorage.getItem(LEGACY_API_KEY_LS_KEY) ?? '';
       if (legacyApiKey) {
         apiKey = legacyApiKey;
         // Save to new key and remove legacy key
@@ -85,7 +105,8 @@ const loadSettingsFx = settingsDomain.effect<
       }
     }
 
-    const providerApiUrl = localStorage.getItem(PROVIDER_API_URL_LS_KEY) ?? DEFAULT_PROVIDER_API_URL;
+    const providerApiUrl =
+      localStorage.getItem(PROVIDER_API_URL_LS_KEY) ?? DEFAULT_PROVIDER_API_URL;
     const tempRaw = localStorage.getItem(TEMPERATURE_LS_KEY);
     const systemPrompt =
       localStorage.getItem(SYSTEM_PROMPT_LS_KEY) ?? DEFAULT_SYSTEM_PROMPT;
@@ -103,11 +124,16 @@ const loadSettingsFx = settingsDomain.effect<
 
 // Effect to save settings to LocalStorage
 const saveSettingsFx = settingsDomain.effect<
-  { apiKey: string; providerApiUrl: string; temperature: number; systemPrompt: string },
+  {
+    apiKey: string;
+    providerApiUrl: string;
+    temperature: number;
+    systemPrompt: string;
+  },
   void,
   Error
 >({
-  name: "saveSettingsFx",
+  name: 'saveSettingsFx',
   handler: async ({ apiKey, providerApiUrl, temperature, systemPrompt }) => {
     localStorage.setItem(API_KEY_LS_KEY, apiKey);
     localStorage.setItem(PROVIDER_API_URL_LS_KEY, providerApiUrl);
@@ -138,7 +164,10 @@ $systemPrompt.on(settingsLoaded, (_, payload) => payload.systemPrompt);
 
 // Update stores based on UI change events
 $apiKey.on(apiKeyChanged, (_, newApiKey) => newApiKey);
-$providerApiUrl.on(providerApiUrlChanged, (_, newProviderApiUrl) => newProviderApiUrl);
+$providerApiUrl.on(
+  providerApiUrlChanged,
+  (_, newProviderApiUrl) => newProviderApiUrl,
+);
 $temperature.on(temperatureChanged, (_, newTemperature) => newTemperature);
 $systemPrompt.on(systemPromptChanged, (_, newSystemPrompt) => newSystemPrompt);
 
@@ -149,13 +178,31 @@ sample({
   target: saveSettingsFx,
 });
 
+// Show API Key dialog if app starts and API key is missing
+sample({
+  clock: [appStarted, apiKeyMissing],
+  source: $apiKey,
+  filter: (key): key is string =>
+    typeof key === 'string' && key.trim().length === 0,
+  target: showApiKeyDialog,
+});
+
+// Hide API Key dialog if API key is provided later
+sample({
+  clock: $apiKey,
+  source: $isApiKeyDialogOpen,
+  filter: (isOpen, key): key is string =>
+    isOpen && typeof key === 'string' && key.trim().length > 0,
+  target: hideApiKeyDialog,
+});
+
 // Handle potential loading errors (optional: could show an error message)
 loadSettingsFx.fail.watch(({ error }) => {
-  console.error("Failed to load settings:", error);
+  console.error('Failed to load settings:', error);
 });
 
 saveSettingsFx.fail.watch(({ error }) => {
-  console.error("Failed to save settings:", error);
+  console.error('Failed to save settings:', error);
 });
 
 // --- Debugging ---
@@ -167,6 +214,7 @@ debug(
   $temperature,
   $systemPrompt,
   $settingsLoaded,
+  $isApiKeyDialogOpen,
 
   // Events
   loadSettings,
@@ -174,8 +222,11 @@ debug(
   providerApiUrlChanged,
   temperatureChanged,
   systemPromptChanged,
+  apiKeyMissing,
+  showApiKeyDialog,
+  hideApiKeyDialog,
 
   // Effects
   loadSettingsFx,
-  saveSettingsFx
+  saveSettingsFx,
 );

@@ -1,62 +1,64 @@
-"use client"; // Mark as client component for future interactivity
+'use client'; // Mark as client component for future interactivity
 
-import * as React from "react";
-import { showSnackbar } from "@/features/ui-state/snackbar";
-import { $snackbar, hideSnackbar } from "@/features/ui-state/snackbar";
-import { useMiniChatTextSelection } from "@/features/mini-chat/useTextSelection";
-import { MiniChatToolbar } from "@/features/mini-chat/MiniChatToolbar";
-import { MiniChatDialog } from "@/features/mini-chat/MiniChatDialog";
-import { MiniChatFAB } from "@/features/mini-chat/MiniChatFAB"; // Import the FAB
-import QueryStatsIcon from "@mui/icons-material/QueryStats";
-import UsageInfoDialog from "@/components/UsageInfoDialog";
-import { refreshUsageInfo } from "@/features/usage-info/model";
-import { TTSDialog } from "@/features/text-to-speech/components/TTSDialog";
-import { TranscriptionDialog } from "@/features/speech-to-text/components/TranscriptionDialog";
+import * as React from 'react';
+import { showSnackbar } from '@/features/ui-state/snackbar';
+import { $snackbar, hideSnackbar } from '@/features/ui-state/snackbar';
+import {
+  useMiniChatTextSelection,
+  MiniChatToolbar,
+  MiniChatDialog,
+  MiniChatFAB,
+} from '@/features/mini-chat';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import { UsageInfoDialog } from '@/features/usage-info/components/UsageInfoDialog';
+import { refreshUsageInfo } from '@/features/usage-info';
+import { TTSDialog } from '@/features/text-to-speech/components/TTSDialog';
+import { TranscriptionDialog } from '@/features/speech-to-text/components/TranscriptionDialog';
 import {
   useTheme,
   useMediaQuery,
   Snackbar,
   LinearProgress,
-} from "@mui/material";
-import MobileUnifiedDrawer from "@/components/MobileUnifiedDrawer";
+} from '@mui/material';
+import { MobileUnifiedDrawer } from '@/features/ui-layout/components/MobileUnifiedDrawer';
 import {
   $isMobileDrawerOpen,
   openMobileDrawer,
   $editingMessageId,
   closeMobileDrawer,
-} from "@/features/ui-state";
-import { useUnit } from "effector-react";
-import Box from "@mui/material/Box";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Container from "@mui/material/Container";
-import Paper from "@mui/material/Paper";
-import TextField from "@mui/material/TextField";
-import IconButton from "@mui/material/IconButton";
-import SubjectIcon from "@mui/icons-material/Subject";
-import SettingsIcon from "@mui/icons-material/Settings";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import StopIcon from "@mui/icons-material/Stop"; // Use standard Stop icon
-import Stack from "@mui/material/Stack";
-import Alert from "@mui/material/Alert";
-import { generateResponseClicked } from "@/features/chat";
+} from '@/features/ui-state';
+import { useUnit } from 'effector-react';
+import Box from '@mui/material/Box';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import SubjectIcon from '@mui/icons-material/Subject';
+import SettingsIcon from '@mui/icons-material/Settings';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import StopIcon from '@mui/icons-material/Stop'; // Use standard Stop icon
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
+import { generateResponseClicked } from '@/features/chat';
 
 // Import components
-import MessageItem from "@/components/MessageItem";
-import ApiKeyMissingDialog from "@/components/ApiKeyMissingDialog";
-import AttachmentMenu from "@/components/AttachmentMenu";
-import ImageGenerationDialog from "@/components/ImageGenerationDialog";
-import { dialogOpened as openImageGenerationDialog } from "@/features/image-generation";
-import Drawer from "@mui/material/Drawer";
-import ChatHistoryContent from "@/components/ChatHistoryContent";
-import ChatSettingsContent from "@/components/ChatSettingsContent";
-import { ModelSelector } from "@/components/ModelSelector";
+import { MessageItem } from '@/features/chat/components/MessageItem';
+import { AttachmentMenu } from '@/features/chat/components/AttachmentMenu';
+import { ApiKeyMissingDialog } from '@/features/chat-settings/components/ApiKeyMissingDialog';
+import { ImageGenerationDialog } from '@/features/image-generation/components/ImageGenerationDialog';
+import { dialogOpened as openImageGenerationDialog } from '@/features/image-generation';
+import Drawer from '@mui/material/Drawer';
+import { ChatHistoryContent } from '@/features/chat-history/components/ChatHistoryContent';
+import { ChatSettingsContent } from '@/features/chat-settings/components/ChatSettingsContent';
+import { ModelSelector } from '@/features/models-select/components/ModelSelector';
 import {
   $selectedModelId,
   $availableModels,
   ModelInfo,
-} from "@/features/models-select";
+} from '@/features/models-select';
 
 // Import Effector models
 import {
@@ -71,9 +73,9 @@ import {
   $scrollTrigger, // Import explicit scroll trigger
   mainInputFocused,
   stopGenerationClicked, // Import the cancellation event
-} from "@/features/chat";
+} from '@/features/chat';
 // import { editMessage } from "@/model/chat"; // Remove editMessage import
-import { loadSettings } from "@/features/chat-settings"; // Import settings loader
+import { loadSettings } from '@/features/chat-settings'; // Import settings loader
 import {
   // $isSettingsDrawerOpen, // Use persistent store instead for desktop
   closeSettingsDrawer,
@@ -82,8 +84,8 @@ import {
   $isHistoryDrawerPersistentOpen, // Import persistent state
   $isSettingsDrawerPersistentOpen, // Import persistent state
   toggleSettingsDrawer, // Import settings toggle// Import scroll prevention event
-} from "@/features/ui-state";
-import { fetchModels } from "@/features/models-select"; // Import model fetch trigger
+} from '@/features/ui-state';
+import { fetchModels } from '@/features/models-select'; // Import model fetch trigger
 import {
   newChatCreated,
   $currentChatSession,
@@ -94,8 +96,8 @@ import {
   chatTitleEdited,
   ChatHistoryIndex,
   // appStarted, // Moved to app/model
-} from "@/features/chat-history"; // Import history events and stores
-import { appStarted } from "@/app"; // Correct import path
+} from '@/features/chat-history'; // Import history events and stores
+import { appStarted } from '@/app'; // Correct import path
 import {
   $apiKey,
   $providerApiUrl,
@@ -105,10 +107,10 @@ import {
   providerApiUrlChanged,
   temperatureChanged,
   systemPromptChanged,
-} from "@/features/chat-settings";
-import { $currentChatTokens } from "@/features/chat";
-import { generateTitle } from "@/features/chat-history";
-import ModelInfoAlert from "@/components/ModelInfoAlert";
+} from '@/features/chat-settings';
+import { $currentChatTokens } from '@/features/chat';
+import { generateTitle } from '@/features/chat-history';
+import { ModelInfoAlert } from '@/features/models-select/components/ModelInfoAlert';
 
 // Define drawer widths (adjust as needed)
 const DRAWER_WIDTH = 300;
@@ -119,7 +121,7 @@ export default function HomePage() {
   const chatEndRef = React.useRef<null | HTMLDivElement>(null);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [messages, messageText] = useUnit([$messages, $messageText]);
   const lastMessage =
@@ -166,15 +168,15 @@ export default function HomePage() {
     currentChatTokens: $currentChatTokens,
   });
 
-  const [historySearchTerm, setHistorySearchTerm] = React.useState("");
+  const [historySearchTerm, setHistorySearchTerm] = React.useState('');
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   // Image generation dialog is now managed by its own state
   const [ttsDialogOpen, setTtsDialogOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [editingHistoryId, setEditingHistoryId] = React.useState<string | null>(
-    null
+    null,
   );
-  const [editedTitle, setEditedTitle] = React.useState("");
+  const [editedTitle, setEditedTitle] = React.useState('');
 
   const [showApiKey, setShowApiKey] = React.useState(false);
   const snackbar = useUnit($snackbar);
@@ -182,13 +184,13 @@ export default function HomePage() {
   const filteredHistory = React.useMemo(() => {
     if (!historySearchTerm) return historyIndex;
     return historyIndex.filter((i: ChatHistoryIndex) =>
-      i.title.toLowerCase().includes(historySearchTerm.toLowerCase())
+      i.title.toLowerCase().includes(historySearchTerm.toLowerCase()),
     );
   }, [historyIndex, historySearchTerm]);
 
   const clickHistory = () => {
     if (isMobile) {
-      openMobileDrawer({ tab: "history" });
+      openMobileDrawer({ tab: 'history' });
     } else {
       toggleHistoryDrawer();
     }
@@ -196,7 +198,7 @@ export default function HomePage() {
 
   const clickSettings = () => {
     if (isMobile) {
-      openMobileDrawer({ tab: "settings" });
+      openMobileDrawer({ tab: 'settings' });
     } else {
       toggleSettingsDrawer(); // Use toggle for persistent drawer
     }
@@ -236,7 +238,7 @@ export default function HomePage() {
   const handleClickShowApiKey = () => setShowApiKey((prev) => !prev);
 
   const handleMouseDownApiKey = (
-    event: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>,
   ) => {
     event.preventDefault();
   };
@@ -244,7 +246,7 @@ export default function HomePage() {
   useUnit([closeSettingsDrawer]);
 
   const changeMessage = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => messageTextChanged(e.target.value);
 
   const handleSendButtonClick = () => {
@@ -252,12 +254,12 @@ export default function HomePage() {
       // Scroll to the editing message
       const element = document.getElementById(editingMessageId);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      console.log("Editing message, not sending new one");
+      console.log('Editing message, not sending new one');
       showSnackbar({
-        message: "Finish editing before sending a new message.",
-        severity: "warning",
+        message: 'Finish editing before sending a new message.',
+        severity: 'warning',
       });
       return; // Stop further processing
     }
@@ -265,10 +267,10 @@ export default function HomePage() {
     const isInputEmpty = messageText.trim().length === 0;
     // Check for pending images
     const pendingImages = messages.filter(
-      (m) => m.status === "pending" && m.role === "user"
+      (m) => m.status === 'pending' && m.role === 'user',
     );
     const hasPendingImages = pendingImages.length > 0;
-    const isLastMessageUser = lastMessage?.role === "user";
+    const isLastMessageUser = lastMessage?.role === 'user';
 
     if (!isInputEmpty || hasPendingImages) {
       // Case 3 & 4: Input has text or pending images, send it as a new message
@@ -338,7 +340,7 @@ export default function HomePage() {
   React.useEffect(() => {
     if (!preventScrollFlag) {
       requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "instant" });
+        chatEndRef.current?.scrollIntoView({ behavior: 'instant' });
       });
     }
   }, [messages.length, scrollTrigger, preventScrollFlag]); // Depend on explicit scroll trigger and flag
@@ -352,8 +354,8 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden", fontSize: 20 }}>
-      {" "}
+    <Box sx={{ height: '100vh', overflow: 'hidden', fontSize: 20 }}>
+      {' '}
       {/* Ensure outermost Box has height */}
       {/* AppBar */}
       <AppBar
@@ -362,9 +364,9 @@ export default function HomePage() {
           // Add theme access for transitions and spacing
           const isLeftOpen = !isMobile && isHistoryPersistentOpen;
           const isRightOpen = !isMobile && isSettingsPersistentOpen;
-          let targetWidth = "100%";
-          let targetMarginLeft = "0px"; // Use string '0px' for consistency
-          let targetMarginRight = "0px"; // Use string '0px' for consistency
+          let targetWidth = '100%';
+          let targetMarginLeft = '0px'; // Use string '0px' for consistency
+          let targetMarginRight = '0px'; // Use string '0px' for consistency
           // Default transition (when drawers are closing)
           let transitionProps = {
             easing: theme.transitions.easing.sharp,
@@ -384,14 +386,14 @@ export default function HomePage() {
           } else if (isLeftOpen) {
             targetWidth = `calc(100% - ${DRAWER_WIDTH}px)`;
             targetMarginLeft = `${DRAWER_WIDTH}px`;
-            targetMarginRight = "0px";
+            targetMarginRight = '0px';
             transitionProps = {
               easing: theme.transitions.easing.easeOut,
               duration: theme.transitions.duration.enteringScreen,
             };
           } else if (isRightOpen) {
             targetWidth = `calc(100% - ${DRAWER_WIDTH}px)`;
-            targetMarginLeft = "0px";
+            targetMarginLeft = '0px';
             targetMarginRight = `${DRAWER_WIDTH}px`;
             transitionProps = {
               easing: theme.transitions.easing.easeOut,
@@ -404,8 +406,8 @@ export default function HomePage() {
             marginLeft: targetMarginLeft,
             marginRight: targetMarginRight,
             transition: theme.transitions.create(
-              ["margin", "width"],
-              transitionProps
+              ['margin', 'width'],
+              transitionProps,
             ),
           };
         }}
@@ -416,7 +418,7 @@ export default function HomePage() {
           sx={{
             px: 1,
             borderBottom: 1,
-            borderColor: "divider",
+            borderColor: 'divider',
           }}
         >
           {/* Conditionally render History Button */}
@@ -443,8 +445,8 @@ export default function HomePage() {
           <Box
             sx={{
               flexGrow: 1,
-              display: "flex",
-              justifyContent: "center",
+              display: 'flex',
+              justifyContent: 'center',
             }}
           >
             <ModelSelector />
@@ -492,11 +494,11 @@ export default function HomePage() {
         sx={(theme) => ({
           // Use theme callback for consistency
           flexGrow: 1,
-          display: "flex",
-          flexDirection: "column",
-          height: "100vh", // Occupy full viewport height
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh', // Occupy full viewport height
           // Adjust transitions and margins for main content
-          transition: theme.transitions.create("margin", {
+          transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
@@ -505,7 +507,7 @@ export default function HomePage() {
           ...(isHistoryPersistentOpen &&
             !isMobile && {
               marginLeft: `${DRAWER_WIDTH}px`, // Add left margin when history open
-              transition: theme.transitions.create("margin", {
+              transition: theme.transitions.create('margin', {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
@@ -513,7 +515,7 @@ export default function HomePage() {
           ...(isSettingsPersistentOpen &&
             !isMobile && {
               marginRight: `${DRAWER_WIDTH}px`, // Add right margin when settings open
-              transition: theme.transitions.create("margin", {
+              transition: theme.transitions.create('margin', {
                 easing: theme.transitions.easing.easeOut,
                 duration: theme.transitions.duration.enteringScreen,
               }),
@@ -521,7 +523,7 @@ export default function HomePage() {
           // Ensure content below AppBar starts correctly
           pt: `${Number(theme.mixins.toolbar.minHeight) - 16}px`, // Use theme value for AppBar height
           pb: 0, // Remove potential bottom padding if any
-          boxSizing: "border-box", // Include padding in height calculation
+          boxSizing: 'border-box', // Include padding in height calculation
         })}
       >
         {/* Scrollable Area for Chat Messages */}
@@ -530,15 +532,15 @@ export default function HomePage() {
         <Box
           sx={{
             flexGrow: 1, // Takes remaining vertical space
-            overflowY: "auto", // Allows vertical scrolling, crucial for FAB visibility if content is long
+            overflowY: 'auto', // Allows vertical scrolling, crucial for FAB visibility if content is long
             // overflowX: 'hidden', // Optional: hide horizontal scrollbar if needed
-            display: "flex", // Use flexbox to easily center the container
-            flexDirection: "column", // Stack items vertically
-            alignItems: "center", // Center items horizontally
-            width: "100%",
+            display: 'flex', // Use flexbox to easily center the container
+            flexDirection: 'column', // Stack items vertically
+            alignItems: 'center', // Center items horizontally
+            width: '100%',
             p: isMobile ? 1 : 2, // Add horizontal padding
             pt: isMobile ? 2 : 3,
-            position: "relative", // Necessary for absolute positioning of children (FAB)
+            position: 'relative', // Necessary for absolute positioning of children (FAB)
           }}
         >
           {/* Inner container for centering message content */}
@@ -546,29 +548,29 @@ export default function HomePage() {
             maxWidth="md" // Apply centering constraint here
             disableGutters // Remove default container padding, handled by outer Box
             sx={{
-              display: "flex", // Use flex to make paper grow
-              flexDirection: "column",
+              display: 'flex', // Use flex to make paper grow
+              flexDirection: 'column',
               flexGrow: 1, // Allow vertical growth within scrollable area
-              width: "100%", // Ensure it uses the full width provided by parent Box
+              width: '100%', // Ensure it uses the full width provided by parent Box
             }}
           >
             {/* Paper for message list background/padding - optional */}
             <Paper
               elevation={0}
               sx={{
-                backgroundColor: "transparent", // Or theme background
-                display: "flex",
-                flexDirection: "column",
-                width: "100%", // Take full width of the Container
-                alignItems: "center", // Center items horizontally
+                backgroundColor: 'transparent', // Or theme background
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%', // Take full width of the Container
+                alignItems: 'center', // Center items horizontally
               }}
             >
               <Stack
                 alignItems="center"
                 // spacing={0.5}
                 sx={{
-                  alignItems: "stretch", // Align items to stretch full width
-                  width: "100%",
+                  alignItems: 'stretch', // Align items to stretch full width
+                  width: '100%',
                 }}
               >
                 {messages.map((msg) => (
@@ -576,12 +578,12 @@ export default function HomePage() {
                 ))}
                 <div ref={chatEndRef} />
               </Stack>
-            </Paper>{" "}
+            </Paper>{' '}
             {/* End Message List Paper */}
-          </Container>{" "}
+          </Container>{' '}
           <Snackbar
             open={snackbar.open}
-            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             sx={(theme) => {
               const top = Number(theme.mixins.toolbar.minHeight) + 8;
               return { top: `${top}px !important` };
@@ -598,36 +600,36 @@ export default function HomePage() {
           {/* End Centering Container */}
           {/* Render the FAB inside the scrollable area */}
           <MiniChatFAB />
-        </Box>{" "}
+        </Box>{' '}
         {/* End Scrollable Area Box */}
         {/* apiError Alert - Placed outside scrollable area but inside main content */}
         {apiError && (
-          <Container maxWidth="md" sx={{ px: isMobile ? 1 : 2, width: "100%" }}>
-            <Alert severity="error" sx={{ mt: 1, mb: 1, width: "100%" }}>
+          <Container maxWidth="md" sx={{ px: isMobile ? 1 : 2, width: '100%' }}>
+            <Alert severity="error" sx={{ mt: 1, mb: 1, width: '100%' }}>
               {apiError}
             </Alert>
           </Container>
         )}
         {/* Progress bars above input */}
-        <Box sx={{ width: "100%" }}>
+        <Box sx={{ width: '100%' }}>
           {/* Progress bar for generation (green/blue) */}
           <LinearProgress
             color="secondary"
             sx={{
-              width: "100%",
-              height: "1px",
-              top: "2px", // Overlap with the border
-              visibility: isGenerating && !isRecording ? "visible" : "hidden",
+              width: '100%',
+              height: '1px',
+              top: '2px', // Overlap with the border
+              visibility: isGenerating && !isRecording ? 'visible' : 'hidden',
             }}
           />
           {/* Progress bar for recording (red) */}
           <LinearProgress
             color="error"
             sx={{
-              width: "100%",
-              height: "1px",
-              top: "1px", // Overlap with the border
-              visibility: isRecording ? "visible" : "hidden",
+              width: '100%',
+              height: '1px',
+              top: '1px', // Overlap with the border
+              visibility: isRecording ? 'visible' : 'hidden',
             }}
           />
         </Box>
@@ -635,14 +637,14 @@ export default function HomePage() {
         <Paper
           square
           sx={{
-            mt: "auto",
-            width: "100%",
-            backgroundColor: "background.paper",
+            mt: 'auto',
+            width: '100%',
+            backgroundColor: 'background.paper',
             flexShrink: 0,
             borderTop: 1,
-            borderColor: "divider",
+            borderColor: 'divider',
             p: 1,
-            justifyItems: "center",
+            justifyItems: 'center',
           }}
         >
           {/* Added flexShrink */}
@@ -650,19 +652,19 @@ export default function HomePage() {
           <Box
             maxWidth="md"
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%", // Ensure paper takes full width of container
-              position: "relative", // Enable absolute positioning for child elements
+              display: 'flex',
+              flexDirection: 'column',
+              width: '100%', // Ensure paper takes full width of container
+              position: 'relative', // Enable absolute positioning for child elements
             }}
           >
             {/* Input Row - Single horizontal row with attach, text field, and send button */}
             <Box
               sx={{
-                display: "flex",
-                alignItems: "center",
+                display: 'flex',
+                alignItems: 'center',
                 gap: 1,
-                width: "100%",
+                width: '100%',
               }}
             >
               {/* Consolidated Attachment Menu - positioned on the far left */}
@@ -689,14 +691,14 @@ export default function HomePage() {
               />
 
               {/* Send/Stop Button - positioned on the far right */}
-              <Box sx={{ position: "relative" }}>
+              <Box sx={{ position: 'relative' }}>
                 {isGenerating ? (
                   <IconButton
                     aria-label="Stop Generation"
                     onClick={() => stopGenerationClicked()} // Ensure event is called correctly
                     sx={{
                       mx: -0.5,
-                      color: "warning.main", // Keep warning color for stop
+                      color: 'warning.main', // Keep warning color for stop
                     }}
                   >
                     <StopIcon /> {/* Use correct icon */}
@@ -706,14 +708,14 @@ export default function HomePage() {
                   (() => {
                     const isInputEmpty = messageText.trim().length === 0;
                     const pendingImages = messages.filter(
-                      (m) => m.status === "pending" && m.role === "user"
+                      (m) => m.status === 'pending' && m.role === 'user',
                     );
                     const hasPendingImages = pendingImages.length > 0;
                     const lastMessage =
                       messages.length > 0
                         ? messages[messages.length - 1]
                         : null;
-                    const isLastMessageUser = lastMessage?.role === "user";
+                    const isLastMessageUser = lastMessage?.role === 'user';
                     // Disable if (input is empty AND no pending images AND last message was NOT user) OR if recording
                     const isDisabled =
                       (isInputEmpty &&
@@ -728,7 +730,7 @@ export default function HomePage() {
                         disabled={isDisabled}
                         sx={{
                           mx: -0.5,
-                          color: "primary.light",
+                          color: 'primary.light',
                         }}
                       >
                         <AutoAwesomeIcon />
@@ -737,14 +739,14 @@ export default function HomePage() {
                   })()
                 )}
               </Box>
-            </Box>{" "}
+            </Box>{' '}
             {/* End Input Row */}
-          </Box>{" "}
+          </Box>{' '}
           {/* End Input Centering Container */}
-        </Paper>{" "}
+        </Paper>{' '}
         {/* End Input Area Wrapper Box */}
         <ApiKeyMissingDialog />
-      </Box>{" "}
+      </Box>{' '}
       {/* End Main Content Box */}
       <UsageInfoDialog
         open={usageDialogOpen}
@@ -759,13 +761,13 @@ export default function HomePage() {
           sx={{
             width: DRAWER_WIDTH,
             flexShrink: 0,
-            "& .MuiDrawer-paper": {
+            '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,
-              boxSizing: "border-box",
+              boxSizing: 'border-box',
             },
           }}
         >
-          <Box sx={{ overflow: "auto" }}>
+          <Box sx={{ overflow: 'auto' }}>
             {/* Make drawer content scrollable if needed */}
             <ChatHistoryContent {...historyPanelProps} />
           </Box>
@@ -779,9 +781,9 @@ export default function HomePage() {
           sx={{
             width: DRAWER_WIDTH,
             flexShrink: 0,
-            "& .MuiDrawer-paper": {
+            '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,
-              boxSizing: "border-box",
+              boxSizing: 'border-box',
             },
           }}
         >
@@ -798,10 +800,7 @@ export default function HomePage() {
       )}
       {!!selectedModel && <ModelInfoAlert model={selectedModel} />}
       <ImageGenerationDialog />
-      <TTSDialog
-        open={ttsDialogOpen}
-        onClose={() => setTtsDialogOpen(false)}
-      />
+      <TTSDialog open={ttsDialogOpen} onClose={() => setTtsDialogOpen(false)} />
       <TranscriptionDialog />
       <MiniChatToolbar />
       <MiniChatDialog />

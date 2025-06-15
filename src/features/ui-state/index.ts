@@ -2,7 +2,6 @@
 
 export {
   // Stores - Needed by UI components
-  $isApiKeyDialogOpen,
   $isSettingsDrawerOpen,
   $isHistoryDrawerOpen, // Keep for mobile?
   $isHistoryDrawerPersistentOpen, // Add persistent state
@@ -10,12 +9,9 @@ export {
   // $activeMessageId, // Remove active message state export
   $isMobileDrawerOpen, // Add mobile drawer state
   $mobileDrawerTab, // Add mobile drawer tab state
-  $isModelInfoAlertOpen,
   // $preventScroll, // Removed - belongs to chat model now
   $editingMessageId, // Add editing state
   // Events - Triggered by UI components
-  showApiKeyDialog, // Triggered by chat model or settings UI
-  hideApiKeyDialog, // Triggered by ApiKeyMissingDialog
   openMobileDrawer, // Triggered by Header button
   openSettingsDrawer, // Triggered by Header button
   closeSettingsDrawer, // Triggered by Drawer itself or overlay click
@@ -29,6 +25,5 @@ export {
   // setPreventScroll, // Removed - belongs to chat model now
   startEditingMessage, // Add editing state events
   stopEditingMessage,
-  openModelInfoAlert,
-  closeModelInfoAlert,
-} from "./model";
+  resetEditingMessage,
+} from './model';

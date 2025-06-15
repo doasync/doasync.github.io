@@ -20,7 +20,8 @@ const defaultPreferences: VoicePreferences = {
 export const $voiceModels = domain.createStore<VoiceModel[]>([]);
 export const $selectedVoiceModelId = domain.createStore<string | null>(null);
 export const $selectedVoiceId = domain.createStore<string | null>(null);
-export const $voicePreferences = domain.createStore<VoicePreferences>(defaultPreferences);
+export const $voicePreferences =
+  domain.createStore<VoicePreferences>(defaultPreferences);
 export const $voiceModelsLoading = domain.createStore<boolean>(false);
 export const $voiceModelsError = domain.createStore<string | null>(null);
 
@@ -37,30 +38,30 @@ export const $voiceModelsState = combine({
 export const $selectedVoiceModel = combine(
   $voiceModels,
   $selectedVoiceModelId,
-  (models, id) => models.find(m => m.id === id) || null
+  (models, id) => models.find((m) => m.id === id) || null,
 );
 
 export const $availableVoices = combine(
   $selectedVoiceModel,
-  (model) => model?.voices || []
+  (model) => model?.voices || [],
 );
 
 export const $selectedVoice = combine(
   $availableVoices,
   $selectedVoiceId,
-  (voices, id) => voices.find(v => v.id === id) || null
+  (voices, id) => voices.find((v) => v.id === id) || null,
 );
 
-export const $ttsModels = $voiceModels.map(models => 
-  models.filter(m => m.capabilities.tts)
+export const $ttsModels = $voiceModels.map((models) =>
+  models.filter((m) => m.capabilities.tts),
 );
 
-export const $sttModels = $voiceModels.map(models => 
-  models.filter(m => m.capabilities.stt)
+export const $sttModels = $voiceModels.map((models) =>
+  models.filter((m) => m.capabilities.stt),
 );
 
-export const $audioChatModels = $voiceModels.map(models => 
-  models.filter(m => m.capabilities.audioChat)
+export const $audioChatModels = $voiceModels.map((models) =>
+  models.filter((m) => m.capabilities.audioChat),
 );
 
 // Events
@@ -69,7 +70,9 @@ export const voiceSelected = domain.createEvent<string>();
 export const voiceModelsClearError = domain.createEvent();
 export const favoriteVoiceToggled = domain.createEvent<string>();
 export const defaultVoiceSet = domain.createEvent<string>();
-export const defaultFormatChanged = domain.createEvent<'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm'>();
+export const defaultFormatChanged = domain.createEvent<
+  'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm'
+>();
 export const defaultSpeedChanged = domain.createEvent<number>();
 export const autoTranscribeToggled = domain.createEvent();
 export const loadVoiceModels = domain.createEvent();
@@ -77,12 +80,12 @@ export const loadVoiceModels = domain.createEvent();
 // Helper functions
 export const getDefaultVoiceForModel = (modelId: string): string => {
   const models = $voiceModels.getState();
-  const model = models.find(m => m.id === modelId);
-  
+  const model = models.find((m) => m.id === modelId);
+
   if (!model || model.voices.length === 0) {
     return 'nova'; // Fallback to 'nova' if model not found or no voices
   }
-  
+
   // Return the first voice as default
   return model.voices[0].id;
 };
@@ -91,33 +94,37 @@ export const getDefaultVoiceForModel = (modelId: string): string => {
 export const loadVoiceModelsFx = createEffect<void, VoiceModel[], Error>({
   handler: async () => {
     // Load models configuration and merge with voice data
-    const models = modelsConfig.models.map(model => {
+    const models = modelsConfig.models.map((model) => {
       // Special handling for specific models
       let voiceKey = model.provider as string;
-      
+
       // ElevenLabs uses voidai provider but has its own voice set
       if (model.id === 'elevenlabs') {
         voiceKey = 'elevenlabs';
       }
-      
+
       const voiceData = voicesConfig[voiceKey as keyof typeof voicesConfig];
-      
-      const voices: VoiceInfo[] = (voiceData?.voices || []).map(v => ({
+
+      const voices: VoiceInfo[] = (voiceData?.voices || []).map((v) => ({
         ...v,
         gender: v.gender as 'male' | 'female' | 'neutral' | undefined,
       }));
-      
+
       return {
         ...model,
         voices,
       } as VoiceModel;
     });
-    
+
     return models;
   },
 });
 
-export const previewVoiceFx = createEffect<{ modelId: string; voiceId: string }, void, Error>({
+export const previewVoiceFx = createEffect<
+  { modelId: string; voiceId: string },
+  void,
+  Error
+>({
   handler: async ({ modelId, voiceId }) => {
     // In a real implementation, this would:
     // 1. Call TTS API with sample text
@@ -134,7 +141,7 @@ $selectedVoiceModelId
   .on(loadVoiceModelsFx.doneData, (current, models) => {
     // If no model selected, select first TTS model
     if (!current && models.length > 0) {
-      const firstTTSModel = models.find(m => m.capabilities.tts);
+      const firstTTSModel = models.find((m) => m.capabilities.tts);
       return firstTTSModel?.id || null;
     }
     return current;
@@ -144,7 +151,7 @@ $selectedVoiceId
   .on(voiceSelected, (_, id) => id)
   .on(voiceModelSelected, (_, modelId) => {
     // Reset voice selection when model changes
-    const model = $voiceModels.getState().find(m => m.id === modelId);
+    const model = $voiceModels.getState().find((m) => m.id === modelId);
     return model?.voices[0]?.id || null;
   });
 
@@ -153,7 +160,7 @@ $voicePreferences
   .on(favoriteVoiceToggled, (prefs, voiceId) => ({
     ...prefs,
     favoriteVoices: prefs.favoriteVoices.includes(voiceId)
-      ? prefs.favoriteVoices.filter(id => id !== voiceId)
+      ? prefs.favoriteVoices.filter((id) => id !== voiceId)
       : [...prefs.favoriteVoices, voiceId],
   }))
   .on(defaultVoiceSet, (prefs, voiceId) => ({
@@ -196,7 +203,7 @@ sample({
   clock: voiceModelSelected,
   source: $voiceModels,
   fn: (models, modelId) => {
-    const model = models.find(m => m.id === modelId);
+    const model = models.find((m) => m.id === modelId);
     return model?.voices[0]?.id || '';
   },
   filter: (voiceId) => Boolean(voiceId),

@@ -14,4 +14,10 @@ export {
   providerApiUrlChanged,
   temperatureChanged,
   systemPromptChanged,
-} from "./model";
+  apiKeyMissing, // Event for when API key is missing
+
+  // API Key dialog (moved from ui-state to avoid circular dependency)
+  showApiKeyDialog,
+  hideApiKeyDialog,
+  $isApiKeyDialogOpen,
+} from './model';

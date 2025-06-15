@@ -1,32 +1,32 @@
 // Type definitions for the chat feature
-import type { TextChunk } from "@/features/document-processing";
+import type { TextChunk } from '@/features/document-processing';
 
-export type Role = "user" | "assistant" | "system";
+export type Role = 'user' | 'assistant' | 'system';
 
 // Multimodal content parts for OpenAI-compatible format
 export interface TextContentPart {
-  type: "text";
+  type: 'text';
   text: string;
 }
 
 export interface ImageContentPart {
-  type: "image_url";
+  type: 'image_url';
   image_url: {
     url: string; // Base64 data URL or public HTTPS URL
-    detail?: "low" | "high" | "auto";
+    detail?: 'low' | 'high' | 'auto';
   };
 }
 
 export interface AudioContentPart {
-  type: "input_audio";
+  type: 'input_audio';
   input_audio: {
     data: string; // Base64 encoded audio data
-    format?: "wav" | "mp3" | "flac" | "opus"; // Audio format hint
+    format?: 'wav' | 'mp3' | 'flac' | 'opus'; // Audio format hint
   };
 }
 
 export interface GeneratedImageContentPart {
-  type: "generated_image";
+  type: 'generated_image';
   generated_image: {
     url?: string; // Image URL from API
     b64_json?: string; // Base64 encoded image data
@@ -42,7 +42,7 @@ export interface GeneratedImageContentPart {
 }
 
 export interface DocumentContentPart {
-  type: "document";
+  type: 'document';
   document: {
     text: string;
     previewHtml?: string; // HTML preview with preserved formatting
@@ -59,12 +59,17 @@ export interface DocumentContentPart {
   };
 }
 
-export type MessageContentPart = TextContentPart | ImageContentPart | AudioContentPart | GeneratedImageContentPart | DocumentContentPart;
+export type MessageContentPart =
+  | TextContentPart
+  | ImageContentPart
+  | AudioContentPart
+  | GeneratedImageContentPart
+  | DocumentContentPart;
 
 // Attachment metadata for UI handling
 export interface Attachment {
   id: string;
-  type: "image" | "audio" | "document";
+  type: 'image' | 'audio' | 'document';
   fileName: string;
   mimeType: string;
   size: number;
@@ -83,7 +88,7 @@ export interface Attachment {
   };
 }
 
-export type MessageStatus = "pending" | "sent" | "failed";
+export type MessageStatus = 'pending' | 'sent' | 'failed';
 
 export interface Message {
   id: string;
@@ -99,13 +104,13 @@ export interface Message {
 }
 
 // Define the types of request contexts
-export type RequestContextNormal = { type: "normal" };
+export type RequestContextNormal = { type: 'normal' };
 export type RequestContextGenerate = {
-  type: "generate";
+  type: 'generate';
   placeholderId: string;
 };
 export type RequestContextRetry = {
-  type: "retry";
+  type: 'retry';
   originalMessageId: string;
   originalRole: Role;
   retryPlaceholderId?: string; // ID of placeholder added if retrying user -> user/end

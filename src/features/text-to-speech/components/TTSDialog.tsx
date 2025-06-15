@@ -84,14 +84,14 @@ interface AudioGenerationItemProps {
 
 function AudioGenerationItem({ audio }: AudioGenerationItemProps) {
   const theme = useTheme();
-  
+
   // Format the timestamp
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit' 
+      second: '2-digit',
     });
   };
 
@@ -123,13 +123,26 @@ function AudioGenerationItem({ audio }: AudioGenerationItemProps) {
       }}
     >
       {/* Header with metadata */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}
+      >
         <Box>
-          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, color: 'text.primary' }}
+          >
             🎵 {audio.filename}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-            {audio.model} • {audio.voice} • {audio.format.toUpperCase()} • {formatFileSize(audio.size)}
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', display: 'block' }}
+          >
+            {audio.model} • {audio.voice} • {audio.format.toUpperCase()} •{' '}
+            {formatFileSize(audio.size)}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -163,10 +176,10 @@ function AudioGenerationItem({ audio }: AudioGenerationItemProps) {
       </Box>
 
       {/* Text preview */}
-      <Typography 
-        variant="caption" 
-        sx={{ 
-          fontStyle: 'italic', 
+      <Typography
+        variant="caption"
+        sx={{
+          fontStyle: 'italic',
           color: 'text.secondary',
           backgroundColor: theme.palette.background.paper,
           p: 1,
@@ -199,7 +212,7 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
   const ttsModels = useUnit($ttsModels);
   const isStreaming = useUnit($isStreaming);
   const supportedFormats = useUnit($supportedFormats);
-  
+
   const [localText, setLocalText] = useState(initialText);
   const [enableStreaming, setEnableStreaming] = useState(false);
 
@@ -256,10 +269,16 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { minHeight: '500px' }
+        sx: { minHeight: '500px' },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <VolumeUpIcon />
           Text to Speech
@@ -373,7 +392,9 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
           {ttsState.isLoading && (
             <Box>
               <LinearProgress />
-              <Box sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}>
+              <Box
+                sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}
+              >
                 Generating audio...
               </Box>
             </Box>
@@ -392,8 +413,16 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
               <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
                 Generated Audio Files ({generatedAudios.length})
               </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 400, overflowY: 'auto' }}>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                }}
+              >
                 {generatedAudios.map((audio) => (
                   <AudioGenerationItem key={audio.id} audio={audio} />
                 ))}
@@ -404,12 +433,20 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 1, width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            width: '100%',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Button onClick={handleClose} color="inherit">
               Cancel
             </Button>
-            
+
             {/* Streaming toggle */}
             <FormControlLabel
               control={
@@ -423,8 +460,14 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
               sx={{ ml: 2 }}
             />
           </Box>
-          
-          <Tooltip title={enableStreaming ? "Generate and stream audio" : "Generate audio from text"}>
+
+          <Tooltip
+            title={
+              enableStreaming
+                ? 'Generate and stream audio'
+                : 'Generate audio from text'
+            }
+          >
             <span>
               <Button
                 onClick={handleGenerate}
@@ -432,7 +475,7 @@ export function TTSDialog({ open, onClose, initialText = '' }: TTSDialogProps) {
                 variant="contained"
                 startIcon={<VolumeUpIcon />}
               >
-                {isStreaming ? "Streaming..." : "Generate Audio"}
+                {isStreaming ? 'Streaming...' : 'Generate Audio'}
               </Button>
             </span>
           </Tooltip>

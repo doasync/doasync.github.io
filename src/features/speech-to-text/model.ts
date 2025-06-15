@@ -1,6 +1,18 @@
-import { createDomain, createEffect, sample, combine, createEvent } from 'effector';
+import {
+  createDomain,
+  createEffect,
+  sample,
+  combine,
+  createEvent,
+} from 'effector';
 import { debug } from 'patronum/debug';
-import { TranscriptionResult, STTResponse, TranscribeParams, ValidationResult, ResponseFormat } from './types';
+import {
+  TranscriptionResult,
+  STTResponse,
+  TranscribeParams,
+  ValidationResult,
+  ResponseFormat,
+} from './types';
 import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
 import { messageTextChanged } from '../chat/model';
 
@@ -14,7 +26,9 @@ export const $isLoading = domain.createStore<boolean>(false);
 export const $sttError = domain.createStore<string | null>(null);
 
 // Results and history
-export const $transcriptionResults = domain.createStore<TranscriptionResult[]>([]);
+export const $transcriptionResults = domain.createStore<TranscriptionResult[]>(
+  [],
+);
 export const $selectedResult = domain.createStore<string | null>(null);
 
 // UI state
@@ -22,13 +36,16 @@ export const $isDialogOpen = domain.createStore<boolean>(false);
 export const $availableModels = domain.createStore(STT_MODELS);
 
 // Response format settings per model
-export const $responseFormatsPerModel = domain.createStore<Record<string, ResponseFormat>>({});
+export const $responseFormatsPerModel = domain.createStore<
+  Record<string, ResponseFormat>
+>({});
 
 // Derived state
 export const $currentModel = combine(
   $sttModel,
   $availableModels,
-  (selectedModel, models) => models.find(m => m.id === selectedModel) || models[0]
+  (selectedModel, models) =>
+    models.find((m) => m.id === selectedModel) || models[0],
 );
 
 export const $currentResponseFormat = combine(
@@ -37,16 +54,17 @@ export const $currentResponseFormat = combine(
   $currentModel,
   (modelId, formatsPerModel, currentModel) => {
     // Return saved format for this model, or default format
-    return formatsPerModel[modelId] || currentModel?.defaultResponseFormat || 'text';
-  }
+    return (
+      formatsPerModel[modelId] || currentModel?.defaultResponseFormat || 'text'
+    );
+  },
 );
-
 
 export const $fileValidation = combine(
   $sttFile,
   (file): ValidationResult | null => {
     if (!file) return null;
-    
+
     const validation = validateAudioFile(file);
     return {
       ...validation,
@@ -54,17 +72,17 @@ export const $fileValidation = combine(
         name: file.name,
         size: file.size,
         format: file.type,
-      }
+      },
     };
-  }
+  },
 );
 
 export const $canTranscribe = combine(
   $sttFile,
   $fileValidation,
   $isLoading,
-  (file, validation, loading) => 
-    Boolean(file && validation?.isValid && !loading)
+  (file, validation, loading) =>
+    Boolean(file && validation?.isValid && !loading),
 );
 
 // Store for audio duration
@@ -79,11 +97,11 @@ export const $sttState = combine({
   prompt: $sttPrompt,
   isLoading: $isLoading,
   error: $sttError,
-  
+
   // Results and history
   transcriptionResults: $transcriptionResults,
   selectedResult: $selectedResult,
-  
+
   // UI state
   isDialogOpen: $isDialogOpen,
   availableModels: $availableModels,
@@ -114,17 +132,30 @@ export const deleteResultClicked = domain.createEvent<string>();
 export const clearError = domain.createEvent<void>();
 
 // Effects
-export const transcribeAudioFx = createEffect<TranscribeParams, STTResponse, Error>({
+export const transcribeAudioFx = createEffect<
+  TranscribeParams,
+  STTResponse,
+  Error
+>({
   handler: transcribeAudio,
 });
 
-export const saveTranscriptionFx = createEffect<TranscriptionResult, void, Error>({
+export const saveTranscriptionFx = createEffect<
+  TranscriptionResult,
+  void,
+  Error
+>({
   handler: async (result) => {
     try {
-      const existingResults = JSON.parse(localStorage.getItem('stt-transcriptions') || '[]');
+      const existingResults = JSON.parse(
+        localStorage.getItem('stt-transcriptions') || '[]',
+      );
       const updatedResults = [result, ...existingResults.slice(0, 49)]; // Keep last 50
-      localStorage.setItem('stt-transcriptions', JSON.stringify(updatedResults));
-      
+      localStorage.setItem(
+        'stt-transcriptions',
+        JSON.stringify(updatedResults),
+      );
+
       if (process.env.NODE_ENV === 'development') {
         console.log('Saved transcription result:', result);
         console.log('Total transcriptions in storage:', updatedResults.length);
@@ -135,17 +166,21 @@ export const saveTranscriptionFx = createEffect<TranscriptionResult, void, Error
   },
 });
 
-export const loadTranscriptionHistoryFx = createEffect<void, TranscriptionResult[], Error>({
+export const loadTranscriptionHistoryFx = createEffect<
+  void,
+  TranscriptionResult[],
+  Error
+>({
   handler: async () => {
     try {
       const stored = localStorage.getItem('stt-transcriptions');
       const results = stored ? JSON.parse(stored) : [];
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('Loaded transcription history:', results);
         console.log('Number of transcriptions loaded:', results.length);
       }
-      
+
       return results;
     } catch (error) {
       console.warn('Failed to load transcription history:', error);
@@ -154,7 +189,11 @@ export const loadTranscriptionHistoryFx = createEffect<void, TranscriptionResult
   },
 });
 
-export const loadResponseFormatsSettingsFx = createEffect<void, Record<string, ResponseFormat>, Error>({
+export const loadResponseFormatsSettingsFx = createEffect<
+  void,
+  Record<string, ResponseFormat>,
+  Error
+>({
   handler: async () => {
     try {
       const stored = localStorage.getItem('stt-response-formats');
@@ -166,10 +205,16 @@ export const loadResponseFormatsSettingsFx = createEffect<void, Record<string, R
   },
 });
 
-export const saveResponseFormatSettingFx = createEffect<{ modelId: string; format: ResponseFormat }, void, Error>({
+export const saveResponseFormatSettingFx = createEffect<
+  { modelId: string; format: ResponseFormat },
+  void,
+  Error
+>({
   handler: async ({ modelId, format }) => {
     try {
-      const existing = JSON.parse(localStorage.getItem('stt-response-formats') || '{}');
+      const existing = JSON.parse(
+        localStorage.getItem('stt-response-formats') || '{}',
+      );
       const updated = { ...existing, [modelId]: format };
       localStorage.setItem('stt-response-formats', JSON.stringify(updated));
     } catch (error) {
@@ -181,9 +226,16 @@ export const saveResponseFormatSettingFx = createEffect<{ modelId: string; forma
 export const deleteTranscriptionFx = createEffect<string, string, Error>({
   handler: async (id) => {
     try {
-      const existingResults = JSON.parse(localStorage.getItem('stt-transcriptions') || '[]');
-      const filteredResults = existingResults.filter((r: TranscriptionResult) => r.id !== id);
-      localStorage.setItem('stt-transcriptions', JSON.stringify(filteredResults));
+      const existingResults = JSON.parse(
+        localStorage.getItem('stt-transcriptions') || '[]',
+      );
+      const filteredResults = existingResults.filter(
+        (r: TranscriptionResult) => r.id !== id,
+      );
+      localStorage.setItem(
+        'stt-transcriptions',
+        JSON.stringify(filteredResults),
+      );
       return id;
     } catch (error) {
       console.warn('Failed to delete transcription:', error);
@@ -196,9 +248,7 @@ export const deleteTranscriptionFx = createEffect<string, string, Error>({
 export const pasteTranscriptionToChat = domain.createEvent<string>();
 
 // Store updates
-$isDialogOpen
-  .on(dialogOpened, () => true)
-  .on(dialogClosed, () => false);
+$isDialogOpen.on(dialogOpened, () => true).on(dialogClosed, () => false);
 
 $sttFile
   .on(fileSelected, (_, file) => file)
@@ -216,10 +266,13 @@ $sttPrompt.on(promptChanged, (_, prompt) => prompt);
 // Response format settings
 $responseFormatsPerModel
   .on(loadResponseFormatsSettingsFx.doneData, (_, formats) => formats)
-  .on(saveResponseFormatSettingFx.done, (state, { params: { modelId, format } }) => ({
-    ...state,
-    [modelId]: format
-  }));
+  .on(
+    saveResponseFormatSettingFx.done,
+    (state, { params: { modelId, format } }) => ({
+      ...state,
+      [modelId]: format,
+    }),
+  );
 
 // Save response format when changed
 sample({
@@ -228,7 +281,6 @@ sample({
   fn: (modelId, format) => ({ modelId, format }),
   target: saveResponseFormatSettingFx,
 });
-
 
 $sttError
   .on(transcribeAudioFx.failData, (_, { message }) => message)
@@ -244,8 +296,8 @@ $isLoading
 $transcriptionResults
   .on(loadTranscriptionHistoryFx.doneData, (_, results) => results)
   .on(saveTranscriptionFx.done, (results, { params }) => [params, ...results])
-  .on(deleteTranscriptionFx.doneData, (results, deletedId) => 
-    results.filter(r => r.id !== deletedId)
+  .on(deleteTranscriptionFx.doneData, (results, deletedId) =>
+    results.filter((r) => r.id !== deletedId),
   );
 
 $selectedResult.on(resultSelected, (_, id) => id);
@@ -253,7 +305,12 @@ $selectedResult.on(resultSelected, (_, id) => id);
 // Transcription workflow
 sample({
   clock: transcribeClicked,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat },
+  source: {
+    file: $sttFile,
+    model: $sttModel,
+    prompt: $sttPrompt,
+    responseFormat: $currentResponseFormat,
+  },
   filter: ({ file }) => Boolean(file),
   fn: ({ file, model, prompt, responseFormat }) => ({
     file: file!,
@@ -267,13 +324,24 @@ sample({
 // Save successful transcription
 sample({
   clock: transcribeAudioFx.doneData,
-  source: { file: $sttFile, model: $sttModel, prompt: $sttPrompt, responseFormat: $currentResponseFormat, audioDuration: $audioDuration },
+  source: {
+    file: $sttFile,
+    model: $sttModel,
+    prompt: $sttPrompt,
+    responseFormat: $currentResponseFormat,
+    audioDuration: $audioDuration,
+  },
   filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt, responseFormat, audioDuration }, response): TranscriptionResult => {
+  fn: (
+    { file, model, prompt, responseFormat, audioDuration },
+    response,
+  ): TranscriptionResult => {
     const wordCount = response.text.trim().split(/\s+/).length;
     // Calculate text size in bytes
-    const textSize = new TextEncoder().encode(response.rawResponse || response.text).length;
-    
+    const textSize = new TextEncoder().encode(
+      response.rawResponse || response.text,
+    ).length;
+
     return {
       id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: response.text,
@@ -298,7 +366,7 @@ sample({
   clock: copyTextClicked,
   source: $transcriptionResults,
   fn: (results, id) => {
-    const result = results.find(r => r.id === id);
+    const result = results.find((r) => r.id === id);
     if (result) {
       const textToCopy = result.rawResponse || result.text;
       navigator.clipboard.writeText(textToCopy).catch(console.error);
@@ -311,11 +379,11 @@ sample({
   clock: generateMessageClicked,
   source: $transcriptionResults,
   filter: (results, id) => {
-    const result = results.find(r => r.id === id);
+    const result = results.find((r) => r.id === id);
     return Boolean(result?.text?.trim());
   },
   fn: (results, id) => {
-    const result = results.find(r => r.id === id);
+    const result = results.find((r) => r.id === id);
     return result!.text;
   },
   target: pasteTranscriptionToChat,
@@ -357,7 +425,9 @@ sample({
 export const $sttProgress = domain.createStore<number>(0);
 export const $sttResult = domain.createStore<string | null>(null);
 export const $sttLanguage = domain.createStore<string | null>(null);
-export const $sttProvider = domain.createStore<'voidai' | 'openai' | 'gemini'>('voidai');
+export const $sttProvider = domain.createStore<'voidai' | 'openai' | 'gemini'>(
+  'voidai',
+);
 export const $sttSegments = domain.createStore<unknown[]>([]);
 
 // Legacy events (kept for backward compatibility)
@@ -373,7 +443,10 @@ export const providerChanged = createEvent<'voidai' | 'openai' | 'gemini'>();
 
 // Update legacy stores
 $sttResult.on(transcribeAudioFx.doneData, (_, response) => response.text);
-$sttLanguage.on(transcribeAudioFx.doneData, (_, response) => response.language || null);
+$sttLanguage.on(
+  transcribeAudioFx.doneData,
+  (_, response) => response.language || null,
+);
 
 // Debug
 if (process.env.NODE_ENV === 'development') {

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Box,
   LinearProgress,
@@ -9,13 +9,13 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Alert
-} from "@mui/material";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import type { DocumentProcessingResult } from "../types";
+  Alert,
+} from '@mui/material';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import type { DocumentProcessingResult } from '../types';
 
 interface ExtractionProgressProps {
   files: File[];
@@ -28,7 +28,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
   files,
   isProcessing,
   error,
-  results
+  results,
 }) => {
   const getFileStatus = (file: File, index: number) => {
     if (error) return 'error';
@@ -58,7 +58,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
         <Typography variant="h6" gutterBottom>
           Document Processing
         </Typography>
-        
+
         {isProcessing && (
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -79,9 +79,7 @@ export const ExtractionProgress: React.FC<ExtractionProgressProps> = ({
             const status = getFileStatus(file, index);
             return (
               <ListItem key={`${file.name}-${index}`}>
-                <ListItemIcon>
-                  {getStatusIcon(status)}
-                </ListItemIcon>
+                <ListItemIcon>{getStatusIcon(status)}</ListItemIcon>
                 <ListItemText
                   primary={file.name}
                   secondary={`${(file.size / 1024 / 1024).toFixed(2)} MB • ${file.type}`}

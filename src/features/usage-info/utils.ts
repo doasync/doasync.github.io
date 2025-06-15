@@ -26,7 +26,7 @@ export async function navigatorStorageEstimate(): Promise<{
 export function calculateApiCost(
   tokensSent: number,
   tokensReceived: number,
-  pricing?: { prompt: number; completion: number }
+  pricing?: { prompt: number; completion: number },
 ): number {
   if (!pricing) return 0;
   const promptCost = (tokensSent / 1_000_000) * (pricing.prompt ?? 0);

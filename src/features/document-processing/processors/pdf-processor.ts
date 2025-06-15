@@ -1,20 +1,27 @@
-import type { DocumentProcessor, DocumentProcessingResult, DocumentMetadata, TextChunk } from '../types';
+import type {
+  DocumentProcessor,
+  DocumentProcessingResult,
+  DocumentMetadata,
+  TextChunk,
+} from '../types';
 
 // Lazy import PDF.js to avoid SSR issues
 const getPdfJs = async () => {
   if (typeof window === 'undefined') {
     throw new Error('PDF processing is only available in the browser');
   }
-  
+
   const pdfjsLib = await import('pdfjs-dist');
-  
+
   // Configure worker for Next.js environment
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
     // Use the worker file we copied to the public directory
     pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-    console.log(`PDF.js worker configured: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`);
+    console.log(
+      `PDF.js worker configured: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`,
+    );
   }
-  
+
   return pdfjsLib;
 };
 
@@ -24,54 +31,62 @@ export class PDFProcessor implements DocumentProcessor {
 
   async process(file: File): Promise<DocumentProcessingResult> {
     const arrayBuffer = await file.arrayBuffer();
-    
+
     const pdfjsLib = await getPdfJs();
-    
+
     try {
-      const pdf = await pdfjsLib.getDocument({ 
+      const pdf = await pdfjsLib.getDocument({
         data: arrayBuffer,
         verbosity: 0, // Reduce console noise
         useSystemFonts: true, // Use system fonts when available
-        standardFontDataUrl: undefined // Don't load standard fonts from CDN
+        standardFontDataUrl: undefined, // Don't load standard fonts from CDN
       }).promise;
-    
-    let fullText = '';
-    let fullHtml = '';
-    const pageTexts: string[] = [];
-    
-    // Extract text and generate HTML from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const viewport = page.getViewport({ scale: 1.0 });
-      
-      // Extract plain text for backward compatibility
-      const pageText = textContent.items
-        .map((item: unknown) => ('str' in (item as object) ? (item as { str: string }).str : ''))
-        .join(' ');
-      
-      pageTexts.push(pageText);
-      fullText += pageText + '\n\n';
-      
-      // Generate structured HTML with positioning
-      const pageHtml = this.convertPageToHtml(textContent, viewport, pageNum);
-      fullHtml += pageHtml;
-    }
-    
-    const extractedText = this.cleanPdfText(fullText);
-    const metadata = this.extractMetadata(file, extractedText, pdf.numPages);
-    const chunks = this.splitIntoChunks(extractedText);
-      
-    return {
-      extractedText,
-      metadata,
-      chunks,
-      previewHtml: fullHtml || this.generateFallbackPreviewHtml(extractedText),
-      originalContent: fullHtml || this.generateFallbackPreviewHtml(extractedText) // Store HTML representation for "Copy Code"
-    };
+
+      let fullText = '';
+      let fullHtml = '';
+      const pageTexts: string[] = [];
+
+      // Extract text and generate HTML from each page
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const viewport = page.getViewport({ scale: 1.0 });
+
+        // Extract plain text for backward compatibility
+        const pageText = textContent.items
+          .map((item: unknown) =>
+            'str' in (item as object) ? (item as { str: string }).str : '',
+          )
+          .join(' ');
+
+        pageTexts.push(pageText);
+        fullText += pageText + '\n\n';
+
+        // Generate structured HTML with positioning
+        const pageHtml = this.convertPageToHtml(textContent, viewport, pageNum);
+        fullHtml += pageHtml;
+      }
+
+      const extractedText = this.cleanPdfText(fullText);
+      const metadata = this.extractMetadata(file, extractedText, pdf.numPages);
+      const chunks = this.splitIntoChunks(extractedText);
+
+      return {
+        extractedText,
+        metadata,
+        chunks,
+        previewHtml:
+          fullHtml || this.generateFallbackPreviewHtml(extractedText),
+        originalContent:
+          fullHtml || this.generateFallbackPreviewHtml(extractedText), // Store HTML representation for "Copy Code"
+      };
     } catch (error) {
       console.error('PDF processing error:', error);
-      throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to process PDF: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
     }
   }
 
@@ -83,7 +98,11 @@ export class PDFProcessor implements DocumentProcessor {
       .trim();
   }
 
-  private extractMetadata(file: File, text: string, pageCount: number): DocumentMetadata {
+  private extractMetadata(
+    file: File,
+    text: string,
+    pageCount: number,
+  ): DocumentMetadata {
     return {
       fileName: file.name,
       fileSize: file.size,
@@ -94,7 +113,7 @@ export class PDFProcessor implements DocumentProcessor {
       // PDF.js metadata extraction would require additional API calls
       // For now, rely on filename for title
       title: file.name.replace(/\.pdf$/i, ''),
-      language: this.detectLanguage(text.substring(0, 1000)) // Sample first 1000 chars
+      language: this.detectLanguage(text.substring(0, 1000)), // Sample first 1000 chars
     };
   }
 
@@ -119,7 +138,7 @@ export class PDFProcessor implements DocumentProcessor {
           id: crypto.randomUUID(),
           content: currentChunk.trim(),
           startIndex,
-          endIndex: startIndex + currentChunk.length
+          endIndex: startIndex + currentChunk.length,
         });
         startIndex += currentChunk.length;
         currentChunk = sentence;
@@ -133,7 +152,7 @@ export class PDFProcessor implements DocumentProcessor {
         id: crypto.randomUUID(),
         content: currentChunk.trim(),
         startIndex,
-        endIndex: startIndex + currentChunk.length
+        endIndex: startIndex + currentChunk.length,
       });
     }
 
@@ -141,18 +160,29 @@ export class PDFProcessor implements DocumentProcessor {
   }
 
   private countWords(text: string): number {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   }
 
-  private convertPageToHtml(textContent: any, viewport: any, pageNum: number): string {
+  private convertPageToHtml(
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+    textContent: any,
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+    viewport: any,
+    pageNum: number,
+  ): string {
     const items = textContent.items;
-    
+
     if (!items || items.length === 0) {
       return `<div class="pdf-page" data-page="${pageNum}">No content</div>`;
     }
 
     // Group text items by vertical position to identify lines
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     const lines: any[][] = [];
+    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     let currentLine: any[] = [];
     let lastY = -1;
     const yTolerance = 3; // Increased tolerance for better line grouping
@@ -161,9 +191,9 @@ export class PDFProcessor implements DocumentProcessor {
       if (!item.transform || item.transform.length < 6) {
         continue;
       }
-      
+
       const y = Math.round(viewport.height - item.transform[5]);
-      
+
       if (lastY === -1 || Math.abs(y - lastY) <= yTolerance) {
         currentLine.push({ ...item, y });
         lastY = y;
@@ -175,7 +205,7 @@ export class PDFProcessor implements DocumentProcessor {
         lastY = y;
       }
     }
-    
+
     if (currentLine.length > 0) {
       lines.push(currentLine);
     }
@@ -184,34 +214,41 @@ export class PDFProcessor implements DocumentProcessor {
     lines.sort((a, b) => a[0].y - b[0].y);
 
     // Convert each line to HTML with simplified approach
-    const htmlLines = lines.map((line) => {
-      // Sort items in line by X position (left to right)
-      line.sort((a, b) => a.transform[4] - b.transform[4]);
-      
-      let lineHtml = '';
-      let lastX = 0;
-      
-      for (const item of line) {
-        const fontSize = Math.round(Math.abs(item.transform[0]) || 12);
-        const fontWeight = (item.fontName && item.fontName.toLowerCase().includes('bold')) ? 'bold' : 'normal';
-        const x = Math.round(item.transform[4]);
-        
-        // Add spacing based on X position difference
-        const spacing = x > lastX + 10 ? '&nbsp;&nbsp;&nbsp;' : ' ';
-        if (lineHtml && spacing) {
-          lineHtml += spacing;
+    const htmlLines = lines
+      .map((line) => {
+        // Sort items in line by X position (left to right)
+        line.sort((a, b) => a.transform[4] - b.transform[4]);
+
+        let lineHtml = '';
+        let lastX = 0;
+
+        for (const item of line) {
+          const fontSize = Math.round(Math.abs(item.transform[0]) || 12);
+          const fontWeight =
+            item.fontName && item.fontName.toLowerCase().includes('bold')
+              ? 'bold'
+              : 'normal';
+          const x = Math.round(item.transform[4]);
+
+          // Add spacing based on X position difference
+          const spacing = x > lastX + 10 ? '&nbsp;&nbsp;&nbsp;' : ' ';
+          if (lineHtml && spacing) {
+            lineHtml += spacing;
+          }
+
+          // Escape HTML characters and add the text
+          const text = this.escapeHtml(item.str || '');
+          if (text.trim()) {
+            lineHtml += `<span style="font-size:${fontSize}px;font-weight:${fontWeight};">${text}</span>`;
+            lastX = x + text.length * fontSize * 0.6; // Estimate text width
+          }
         }
-        
-        // Escape HTML characters and add the text
-        const text = this.escapeHtml(item.str || '');
-        if (text.trim()) {
-          lineHtml += `<span style="font-size:${fontSize}px;font-weight:${fontWeight};">${text}</span>`;
-          lastX = x + (text.length * fontSize * 0.6); // Estimate text width
-        }
-      }
-      
-      return lineHtml ? `<div style="margin-bottom:4px;line-height:1.2;">${lineHtml}</div>` : '';
-    }).filter(line => line); // Remove empty lines
+
+        return lineHtml
+          ? `<div style="margin-bottom:4px;line-height:1.2;">${lineHtml}</div>`
+          : '';
+      })
+      .filter((line) => line); // Remove empty lines
 
     return `
       <div class="pdf-page" data-page="${pageNum}" style="margin-bottom:30px;padding:20px;border:1px solid #e0e0e0;border-radius:8px;background:white;font-family:Arial,sans-serif;">
@@ -232,10 +269,13 @@ export class PDFProcessor implements DocumentProcessor {
 
   private generateFallbackPreviewHtml(text: string): string {
     const previewLength = 500;
-    const preview = text.length > previewLength 
-      ? text.substring(0, previewLength) + '...'
-      : text;
-    
-    return `<pre style="white-space: pre-wrap; font-family: inherit;">${this.escapeHtml(preview)}</pre>`;
+    const preview =
+      text.length > previewLength
+        ? text.substring(0, previewLength) + '...'
+        : text;
+
+    return `<pre style="white-space: pre-wrap; font-family: inherit;">${this.escapeHtml(
+      preview,
+    )}</pre>`;
   }
 }

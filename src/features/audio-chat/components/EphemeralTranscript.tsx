@@ -5,16 +5,16 @@
  * This transcript is session-only and not persisted to chat history.
  */
 
-import React from "react";
+import React from 'react';
 import {
   Box,
   Typography,
   CircularProgress,
   Alert,
   IconButton,
-} from "@mui/material";
-import { TextFields, ContentCopy } from "@mui/icons-material";
-import type { EphemeralTranscriptData } from "../types";
+} from '@mui/material';
+import { TextFields, ContentCopy } from '@mui/icons-material';
+import type { EphemeralTranscriptData } from '../types';
 
 export interface EphemeralTranscriptProps {
   messageId: string;
@@ -35,29 +35,29 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
       await navigator.clipboard.writeText(transcriptData.text);
       // You might want to show a snackbar here
     } catch (error) {
-      console.error("Failed to copy transcript:", error);
-      onError?.("Failed to copy transcript");
+      console.error('Failed to copy transcript:', error);
+      onError?.('Failed to copy transcript');
     }
   };
 
   return (
     <Box
       sx={{
-        border: "1px dashed #bad1ff",
+        border: '1px dashed #bad1ff',
         borderRadius: 2,
         p: 2,
         mt: 2,
-        backgroundColor: "#bad1ff0a", // Light blue background with low opacity
-        position: "relative",
-        "&::before": {
+        backgroundColor: '#bad1ff0a', // Light blue background with low opacity
+        position: 'relative',
+        '&::before': {
           content: '"TEMPORARY"',
-          position: "absolute",
+          position: 'absolute',
           top: -8,
           left: 16,
-          fontSize: "10px",
-          fontWeight: "bold",
-          color: "#bad1ff",
-          backgroundColor: "background.paper",
+          fontSize: '10px',
+          fontWeight: 'bold',
+          color: '#bad1ff',
+          backgroundColor: 'background.paper',
           px: 1,
         },
       }}
@@ -65,19 +65,19 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
       {/* Header with temporary indicator */}
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           mb: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TextFields sx={{ fontSize: 18, color: "#bad1ff" }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TextFields sx={{ fontSize: 18, color: '#bad1ff' }} />
           <Typography
             variant="subtitle2"
             sx={{
-              color: "#bad1ff",
-              fontWeight: "bold",
+              color: '#bad1ff',
+              fontWeight: 'bold',
             }}
           >
             Transcript
@@ -86,7 +86,7 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontStyle: "italic" }}
+              sx={{ fontStyle: 'italic' }}
             >
               • {transcriptData.model}
             </Typography>
@@ -95,7 +95,7 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontStyle: "italic" }}
+              sx={{ fontStyle: 'italic' }}
             >
               • {transcriptData.format}
             </Typography>
@@ -103,13 +103,13 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ fontStyle: "italic" }}
+            sx={{ fontStyle: 'italic' }}
           >
-            •{" "}
-            {new Date(transcriptData.timestamp).toLocaleTimeString("en-GB", {
+            •{' '}
+            {new Date(transcriptData.timestamp).toLocaleTimeString('en-GB', {
               hour12: false,
-              hour: "2-digit",
-              minute: "2-digit",
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </Typography>
         </Box>
@@ -131,7 +131,7 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
 
       {/* Loading state */}
       {transcriptData.isLoading && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
           <CircularProgress size={16} />
           <Typography variant="body2" color="text.secondary">
             Transcribing audio...
@@ -153,16 +153,16 @@ export const EphemeralTranscript: React.FC<EphemeralTranscriptProps> = ({
           <Typography
             variant="body2"
             sx={{
-              fontStyle: "italic",
+              fontStyle: 'italic',
               lineHeight: 1.4,
-              color: "text.primary",
-              "&::before": {
+              color: 'text.primary',
+              '&::before': {
                 content: '"\u201C"',
-                color: "text.secondary",
+                color: 'text.secondary',
               },
-              "&::after": {
+              '&::after': {
                 content: '"\u201D"',
-                color: "text.secondary",
+                color: 'text.secondary',
               },
             }}
           >

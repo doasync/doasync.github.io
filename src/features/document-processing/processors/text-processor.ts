@@ -1,4 +1,9 @@
-import type { DocumentProcessor, DocumentProcessingResult, DocumentMetadata, TextChunk } from '../types';
+import type {
+  DocumentProcessor,
+  DocumentProcessingResult,
+  DocumentMetadata,
+  TextChunk,
+} from '../types';
 
 export class TextProcessor implements DocumentProcessor {
   supportedTypes = ['text/plain', 'text/markdown', 'application/x-markdown'];
@@ -14,7 +19,7 @@ export class TextProcessor implements DocumentProcessor {
       extractedText,
       metadata,
       chunks,
-      previewHtml: this.generatePreviewHtml(extractedText, file.type)
+      previewHtml: this.generatePreviewHtml(extractedText, file.type),
     };
   }
 
@@ -32,7 +37,7 @@ export class TextProcessor implements DocumentProcessor {
       fileSize: file.size,
       mimeType: file.type,
       wordCount: this.countWords(text),
-      characterCount: text.length
+      characterCount: text.length,
     };
   }
 
@@ -48,7 +53,7 @@ export class TextProcessor implements DocumentProcessor {
           id: crypto.randomUUID(),
           content: currentChunk.trim(),
           startIndex,
-          endIndex: startIndex + currentChunk.length
+          endIndex: startIndex + currentChunk.length,
         });
         startIndex += currentChunk.length;
         currentChunk = line;
@@ -62,7 +67,7 @@ export class TextProcessor implements DocumentProcessor {
         id: crypto.randomUUID(),
         content: currentChunk.trim(),
         startIndex,
-        endIndex: startIndex + currentChunk.length
+        endIndex: startIndex + currentChunk.length,
       });
     }
 
@@ -70,15 +75,19 @@ export class TextProcessor implements DocumentProcessor {
   }
 
   private countWords(text: string): number {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   }
 
   private generatePreviewHtml(text: string, mimeType: string): string {
     const previewLength = 500;
-    const preview = text.length > previewLength 
-      ? text.substring(0, previewLength) + '...'
-      : text;
-    
+    const preview =
+      text.length > previewLength
+        ? text.substring(0, previewLength) + '...'
+        : text;
+
     if (mimeType.includes('markdown')) {
       // Basic markdown rendering for preview
       const htmlPreview = preview
@@ -88,7 +97,7 @@ export class TextProcessor implements DocumentProcessor {
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/gim, '<em>$1</em>')
         .replace(/\n/g, '<br>');
-      
+
       return `<div style="line-height: 1.5;">${htmlPreview}</div>`;
     } else {
       return `<pre style="white-space: pre-wrap; font-family: inherit;">${preview}</pre>`;

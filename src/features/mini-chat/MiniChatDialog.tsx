@@ -1,5 +1,5 @@
-import React from "react";
-import Draggable from "react-draggable";
+import React from 'react';
+import Draggable from 'react-draggable';
 import {
   Box, // Add Box import
   Paper,
@@ -7,15 +7,15 @@ import {
   Typography,
   TextField,
   IconButton,
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import RemoveIcon from "@mui/icons-material/Remove"; // Import Minimize icon
-import LinearProgress from "@mui/material/LinearProgress";
-import SendIcon from "@mui/icons-material/Send";
-import StopIcon from "@mui/icons-material/Stop"; // Import Stop icon
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import RemoveIcon from '@mui/icons-material/Remove'; // Import Minimize icon
+import LinearProgress from '@mui/material/LinearProgress';
+import SendIcon from '@mui/icons-material/Send';
+import StopIcon from '@mui/icons-material/Stop'; // Import Stop icon
 
-import { useUnit } from "effector-react";
+import { useUnit } from 'effector-react';
 import {
   $miniChat,
   updateMiniChatInput,
@@ -25,7 +25,7 @@ import {
   minimizeMiniChat, // Import minimize event
   $miniChatScrollTrigger,
   stopMiniChatGenerationClicked, // Import cancellation event
-} from "./model";
+} from './model';
 
 export const MiniChatDialog: React.FC = () => {
   const {
@@ -77,21 +77,21 @@ export const MiniChatDialog: React.FC = () => {
         ref={nodeRef}
         elevation={6}
         sx={{
-          position: "fixed",
+          position: 'fixed',
           // Conditionally set position based on initial coordinates
           ...(initialX != null && initialY != null
             ? { top: initialY, left: initialX } // Position near selection
-            : { bottom: "20px", right: "20px" }), // Default bottom-right
-          maxWidth: "300px",
-          minWidth: "196px",
-          maxHeight: "40vh",
+            : { bottom: '20px', right: '20px' }), // Default bottom-right
+          maxWidth: '300px',
+          minWidth: '196px',
+          maxHeight: '40vh',
           zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          transform: "translate(-50%, 10px)", // Adjust transform to center above/below selection point
+          display: 'flex',
+          flexDirection: 'column',
+          transform: 'translate(-50%, 10px)', // Adjust transform to center above/below selection point
           // transform: 'translate(0, 0)', // Helps prevent initial off-screen placement before drag
           pb: 1,
-          visibility: isMinimized ? "hidden" : "visible", // Hide when minimized
+          visibility: isMinimized ? 'hidden' : 'visible', // Hide when minimized
         }}
       >
         {/* Conditionally render the entire dialog content based on minimized state */}
@@ -108,14 +108,14 @@ export const MiniChatDialog: React.FC = () => {
                 p: 0.5,
                 pl: 1.3,
                 borderBottom: 1,
-                borderColor: "divider",
+                borderColor: 'divider',
               }}
             >
               {/* Title Wrapper - This is now the drag handle */}
               <Box
                 className="drag-handle"
                 sx={{
-                  cursor: "move",
+                  cursor: 'move',
                   flexGrow: 1,
                   mr: 1 /* Add some margin */,
                 }}
@@ -159,9 +159,9 @@ export const MiniChatDialog: React.FC = () => {
                 spacing={1}
                 sx={{
                   p: 1,
-                  overflowY: "auto",
+                  overflowY: 'auto',
                   flexShrink: 1000,
-                  minHeight: "66px",
+                  minHeight: '66px',
                 }}
                 ref={messagesAreaRef} // Re-assign ref
               >
@@ -171,12 +171,12 @@ export const MiniChatDialog: React.FC = () => {
                     className="chat-message" // Added className here
                     sx={{
                       p: 1,
-                      minWidth: "30%",
+                      minWidth: '30%',
                       bgcolor:
-                        msg.role === "user" ? "primary.dark" : "secondary.dark",
+                        msg.role === 'user' ? 'primary.dark' : 'secondary.dark',
                     }}
                   >
-                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                       {msg.content}
                     </Typography>
                   </Paper>
@@ -194,8 +194,8 @@ export const MiniChatDialog: React.FC = () => {
                 p: 1,
                 pb: 0,
                 borderTop: 1,
-                borderColor: "divider",
-                overflow: "auto",
+                borderColor: 'divider',
+                overflow: 'auto',
               }}
             >
               <TextField
@@ -217,15 +217,15 @@ export const MiniChatDialog: React.FC = () => {
                 }}
                 */
                 sx={{
-                  "& .MuiOutlinedInput-root": {
+                  '& .MuiOutlinedInput-root': {
                     p: 0.5,
                     pl: 1.2,
                     pr: 0.7,
                     //border: "1px solid red",
                   },
                   // Clickable area for the input
-                  "& textarea": {
-                    overflow: "auto", // Ensure textarea itself is scrollable
+                  '& textarea': {
+                    overflow: 'auto', // Ensure textarea itself is scrollable
                   },
                 }}
                 slotProps={{
@@ -238,7 +238,7 @@ export const MiniChatDialog: React.FC = () => {
                           size="small"
                           edge="end"
                           onClick={() => stopMiniChatGenerationClicked()}
-                          sx={{ alignSelf: "flex-end", color: "warning.main" }}
+                          sx={{ alignSelf: 'flex-end', color: 'warning.main' }}
                         >
                           <StopIcon fontSize="small" />
                         </IconButton>
@@ -253,7 +253,7 @@ export const MiniChatDialog: React.FC = () => {
                               sendMiniChatMessage(input.trim());
                             }
                           }}
-                          sx={{ alignSelf: "flex-end" }}
+                          sx={{ alignSelf: 'flex-end' }}
                         >
                           <SendIcon fontSize="small" />
                         </IconButton>
@@ -268,10 +268,10 @@ export const MiniChatDialog: React.FC = () => {
               <LinearProgress
                 color="secondary"
                 sx={{
-                  position: "absolute",
+                  position: 'absolute',
                   bottom: 0,
-                  width: "100%",
-                  height: "1px",
+                  width: '100%',
+                  height: '1px',
                 }}
               />
             )}

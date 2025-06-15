@@ -8,7 +8,7 @@ export interface STTParams {
 
 export interface STTResponse {
   text: string;
-  rawResponse: string;  // Store the actual API response
+  rawResponse: string; // Store the actual API response
   language?: string;
   duration?: number;
   segments?: TranscriptionSegment[];
@@ -23,11 +23,11 @@ export interface TranscriptionSegment {
 export interface TranscriptionResult {
   id: string;
   text: string;
-  rawResponse: string;  // Store the actual API response
+  rawResponse: string; // Store the actual API response
   fileName: string;
   fileSize: number;
-  audioDuration?: number;  // Duration of the original audio in seconds
-  textSize: number;  // Size of the transcribed text in bytes
+  audioDuration?: number; // Duration of the original audio in seconds
+  textSize: number; // Size of the transcribed text in bytes
   model: string;
   prompt?: string;
   timestamp: number;
@@ -58,23 +58,23 @@ export interface STTModel {
 export interface STTState {
   // Current operation
   file: File | null;
-  audioDuration?: number;  // Duration of the selected audio file
+  audioDuration?: number; // Duration of the selected audio file
   selectedModel: string;
   prompt: string;
   isLoading: boolean;
   error: string | null;
-  
+
   // Results and history
   transcriptionResults: TranscriptionResult[];
   selectedResult: string | null;
-  
+
   // UI state
   isDialogOpen: boolean;
   availableModels: STTModel[];
-  
+
   // Response format settings per model
   responseFormatsPerModel: Record<string, ResponseFormat>;
-  
+
   // Legacy compatibility
   progress: number;
   result: string | null;

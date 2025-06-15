@@ -31,9 +31,7 @@ export interface AudioOutputPart {
 }
 
 // Update MessageContentPart union type
-export type ExtendedMessageContentPart = 
-  | MessageContentPart 
-  | AudioOutputPart;
+export type ExtendedMessageContentPart = MessageContentPart | AudioOutputPart;
 
 // Extended message type with audio support
 export interface AudioMessage extends Omit<Message, 'content'> {
@@ -41,34 +39,50 @@ export interface AudioMessage extends Omit<Message, 'content'> {
 }
 
 // Helper type guards
-export function isAudioInputPart(part: unknown): part is AudioContentPartExtended {
-  return typeof part === 'object' && part !== null && 'type' in part && (part as { type: unknown }).type === 'input_audio';
+export function isAudioInputPart(
+  part: unknown,
+): part is AudioContentPartExtended {
+  return (
+    typeof part === 'object' &&
+    part !== null &&
+    'type' in part &&
+    (part as { type: unknown }).type === 'input_audio'
+  );
 }
 
 export function isAudioOutputPart(part: unknown): part is AudioOutputPart {
-  return typeof part === 'object' && part !== null && 'type' in part && (part as { type: unknown }).type === 'output_audio';
+  return (
+    typeof part === 'object' &&
+    part !== null &&
+    'type' in part &&
+    (part as { type: unknown }).type === 'output_audio'
+  );
 }
 
 export function hasAudioContent(message: Message | AudioMessage): boolean {
   if (typeof message.content === 'string') return false;
-  
-  return message.content.some(part => 
-    part.type === 'input_audio' || part.type === 'output_audio'
+
+  return message.content.some(
+    (part) => part.type === 'input_audio' || part.type === 'output_audio',
   );
 }
 
 // Convert audio blob to content part
 export async function createAudioContentPart(
   blob: Blob,
-  transcript?: string
+  transcript?: string,
 ): Promise<AudioContentPartExtended> {
   // Convert blob to base64
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  
+
   // Detect format from MIME type
-  const format = blob.type.replace('audio/', '') as 'wav' | 'mp3' | 'flac' | 'opus';
-  
+  const format = blob.type.replace('audio/', '') as
+    | 'wav'
+    | 'mp3'
+    | 'flac'
+    | 'opus';
+
   return {
     type: 'input_audio',
     input_audio: {
@@ -90,7 +104,7 @@ export function createAudioOutputPart(
     model?: string;
     transcript?: string;
     waveform?: number[];
-  } = {}
+  } = {},
 ): AudioOutputPart {
   return {
     type: 'output_audio',

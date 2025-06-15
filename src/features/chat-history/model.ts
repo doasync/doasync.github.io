@@ -1,8 +1,8 @@
-import { createDomain, sample } from "effector";
-import { debug } from "patronum/debug";
-import { debounce } from "patronum/debounce";
-import { persist } from "effector-storage/local";
-import { $messageText } from "@/features/chat";
+import { createDomain, sample } from 'effector';
+import { debug } from 'patronum/debug';
+import { debounce } from 'patronum/debounce';
+import { persist } from 'effector-storage/local';
+import { $messageText } from '@/features/chat';
 import {
   $messages,
   $currentChatTokens,
@@ -12,19 +12,24 @@ import {
   // retryUpdate, // Removed
   normalResponseProcessed, // For saving after normal API responses
   assistantResponseCompleted, // Added: For saving after generate/retry completion
-} from "@/features/chat";
-import { $apiKey, $providerApiUrl, $temperature, $systemPrompt } from "@/features/chat-settings";
-import { $autoTitleModelId } from "@/features/models-select/model";
-import { $availableModels } from "@/features/models-select";
-import { $selectedModelId } from "@/features/models-select";
-import { modelSelected } from "@/features/models-select";
+} from '@/features/chat';
+import {
+  $apiKey,
+  $providerApiUrl,
+  $temperature,
+  $systemPrompt,
+} from '@/features/chat-settings';
+import { $autoTitleModelId } from '@/features/models-select';
+import { $availableModels } from '@/features/models-select';
+import { $selectedModelId } from '@/features/models-select';
+import { modelSelected } from '@/features/models-select';
 import {
   ChatSession,
   ChatHistoryIndex,
   GenerateTitleParams,
   GenerateTitleResult,
   EditTitleParams,
-} from "./types";
+} from './types';
 import {
   loadChatHistoryIndexHandler,
   loadSpecificChatHandler,
@@ -35,41 +40,42 @@ import {
   updateIndexOnSaveFn,
   updateIndexOnTitleEditFn,
   prepareChatSessionFn,
-} from "./lib";
-import { appStarted } from "@/app";
+} from './lib';
+import { appStarted } from '@/app';
+import { resetEditingMessage } from '@/features/ui-state';
 
-const historyDomain = createDomain("history");
+const historyDomain = createDomain('history');
 
-export const loadChatHistory = historyDomain.event("loadChatHistory");
-export const chatSelected = historyDomain.event<string>("chatSelected");
+export const loadChatHistory = historyDomain.event('loadChatHistory');
+export const chatSelected = historyDomain.event<string>('chatSelected');
 
 // --- Persisted Active Chat ID Store ---
 export const $activeChatId = historyDomain
   .store<string | null>(null, {
-    name: "$activeChatId",
+    name: '$activeChatId',
   })
   .on(chatSelected, (_, id) => id);
 
 // Persist the active chat ID in localStorage using effector-storage
-persist({ store: $activeChatId, key: "currentChatId" });
+persist({ store: $activeChatId, key: 'currentChatId' });
 
 // --- Restoration Guard ---
 export const $isRestoring = historyDomain.store(false, {
-  name: "$isRestoring",
+  name: '$isRestoring',
 });
 
 // Sets isRestoring to true when chat is selected (restoration phase starts)
 $isRestoring.on(chatSelected, () => true);
-export const deleteChat = historyDomain.event<string>("deleteChat");
-export const newChatCreated = historyDomain.event("newChatCreated");
+export const deleteChat = historyDomain.event<string>('deleteChat');
+export const newChatCreated = historyDomain.event('newChatCreated');
 export const chatTitleEdited =
-  historyDomain.event<EditTitleParams>("chatTitleEdited");
-export const generateTitle = historyDomain.event("generateTitle");
+  historyDomain.event<EditTitleParams>('chatTitleEdited');
+export const generateTitle = historyDomain.event('generateTitle');
 export const duplicateChatClicked = historyDomain.event<string>(
-  "duplicateChatClicked"
+  'duplicateChatClicked',
 );
 export const regenerateTitleForChat = historyDomain.event<string>(
-  "regenerateTitleForChat"
+  'regenerateTitleForChat',
 );
 
 // --- Effects ---
@@ -77,16 +83,16 @@ export const loadChatHistoryIndexFx = historyDomain.effect<
   void,
   ChatHistoryIndex[],
   Error
->("loadChatHistoryIndexFx", {
+>('loadChatHistoryIndexFx', {
   handler: loadChatHistoryIndexHandler,
 });
 export const duplicateChatFx = historyDomain.effect<string, string, Error>(
-  "duplicateChatFx"
+  'duplicateChatFx',
 );
 
 duplicateChatFx.use(async (chatId) => {
   const originalChat = await loadSpecificChatHandler(chatId);
-  if (!originalChat) throw new Error("Original chat not found");
+  if (!originalChat) throw new Error('Original chat not found');
   const newId = crypto.randomUUID();
   const now = Date.now();
   const duplicatedChat: ChatSession = {
@@ -94,12 +100,12 @@ duplicateChatFx.use(async (chatId) => {
     id: newId,
     createdAt: now,
     lastModified: now,
-    title: originalChat.title + " (Copy)",
+    title: originalChat.title + ' (Copy)',
     messages: originalChat.messages ?? [],
     settings: originalChat.settings ?? {
-      model: "",
+      model: '',
       temperature: 1,
-      systemPrompt: "",
+      systemPrompt: '',
     },
     totalTokens: originalChat.totalTokens ?? 0,
   };
@@ -126,29 +132,29 @@ export const loadSpecificChatFx = historyDomain.effect<
   string,
   ChatSession | null,
   Error
->("loadSpecificChatFx", {
+>('loadSpecificChatFx', {
   handler: loadSpecificChatHandler,
 });
 
 export const saveChatFx = historyDomain.effect<ChatSession, void, Error>(
-  "saveChatFx",
+  'saveChatFx',
   {
     handler: saveChatHandler,
-  }
+  },
 );
 
 export const deleteChatFx = historyDomain.effect<string, void, Error>(
-  "deleteChatFx",
+  'deleteChatFx',
   {
     handler: deleteChatHandler,
-  }
+  },
 );
 
 export const editChatTitleFx = historyDomain.effect<
   EditTitleParams,
   ChatHistoryIndex | null,
   Error
->("editChatTitleFx", {
+>('editChatTitleFx', {
   handler: editChatTitleHandler,
 });
 
@@ -156,22 +162,22 @@ export const generateTitleFx = historyDomain.effect<
   GenerateTitleParams,
   GenerateTitleResult,
   Error
->("generateTitleFx", {
+>('generateTitleFx', {
   handler: generateTitleHandler,
 });
 export const regenerateTitleForChatFx = historyDomain.effect<
   string,
   void,
   Error
->("regenerateTitleForChatFx");
+>('regenerateTitleForChatFx');
 
 regenerateTitleForChatFx.use(async (chatId) => {
   const apiKey = $apiKey.getState();
   const providerApiUrl = $providerApiUrl.getState();
-  if (!apiKey) throw new Error("API key is missing");
+  if (!apiKey) throw new Error('API key is missing');
 
   const chat = await loadSpecificChatHandler(chatId);
-  if (!chat) throw new Error("Chat not found");
+  if (!chat) throw new Error('Chat not found');
 
   if (!chat.messages || chat.messages.length === 0) return;
 
@@ -201,19 +207,19 @@ sample({
 
 // --- Stores ---
 export const $chatHistoryIndex = historyDomain.store<ChatHistoryIndex[]>([], {
-  name: "$chatHistoryIndex",
+  name: '$chatHistoryIndex',
 });
 
 export const $currentChatSession = historyDomain.store<ChatSession | null>(
   null,
 
   {
-    name: "$currentChatSession",
-  }
+    name: '$currentChatSession',
+  },
 );
 
 export const $currentChatId = $currentChatSession.map(
-  (session) => session?.id ?? null
+  (session) => session?.id ?? null,
 );
 
 export const $isLoadingHistory = loadChatHistoryIndexFx.pending;
@@ -292,7 +298,7 @@ sample({
 
 sample({
   clock: loadSpecificChatFx.doneData,
-  fn: (chat) => chat?.draft ?? "",
+  fn: (chat) => chat?.draft ?? '',
   target: $messageText,
 });
 
@@ -327,11 +333,11 @@ sample({
 
 // On appStarted (after chat history index is loaded), restore session from persisted $activeChatId if possible
 export const restoreChatSession = historyDomain.event<string | null>(
-  "restoreChatSession"
+  'restoreChatSession',
 );
 
 // Track if we're in initial startup phase
-const $isAppStartup = historyDomain.store(false, { name: "$isAppStartup" });
+const $isAppStartup = historyDomain.store(false, { name: '$isAppStartup' });
 $isAppStartup.on(appStarted, () => true);
 $isAppStartup.on(restoreChatSession, () => false);
 
@@ -359,7 +365,7 @@ sample({
 // Only allow valid string to reach chatSelected
 sample({
   clock: restoreChatSession,
-  filter: (id): id is string => typeof id === "string" && !!id,
+  filter: (id): id is string => typeof id === 'string' && !!id,
   target: chatSelected,
 });
 
@@ -376,6 +382,12 @@ sample({
 sample({
   clock: chatSelected,
   target: loadSpecificChatFx,
+});
+
+// Reset editing state when chat changes
+sample({
+  clock: [chatSelected, newChatCreated],
+  target: resetEditingMessage,
 });
 
 // Trigger chat deletion effect
@@ -501,7 +513,7 @@ sample({
     draft: $messageText, // <-- Add draft input
     selectedModelInfo: $availableModels.map(
       (models) =>
-        models.find((m) => m.id === $selectedModelId.getState()) ?? null
+        models.find((m) => m.id === $selectedModelId.getState()) ?? null,
     ),
     isRestoring: $isRestoring,
   },
@@ -509,15 +521,15 @@ sample({
   fn: (source) => {
     // Corrected logging function
     console.log(
-      "[saveChatFx Trigger] Fired. Source Messages Length:",
+      '[saveChatFx Trigger] Fired. Source Messages Length:',
       source.messages.length,
-      "Restoring:",
-      source.isRestoring
+      'Restoring:',
+      source.isRestoring,
     ); // DEBUG LOG
     if (source.messages.length > 0) {
       console.log(
-        "[saveChatFx Trigger] Last Message ID:",
-        source.messages[source.messages.length - 1].id
+        '[saveChatFx Trigger] Last Message ID:',
+        source.messages[source.messages.length - 1].id,
       ); // Log ID for easier tracking
     }
     // Remove isRestoring from session passed to prepareChatSessionFn
@@ -535,10 +547,13 @@ sample({
   clock: saveChatFx.done,
   source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl },
   filter: ({ apiKey }, { params: savedChat }) =>
-    !!apiKey && 
-    savedChat.messages.length >= 2 && 
+    !!apiKey &&
+    savedChat.messages.length >= 2 &&
     (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(savedChat.title) || !savedChat.title), // Generate if no title or has timestamp title
-  fn: ({ apiKey, providerApiUrl }, { params: savedChat }): GenerateTitleParams => ({
+  fn: (
+    { apiKey, providerApiUrl },
+    { params: savedChat },
+  ): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
     apiKey: apiKey,
@@ -562,7 +577,11 @@ sample({
 // Trigger title generation manually via event
 sample({
   clock: generateTitle,
-  source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl, currentChat: $currentChatSession },
+  source: {
+    apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
+    currentChat: $currentChatSession,
+  },
   filter: ({ apiKey, currentChat }) =>
     !!apiKey && !!currentChat && currentChat.messages.length > 0,
   fn: ({ apiKey, providerApiUrl, currentChat }) => ({
@@ -579,7 +598,10 @@ sample({
 
 // Debug title generation flow
 generateTitleFx.done.watch(({ params, result }) => {
-  console.log(`[DEBUG] Title generated for chat ${params.chatId}:`, result.generatedTitle);
+  console.log(
+    `[DEBUG] Title generated for chat ${params.chatId}:`,
+    result.generatedTitle,
+  );
 });
 
 generateTitleFx.fail.watch(({ error, params }) => {
@@ -587,7 +609,12 @@ generateTitleFx.fail.watch(({ error, params }) => {
 });
 
 editChatTitleFx.done.watch(({ params, result }) => {
-  console.log(`[DEBUG] Title edited for chat ${params.id}:`, params.newTitle, "Result:", result);
+  console.log(
+    `[DEBUG] Title edited for chat ${params.id}:`,
+    params.newTitle,
+    'Result:',
+    result,
+  );
 });
 
 editChatTitleFx.fail.watch(({ error, params }) => {
@@ -596,10 +623,10 @@ editChatTitleFx.fail.watch(({ error, params }) => {
 
 // Debug watches for development
 saveChatFx.done.watch(() => {
-  console.log("Effect: saveChatFx done (Debug)");
+  console.log('Effect: saveChatFx done (Debug)');
 });
 saveChatFx.fail.watch((error) => {
-  console.error("Effect: saveChatFx failed (Debug)", error);
+  console.error('Effect: saveChatFx failed (Debug)', error);
 });
 
 sample({
@@ -664,5 +691,5 @@ debug(
   editChatTitleFx,
   generateTitleFx,
   duplicateChatFx, // Added duplicate effect
-  regenerateTitleForChatFx
+  regenerateTitleForChatFx,
 );

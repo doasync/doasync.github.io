@@ -1,4 +1,4 @@
-import { openDB, IDBPDatabase } from "idb";
+import { openDB, IDBPDatabase } from 'idb';
 import {
   ChatDB,
   ChatSession,
@@ -6,14 +6,15 @@ import {
   GenerateTitleParams,
   GenerateTitleResult,
   EditTitleParams,
-} from "./types";
-import { Message } from "@/features/chat/types"; // Import Message type
+} from './types';
+import { Message } from '@/features/chat/types'; // Import Message type
+import type { ModelInfo } from '@/features/models-select/types'; // Import ModelInfo type
 
 // --- IndexedDB Setup ---
 
-export const DB_NAME = "LLMChatDB";
+export const DB_NAME = 'LLMChatDB';
 export const DB_VERSION = 1;
-export const STORE_NAME = "chats";
+export const STORE_NAME = 'chats';
 
 let dbPromise: Promise<IDBPDatabase<ChatDB>> | null = null;
 
@@ -26,10 +27,10 @@ export const getDb = (): Promise<IDBPDatabase<ChatDB>> => {
       upgrade(db) {
         // Check if the store already exists before creating it
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+          const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
           // Check if the index already exists before creating it
-          if (!store.indexNames.contains("lastModified")) {
-            store.createIndex("lastModified", "lastModified");
+          if (!store.indexNames.contains('lastModified')) {
+            store.createIndex('lastModified', 'lastModified');
           }
         }
       },
@@ -47,7 +48,7 @@ export const loadChatHistoryIndexHandler = async (): Promise<
   ChatHistoryIndex[]
 > => {
   const db = await getDb();
-  const tx = db.transaction(STORE_NAME, "readonly");
+  const tx = db.transaction(STORE_NAME, 'readonly');
   const store = tx.objectStore(STORE_NAME);
   const allChats = await store.getAll();
   await tx.done;
@@ -61,7 +62,7 @@ export const loadChatHistoryIndexHandler = async (): Promise<
  * Loads a specific full chat session from IndexedDB by its ID.
  */
 export const loadSpecificChatHandler = async (
-  id: string
+  id: string,
 ): Promise<ChatSession | null> => {
   const db = await getDb();
   const chat = await db.get(STORE_NAME, id);
@@ -72,7 +73,7 @@ export const loadSpecificChatHandler = async (
  * Saves a full chat session to IndexedDB.
  */
 export const saveChatHandler = async (
-  chatSession: ChatSession
+  chatSession: ChatSession,
 ): Promise<void> => {
   const db = await getDb();
   // Ensure isEdited, originalContent, and status are saved
@@ -82,7 +83,7 @@ export const saveChatHandler = async (
       ...message,
       isEdited: message.isEdited || false, // Ensure isEdited is saved
       originalContent: message.originalContent || undefined, // Ensure originalContent is saved
-      status: message.status || "sent", // Default to sent for backward compatibility
+      status: message.status || 'sent', // Default to sent for backward compatibility
     })),
   };
   await db.put(STORE_NAME, chatSessionToSave);
@@ -104,7 +105,7 @@ export const editChatTitleHandler = async ({
   newTitle,
 }: EditTitleParams): Promise<ChatHistoryIndex | null> => {
   const db = await getDb();
-  const tx = db.transaction(STORE_NAME, "readwrite");
+  const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
   const chat = await store.get(id);
   if (chat) {
@@ -125,8 +126,8 @@ export const editChatTitleHandler = async ({
 /**
  * Generates a chat title using the configured API provider.
  */
-import { $autoTitleModelId } from "@/features/models-select/model";
-import { buildChatCompletionsUrl } from "@/features/api-config";
+// Removed imports to avoid circular dependencies
+// These values will be passed as parameters instead
 const TITLE_PROMPT = `Summarize this chat conversation
   in 1-5 words (maximum conciseness). Use title case. Focus on user's intent.
   It will be used as a title. Do not mention yourself (assistant) or the user.
@@ -137,12 +138,13 @@ export const generateTitleHandler = async ({
   messages,
   apiKey,
   providerApiUrl,
+  modelId,
 }: GenerateTitleParams): Promise<GenerateTitleResult> => {
   if (!apiKey) {
-    throw new Error("API key is required for title generation.");
+    throw new Error('API key is required for title generation.');
   }
   if (messages.length === 0) {
-    throw new Error("Cannot generate title for empty chat.");
+    throw new Error('Cannot generate title for empty chat.');
   }
 
   // Prepare messages for the title generation model
@@ -152,21 +154,21 @@ export const generateTitleHandler = async ({
       .slice(0, 6)
       .map((msg) => ({ role: msg.role, content: msg.content })),
     // Add the title prompt as the last message
-    { role: "user", content: TITLE_PROMPT },
+    { role: 'user', content: TITLE_PROMPT },
   ];
 
   const body = {
-    model: $autoTitleModelId.getState(),
+    model: modelId,
     messages: apiMessages,
     temperature: 0.5, // Lower temperature for more deterministic title
     max_tokens: 10, // Limit response length
   };
 
-  const chatCompletionsUrl = buildChatCompletionsUrl(providerApiUrl);
+  const chatCompletionsUrl = `${providerApiUrl}/chat/completions`;
   const response = await fetch(chatCompletionsUrl, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
@@ -185,14 +187,14 @@ export const generateTitleHandler = async ({
 
   const data = await response.json();
   const generatedTitle = data.choices?.[0]?.message?.content;
-  const sanitizedTitle = generatedTitle?.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+  const sanitizedTitle = generatedTitle?.replace(/[^a-zA-Z0-9\s]/g, '').trim();
 
   if (!sanitizedTitle) {
     console.error(
-      "Title generation API response content is empty or undefined:",
-      data
+      'Title generation API response content is empty or undefined:',
+      data,
     );
-    throw new Error("Title generation resulted in an empty response.");
+    throw new Error('Title generation resulted in an empty response.');
   }
 
   return { chatId, generatedTitle: sanitizedTitle };
@@ -206,7 +208,7 @@ export const generateTitleHandler = async ({
  */
 export const updateIndexOnSaveFn = (
   currentIndex: ChatHistoryIndex[],
-  savedChat: ChatSession
+  savedChat: ChatSession,
 ): ChatHistoryIndex[] => {
   const newEntry: ChatHistoryIndex = {
     id: savedChat.id,
@@ -214,7 +216,7 @@ export const updateIndexOnSaveFn = (
     lastModified: savedChat.lastModified,
   };
   const existingIndex = currentIndex.findIndex(
-    (chat) => chat.id === savedChat.id
+    (chat) => chat.id === savedChat.id,
   );
   let newState;
   if (existingIndex !== -1) {
@@ -233,12 +235,12 @@ export const updateIndexOnSaveFn = (
  */
 export const updateIndexOnTitleEditFn = (
   currentIndex: ChatHistoryIndex[],
-  updatedIndexEntry: ChatHistoryIndex | null // Comes from editChatTitleFx.doneData
+  updatedIndexEntry: ChatHistoryIndex | null, // Comes from editChatTitleFx.doneData
 ): ChatHistoryIndex[] => {
   if (!updatedIndexEntry) return currentIndex; // No change if effect failed
   return currentIndex
     .map((chat) =>
-      chat.id === updatedIndexEntry.id ? updatedIndexEntry : chat
+      chat.id === updatedIndexEntry.id ? updatedIndexEntry : chat,
     )
     .sort((a, b) => b.lastModified - a.lastModified); // Re-sort after update
 };
@@ -263,17 +265,17 @@ export const prepareChatSessionFn = ({
   systemPrompt: string;
   tokens: number;
   draft?: string; // <-- Add draft param
-  selectedModelInfo: import("@/features/models-select/model").ModelInfo | null;
+  selectedModelInfo: ModelInfo | null;
 }): ChatSession => {
   const now = Date.now();
   const existingId = currentSession?.id;
   const chatId = existingId ?? crypto.randomUUID();
 
   const title = existingId
-    ? currentSession?.title ?? new Date(now).toLocaleString()
+    ? (currentSession?.title ?? new Date(now).toLocaleString())
     : new Date(now).toLocaleString();
 
-  const createdAt = existingId ? currentSession?.createdAt ?? now : now;
+  const createdAt = existingId ? (currentSession?.createdAt ?? now) : now;
   const finalTokens = tokens; // Tokens are assumed to be correctly updated in the source store
 
   return {
@@ -294,7 +296,7 @@ export const prepareChatSessionFn = ({
       systemPrompt,
     },
     totalTokens: finalTokens,
-    draft: draft ?? "", // <-- Save draft input
+    draft: draft ?? '', // <-- Save draft input
     modelInfo: selectedModelInfo ?? null, // Save full model metadata
   };
 };

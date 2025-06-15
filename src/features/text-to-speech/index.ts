@@ -18,7 +18,7 @@ export {
   $streamingAudioUrl,
   $modelPreferences,
   $supportedFormats,
-  
+
   // Events
   textChanged,
   voiceSelected,
@@ -36,7 +36,7 @@ export {
   ttsDialogOpened,
   ttsDialogClosed,
   deleteAudio,
-  
+
   // Effects
   generateTTSFx,
   generateTTSStreamFx,

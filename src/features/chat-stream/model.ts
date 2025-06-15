@@ -1,14 +1,14 @@
-import { createDomain, createEvent, Effect } from "effector";
-import { fetchChatStream } from "./api";
+import { createDomain, createEvent, Effect } from 'effector';
+import { fetchChatStream } from './api';
 import {
   StreamChatParams,
   AbortStreamPayload,
   StreamErrorPayload,
   StreamAbortPayload, // Import StreamAbortPayload
-} from "./types";
+} from './types';
 
 // --- Domain ---
-const chatStreamDomain = createDomain("chatStream");
+const chatStreamDomain = createDomain('chatStream');
 
 // --- Abort Controller Management ---
 // Store active AbortControllers outside of Effector's state,
@@ -20,7 +20,7 @@ const activeStreams = new Map<string, AbortController>();
  * Event to request the abortion of an ongoing chat stream.
  * Payload should contain the `streamId` of the stream to abort.
  */
-export const abortStream = createEvent<AbortStreamPayload>("abortStream");
+export const abortStream = createEvent<AbortStreamPayload>('abortStream');
 
 // --- Effects ---
 /**
@@ -33,7 +33,7 @@ export const abortStream = createEvent<AbortStreamPayload>("abortStream");
  */
 export const streamChatFx: Effect<StreamChatParams, void, Error> =
   chatStreamDomain.effect({
-    name: "streamChatFx",
+    name: 'streamChatFx',
     handler: async (params: StreamChatParams): Promise<void> => {
       // streamId is now provided in params by the consumer
       const { streamId } = params;
@@ -81,7 +81,7 @@ export const streamChatFx: Effect<StreamChatParams, void, Error> =
         // activeStreams.delete(streamId); // Cleanup handled in finally
         console.error(
           `[Stream ${params.streamId}] Effect handler caught error:`, // Log using ID from params
-          error
+          error,
         );
         // Re-throw to reject the effect promise
         throw error;
@@ -107,10 +107,10 @@ abortStream.watch(({ streamId }) => {
     // No need to delete here, the effect's finally block handles cleanup
   } else {
     console.warn(
-      `[Stream ${streamId}] Abort requested for unknown or completed stream.`
+      `[Stream ${streamId}] Abort requested for unknown or completed stream.`,
     );
   }
 });
 
-import { debug } from "patronum";
+import { debug } from 'patronum';
 debug(abortStream, streamChatFx);

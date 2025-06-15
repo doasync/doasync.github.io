@@ -1,6 +1,6 @@
-import { DBSchema } from "idb";
-import { Message } from "@/features/chat"; // Import Message type
-import { ModelInfo } from "@/features/models-select";
+import { DBSchema } from 'idb';
+import type { Message } from '@/features/chat/types'; // Import Message type directly from types file
+import type { ModelInfo } from '@/features/models-select/types'; // Import ModelInfo type directly from types file
 
 // Settings specific to a chat session
 export interface MinimalModelInfo {

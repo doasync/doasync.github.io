@@ -13,7 +13,7 @@ export {
   $ttsModels,
   $sttModels,
   $audioChatModels,
-  
+
   // Events
   voiceModelSelected,
   voiceSelected,
@@ -24,11 +24,11 @@ export {
   defaultSpeedChanged,
   autoTranscribeToggled,
   loadVoiceModels,
-  
+
   // Effects
   loadVoiceModelsFx,
   previewVoiceFx,
-  
+
   // Helper functions
   getDefaultVoiceForModel,
 } from './model';

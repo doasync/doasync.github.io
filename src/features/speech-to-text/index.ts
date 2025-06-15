@@ -5,11 +5,11 @@ export {
   $sttPrompt,
   $isLoading,
   $sttError,
-  
+
   // Results and history
   $transcriptionResults,
   $selectedResult,
-  
+
   // UI state
   $isDialogOpen,
   $availableModels,
@@ -19,7 +19,7 @@ export {
   $fileValidation,
   $canTranscribe,
   $sttState,
-  
+
   // Events
   dialogOpened,
   dialogClosed,
@@ -34,7 +34,7 @@ export {
   generateMessageClicked,
   deleteResultClicked,
   clearError,
-  
+
   // Effects
   transcribeAudioFx,
   saveTranscriptionFx,
@@ -42,7 +42,7 @@ export {
   deleteTranscriptionFx,
   loadResponseFormatsSettingsFx,
   saveResponseFormatSettingFx,
-  
+
   // Legacy compatibility
   $sttProgress,
   $sttResult,

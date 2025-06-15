@@ -2,7 +2,14 @@ import { createDomain, createEffect, sample, combine } from 'effector';
 import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
 import { spread } from 'patronum/spread';
-import { AudioFormat, TTSParams, TTSResponse, VoiceOption, VoiceProvider, GeneratedAudio } from './types';
+import {
+  AudioFormat,
+  TTSParams,
+  TTSResponse,
+  VoiceOption,
+  VoiceProvider,
+  GeneratedAudio,
+} from './types';
 import { generateSpeech, generateSpeechStream } from './api';
 
 const domain = createDomain('text-to-speech');
@@ -43,7 +50,10 @@ const getSupportedFormats = (modelId: string): AudioFormat[] => {
   } else if (modelId.startsWith('gemini-')) {
     // Gemini supports: wav only (PCM format)
     return ['wav'];
-  } else if (modelId === 'gpt-4o-audio-preview' || modelId === 'gpt-4o-audio-preview-2024-12-17') {
+  } else if (
+    modelId === 'gpt-4o-audio-preview' ||
+    modelId === 'gpt-4o-audio-preview-2024-12-17'
+  ) {
     // GPT-4o audio models using chat completions endpoint support: mp3, wav, opus, flac, pcm
     // Note: AAC is not supported by chat completions audio format
     return ['mp3', 'wav', 'opus', 'flac', 'pcm'];
@@ -74,13 +84,15 @@ export const $isStreaming = domain.createStore<boolean>(false);
 export const $streamingAudioUrl = domain.createStore<string | null>(null);
 
 // Store for model-specific preferences
-export const $modelPreferences = domain.createStore<Record<string, ModelPreferences>>({
+export const $modelPreferences = domain.createStore<
+  Record<string, ModelPreferences>
+>({
   'tts-1': { voice: 'nova', format: 'mp3', speed: 1.0 },
   'tts-1-hd': { voice: 'nova', format: 'mp3', speed: 1.0 },
   'gpt-4o-audio-preview': { voice: 'alloy', format: 'mp3', speed: 1.0 },
   'gpt-4o-mini-audio-preview': { voice: 'echo', format: 'mp3', speed: 1.0 },
   'gpt-4o-mini-tts': { voice: 'ash', format: 'mp3', speed: 1.0 },
-  'elevenlabs': { voice: 'Will (US male)', format: 'mp3', speed: 1.0 },
+  elevenlabs: { voice: 'Will (US male)', format: 'mp3', speed: 1.0 },
   'gemini-2.5-flash-preview-tts': { voice: 'Aoede', format: 'wav', speed: 1.0 },
   'gemini-2.5-pro-preview-tts': { voice: 'Kore', format: 'wav', speed: 1.0 },
 });
@@ -130,31 +142,38 @@ export const generateTTSStreamFx = createEffect<TTSParams, TTSResponse, Error>({
       // Create an audio element that will start playing as soon as data is available
       const audioElement = new Audio();
       audioElement.autoplay = true;
-      
+
       // Generate speech
       const response = await generateSpeechStream(params);
-      
+
       // Create a blob URL from the response
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       audioElement.src = url;
-      
+
       // Get array buffer for saving
       const audio = await blob.arrayBuffer();
-      
+
       return {
         audio,
         format: params.format,
       };
     } catch (error) {
       // Fallback to non-streaming generation
-      console.warn('Streaming failed, falling back to regular generation:', error);
+      console.warn(
+        'Streaming failed, falling back to regular generation:',
+        error,
+      );
       return generateSpeech(params);
     }
   },
 });
 
-export const downloadAudioFx = createEffect<{ audio: ArrayBuffer; filename: string; format: AudioFormat }, void, Error>({
+export const downloadAudioFx = createEffect<
+  { audio: ArrayBuffer; filename: string; format: AudioFormat },
+  void,
+  Error
+>({
   handler: async ({ audio, filename, format }) => {
     const mimeType = getAudioMimeType(format);
     const blob = new Blob([audio], { type: mimeType });
@@ -169,13 +188,17 @@ export const downloadAudioFx = createEffect<{ audio: ArrayBuffer; filename: stri
   },
 });
 
-export const playPreviewFx = createEffect<{ audio: ArrayBuffer; format: AudioFormat }, void, Error>({
+export const playPreviewFx = createEffect<
+  { audio: ArrayBuffer; format: AudioFormat },
+  void,
+  Error
+>({
   handler: async ({ audio, format }) => {
     const mimeType = getAudioMimeType(format);
     const blob = new Blob([audio], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const audioElement = new Audio(url);
-    
+
     return new Promise<void>((resolve, reject) => {
       audioElement.onended = () => {
         URL.revokeObjectURL(url);
@@ -195,15 +218,15 @@ export const loadVoicesFx = createEffect<string, VoiceOption[], Error>({
     // Load voices from voice-models feature based on model ID
     const { $voiceModels } = await import('../voice-models');
     const models = $voiceModels.getState();
-    const model = models.find(m => m.id === modelId);
-    
+    const model = models.find((m) => m.id === modelId);
+
     if (!model) {
       console.warn(`No voice model found for ${modelId}`);
       return [];
     }
-    
+
     // Map VoiceInfo to VoiceOption format
-    return (model.voices || []).map(voice => ({
+    return (model.voices || []).map((voice) => ({
       id: voice.id,
       name: voice.name,
       provider: model.provider as VoiceProvider,
@@ -228,17 +251,17 @@ $previewUrl.on(clearPreview, () => null);
 // Update preferences when settings change
 sample({
   clock: [voiceSelected, formatSelected, speedChanged, instructionsChanged],
-  source: { 
-    model: $selectedModel, 
-    voice: $selectedVoice, 
-    format: $selectedFormat, 
+  source: {
+    model: $selectedModel,
+    voice: $selectedVoice,
+    format: $selectedFormat,
     speed: $speed,
     instructions: $instructions,
-    preferences: $modelPreferences 
+    preferences: $modelPreferences,
   },
   fn: ({ model, voice, format, speed, instructions, preferences }) => ({
     ...preferences,
-    [model]: { voice, format, speed, instructions }
+    [model]: { voice, format, speed, instructions },
   }),
   target: $modelPreferences,
 });
@@ -250,24 +273,24 @@ sample({
   fn: ({ preferences, model }, voices) => {
     const prefs = preferences[model];
     const supportedFormats = getSupportedFormats(model);
-    
+
     // Find a valid voice for this model
     let voice = prefs?.voice || 'nova';
-    if (voices.length > 0 && !voices.some(v => v.id === voice)) {
+    if (voices.length > 0 && !voices.some((v) => v.id === voice)) {
       voice = voices[0].id;
     }
-    
+
     // Find a valid format for this model
     let format = prefs?.format || 'mp3';
     if (!supportedFormats.includes(format)) {
       format = supportedFormats[0] || 'mp3';
     }
-    
+
     return {
       voice,
       format,
       speed: prefs?.speed || 1.0,
-      instructions: prefs?.instructions || ''
+      instructions: prefs?.instructions || '',
     };
   },
   target: spread({
@@ -311,12 +334,12 @@ $availableVoices.on(loadVoicesFx.doneData, (_, voices) => voices);
 
 // Handle audio deletion
 $generatedAudios.on(deleteAudio, (audios, audioId) => {
-  const audioToDelete = audios.find(a => a.id === audioId);
+  const audioToDelete = audios.find((a) => a.id === audioId);
   if (audioToDelete) {
     // Revoke the object URL to free memory
     URL.revokeObjectURL(audioToDelete.url);
   }
-  return audios.filter(a => a.id !== audioId);
+  return audios.filter((a) => a.id !== audioId);
 });
 
 // Generate TTS when requested
@@ -359,19 +382,22 @@ sample({
     const mimeType = getAudioMimeType(response.format);
     const blob = new Blob([response.audio], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    
+
     // Generate unique filename based on timestamp
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { 
-      month: '2-digit', 
-      day: '2-digit', 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    }).replace(/[\s,/:]/g, '-');
-    const count = audios.filter(a => a.timestamp > Date.now() - 60000).length + 1; // Count within same minute
+    const dateStr = now
+      .toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      .replace(/[\s,/:]/g, '-');
+    const count =
+      audios.filter((a) => a.timestamp > Date.now() - 60000).length + 1; // Count within same minute
     const filename = `tts-${dateStr}-${count}.${response.format}`;
-    
+
     const newAudio: GeneratedAudio = {
       id: `audio-${Date.now()}`,
       url,
@@ -383,7 +409,7 @@ sample({
       size: response.audio.byteLength,
       filename,
     };
-    
+
     // Add to the beginning of array (newest first)
     return [newAudio, ...audios];
   },

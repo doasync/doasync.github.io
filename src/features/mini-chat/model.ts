@@ -4,7 +4,7 @@ import {
   createEffect,
   sample,
   // Removed split as per FIX_PLAN.md
-} from "effector";
+} from 'effector';
 // Removed old API import (already commented out)
 import {
   streamChatFx,
@@ -12,29 +12,29 @@ import {
   StreamChatParams,
   StreamChunkPayload,
   StreamErrorPayload,
-} from "@/features/chat-stream";
+} from '@/features/chat-stream';
 import {
   $apiKey,
   $providerApiUrl,
   $temperature,
   $systemPrompt,
-} from "@/features/chat-settings/model";
+} from '@/features/chat-settings';
 import {
   $availableModels,
   $isModelSelectorActive,
-} from "@/features/models-select/model";
-import { saveChatFx } from "@/features/chat-history/model";
-import { appStarted } from "@/app";
+} from '@/features/models-select';
+import { saveChatFx } from '@/features/chat-history';
+import { appStarted } from '@/app';
 import {
   $isMobileDrawerOpen,
   setMobileDrawerTab,
   closeMobileDrawer,
-} from "@/features/ui-state/model";
-import { $isMainInputFocused } from "@/features/chat/model";
-import { chatSelected } from "@/features/chat-history/model";
+} from '@/features/ui-state';
+import { $isMainInputFocused } from '@/features/chat';
+import { chatSelected } from '@/features/chat-history';
 
-const MINI_CHAT_MODEL_ID_STORAGE_KEY = "miniChatModelId_v1";
-const DEFAULT_MINI_CHAT_MODEL = "chatgpt-4o-latest";
+const MINI_CHAT_MODEL_ID_STORAGE_KEY = 'miniChatModelId_v1';
+const DEFAULT_MINI_CHAT_MODEL = 'chatgpt-4o-latest';
 
 //
 // Types
@@ -49,7 +49,7 @@ export interface MiniChatToolbarState {
 
 export interface MiniChatMessage {
   id?: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   isLoading?: boolean;
 }
@@ -117,7 +117,7 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
   visible: false,
   x: 0,
   y: 0,
-  selectionText: "",
+  selectionText: '',
 })
   .on(showMiniChatToolbar, (_, payload) => ({
     visible: true,
@@ -126,7 +126,7 @@ export const $miniChatToolbar = createStore<MiniChatToolbarState>({
   .on(hideMiniChatToolbar, (state) => ({
     ...state,
     visible: false,
-    selectionText: "",
+    selectionText: '',
   }));
 
 //
@@ -149,36 +149,36 @@ export const minimizeMiniChat = createEvent();
 export const restoreMiniChat = createEvent();
 
 export const resetMiniChat = createEvent();
-export const triggerMiniChatScroll = createEvent<void>("triggerMiniChatScroll");
+export const triggerMiniChatScroll = createEvent<void>('triggerMiniChatScroll');
 
 export const stopMiniChatGenerationClicked = createEvent<void>(
-  "stopMiniChatGenerationClicked"
+  'stopMiniChatGenerationClicked',
 );
 
 // Event for adding user message to UI state - NEW as per FIX_PLAN.md
 export const _addMiniChatUserMessage = createEvent<MiniChatMessage>(
-  "addMiniChatUserMessage"
+  'addMiniChatUserMessage',
 );
 
 // Internal event to signal stream request start with its ID - Moved for declaration order
 const miniChatStreamRequestInitiated = createEvent<{ streamId: string }>(
-  "miniChatStreamRequestInitiated"
+  'miniChatStreamRequestInitiated',
 );
 
 // Store for the currently active stream ID (for cancellation) - Moved for declaration order
 export const $miniChatActiveStreamId = createStore<string | null>(null, {
-  name: "$miniChatActiveStreamId",
+  name: '$miniChatActiveStreamId',
 });
 
 $miniChatActiveStreamId.on(
   miniChatStreamRequestInitiated,
-  (_, { streamId }) => streamId
+  (_, { streamId }) => streamId,
 );
 
 export const $miniChat = createStore<MiniChatState>({
   isOpen: false,
   isCompact: false,
-  input: "",
+  input: '',
   messages: [],
   loading: false,
   isMinimized: false,
@@ -199,7 +199,7 @@ export const $miniChat = createStore<MiniChatState>({
   .on(miniChatClosed, () => ({
     isOpen: false,
     isCompact: false,
-    input: "",
+    input: '',
     messages: [],
     loading: false,
     isMinimized: false,
@@ -215,7 +215,7 @@ export const $miniChat = createStore<MiniChatState>({
     ...state,
     messages: [...state.messages, userMessage],
     isCompact: false, // Expand on send
-    input: "", // Clear input
+    input: '', // Clear input
   }))
   .on(minimizeMiniChat, (state) => ({
     ...state,
@@ -234,7 +234,7 @@ export const $miniChat = createStore<MiniChatState>({
 
 // Scroll trigger store
 export const $miniChatScrollTrigger = createStore<number>(0, {
-  name: "$miniChatScrollTrigger",
+  name: '$miniChatScrollTrigger',
 })
   .on(triggerMiniChatScroll, () => Date.now())
   .reset(resetMiniChat, miniChatClosed);
@@ -257,7 +257,7 @@ const _miniChatMessageAborted = createEvent<{ placeholderId: string }>();
 $miniChatActiveStreamId.reset(
   _miniChatMessageCompleted,
   _miniChatMessageErrored,
-  _miniChatMessageAborted
+  _miniChatMessageAborted,
 );
 
 // Add handlers to $miniChat store for internal events
@@ -266,7 +266,7 @@ $miniChat
     _miniChatMessageChunkReceived,
     (state, { placeholderId, chunkContent }) => {
       const targetMsgIndex = state.messages.findIndex(
-        (m) => m.id === placeholderId
+        (m) => m.id === placeholderId,
       );
       if (targetMsgIndex === -1) return state;
 
@@ -278,11 +278,11 @@ $miniChat
       const newMsgs = [...state.messages];
       newMsgs[targetMsgIndex] = updatedMsg;
       return { ...state, messages: newMsgs };
-    }
+    },
   )
   .on(_miniChatMessageCompleted, (state, { placeholderId }) => {
     const targetMsgIndex = state.messages.findIndex(
-      (m) => m.id === placeholderId
+      (m) => m.id === placeholderId,
     );
     if (targetMsgIndex === -1) return state;
 
@@ -293,7 +293,7 @@ $miniChat
   })
   .on(_miniChatMessageErrored, (state, { placeholderId, error }) => {
     const targetMsgIndex = state.messages.findIndex(
-      (m) => m.id === placeholderId
+      (m) => m.id === placeholderId,
     );
     if (targetMsgIndex === -1) return state;
 
@@ -308,7 +308,7 @@ $miniChat
   })
   .on(_miniChatMessageAborted, (state, { placeholderId }) => {
     const targetMsgIndex = state.messages.findIndex(
-      (m) => m.id === placeholderId
+      (m) => m.id === placeholderId,
     );
     if (targetMsgIndex === -1) return state;
 
@@ -338,7 +338,7 @@ type PrepareStreamPayload = {
 };
 
 const _prepareAndTriggerStream = createEvent<PrepareStreamPayload>(
-  "prepareAndTriggerMiniChatStream"
+  'prepareAndTriggerMiniChatStream',
 );
 
 // Removed the old split block here as per FIX_PLAN.md
@@ -355,16 +355,16 @@ sample({
   filter: ({ apiKey }) => !!apiKey,
   fn: (
     { apiKey, providerApiUrl, model, currentMessages },
-    messageText
+    messageText,
   ): PrepareStreamPayload => {
     const streamId = crypto.randomUUID();
     const placeholderId = crypto.randomUUID();
 
-    const userMessage: MiniChatMessage = { role: "user", content: messageText };
+    const userMessage: MiniChatMessage = { role: 'user', content: messageText };
     const placeholderMessage: MiniChatMessage = {
       id: placeholderId,
-      role: "assistant",
-      content: "",
+      role: 'assistant',
+      content: '',
       isLoading: true,
     };
 
@@ -411,7 +411,7 @@ sample({
 sample({
   clock: _prepareAndTriggerStream,
   target: _addMiniChatUserMessage.prepend<PrepareStreamPayload>(
-    (p) => p.userMessage
+    (p) => p.userMessage,
   ),
 });
 
@@ -419,7 +419,7 @@ sample({
 sample({
   clock: _prepareAndTriggerStream,
   target: _addPlaceholderMessage.prepend<PrepareStreamPayload>(
-    (p) => p.placeholderMessage
+    (p) => p.placeholderMessage,
   ),
 });
 
@@ -465,7 +465,7 @@ expandMiniChatFx.use(async () => {
     id,
     createdAt: now,
     lastModified: now,
-    title: "",
+    title: '',
     messages: miniChat.messages.map((m) => ({
       id: crypto.randomUUID(),
       timestamp: Date.now(),
@@ -490,14 +490,14 @@ expandMiniChatFx.use(async () => {
       };
     })(),
     totalTokens: 0,
-    draft: "",
+    draft: '',
   };
 
   await saveChatFx(newChatSession);
 
   chatSelected(id);
 
-  setMobileDrawerTab("history");
+  setMobileDrawerTab('history');
   closeMobileDrawer();
 
   resetMiniChat();
@@ -547,7 +547,7 @@ sample({
 sample({
   clock: $isModelSelectorActive,
   source: $shouldMinimize,
-  filter: (shouldMinimize, isSelectorActive) =>
+  filter: (shouldMinimize: boolean, isSelectorActive: boolean) =>
     shouldMinimize && isSelectorActive,
   target: minimizeMiniChat,
 });
@@ -555,6 +555,7 @@ sample({
 sample({
   clock: $isMainInputFocused,
   source: $shouldMinimize,
-  filter: (shouldMinimize, isInputFocused) => shouldMinimize && isInputFocused,
+  filter: (shouldMinimize: boolean, isInputFocused: boolean) =>
+    shouldMinimize && isInputFocused,
   target: minimizeMiniChat,
 });

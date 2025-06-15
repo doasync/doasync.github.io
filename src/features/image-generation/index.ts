@@ -17,7 +17,7 @@ export {
   $isDialogOpen,
   $imagePrompt,
   $imageGenerationState,
-  
+
   // Events
   dialogOpened,
   dialogClosed,
@@ -31,7 +31,7 @@ export {
   imageGenerationStarted,
   imageGenerationUpdated,
   imageGenerationCompleted,
-  
+
   // Effects
   generateImageFx,
   loadGeneratedImagesFx,
@@ -40,7 +40,7 @@ export {
   clearGeneratedImagesFx,
   removeGeneratedImageFx,
   migrateFromLocalStorageFx,
-} from "./model";
+} from './model';
 
 export {
   // Types
@@ -50,11 +50,11 @@ export {
   type GeneratedImage,
   type ImageGenerationModelInfo,
   type ImageGenerationStatus,
-  
+
   // Constants and helpers
   IMAGE_GENERATION_MODELS,
   getImageGenerationModelInfo,
   isImageGenerationCommand,
   extractImagePrompt,
   parseImageGenerationCommand,
-} from "./types";
+} from './types';

@@ -22,6 +22,7 @@ pids
 lib-cov
 
 # Coverage directory used by tools like istanbul
+.coverage
 coverage
 *.lcov
 
@@ -29,12 +30,18 @@ coverage
 .nyc_output
 
 # Temporary files and directories
+.temp
 tmp
 *.tmp
 *.swp
 .DS_Store
 Thumbs.db
 ._*
+*.DS_Store
+.AppleDouble
+.LSOverride
+ehthumbs.db
+*.lnk
 
 # dotenv environment variables file
 .env
@@ -57,10 +64,30 @@ yarn.lock
 pnpm-lock.yaml
 
 # IDE and editor specific files
-.idea
-.vscode
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# WebStorm
+.idea/*
+
+# Include workspace settings
+!.idea/codeStyles
+!.idea/inspectionProfiles
+!.idea/dictionaries/doasync.xml
+!.idea/compiler.xml
+!.idea/jsLibraryMappings.xml
+!.idea/misc.xml
+!.idea/modules.xml
+!.idea/vcs.xml
+
+# Project
+!.idea/project.iml

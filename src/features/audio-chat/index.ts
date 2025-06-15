@@ -1,6 +1,6 @@
 /**
  * Public API for Ephemeral Audio Chat Feature
- * 
+ *
  * This module exports only the public interface for in-message audio features.
  * All exports relate to TEMPORARY data that is never persisted.
  */
@@ -10,7 +10,7 @@ export {
   $ephemeralMessageData,
   $inChatTtsModel,
   $inChatTranscriptionModel,
-  
+
   // Public Events
   toggleMessageAudio,
   toggleMessageTranscript,
@@ -18,7 +18,7 @@ export {
   clearAllEphemeralData,
   setInChatTtsModel,
   setInChatTranscriptionModel,
-  
+
   // Effects (for debugging/monitoring)
   generateInMessageTTSFx,
   generateInMessageSTTFx,

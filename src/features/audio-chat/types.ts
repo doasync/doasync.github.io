@@ -1,6 +1,6 @@
 /**
  * Types for ephemeral audio features in chat messages
- * 
+ *
  * CRITICAL: These interfaces are for TEMPORARY data only.
  * This data must NEVER be persisted to IndexedDB or sent to chat API.
  */
@@ -83,12 +83,12 @@ export interface TranscriptionError {
 }
 
 // Action types for toggle processing
-export type AudioToggleAction = 
+export type AudioToggleAction =
   | { type: 'hide'; messageId: string }
   | { type: 'show'; messageId: string }
   | { type: 'generate'; messageId: string; text: string; model: string };
 
-export type TranscriptToggleAction = 
+export type TranscriptToggleAction =
   | { type: 'hide'; messageId: string }
   | { type: 'show'; messageId: string }
   | { type: 'generate'; messageId: string; audioUrl: string; model: string };

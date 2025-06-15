@@ -52,7 +52,7 @@ export function VoiceSelector({
   const selectedVoice = useUnit($selectedVoice);
   const selectedVoiceModel = useUnit($selectedVoiceModel);
   const preferences = useUnit($voicePreferences);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchField, setShowSearchField] = useState(false);
 
@@ -61,10 +61,13 @@ export function VoiceSelector({
 
     // Filter by search term
     if (searchTerm) {
-      voices = voices.filter(voice =>
-        voice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        voice.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        voice.style?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      voices = voices.filter(
+        (voice) =>
+          voice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          voice.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          voice.style?.some((tag) =>
+            tag.toLowerCase().includes(searchTerm.toLowerCase()),
+          ),
       );
     }
 
@@ -72,10 +75,10 @@ export function VoiceSelector({
     return voices.sort((a, b) => {
       const aIsFavorite = preferences.favoriteVoices.includes(a.id);
       const bIsFavorite = preferences.favoriteVoices.includes(b.id);
-      
+
       if (aIsFavorite && !bIsFavorite) return -1;
       if (!aIsFavorite && bIsFavorite) return 1;
-      
+
       return a.name.localeCompare(b.name);
     });
   }, [availableVoices, searchTerm, preferences.favoriteVoices]);
@@ -107,14 +110,15 @@ export function VoiceSelector({
       female: '#d32f2f',
       neutral: '#757575',
     };
-    
+
     return (
       <Avatar
         sx={{
           width: 24,
           height: 24,
           fontSize: '0.7rem',
-          backgroundColor: colors[gender as keyof typeof colors] || colors.neutral,
+          backgroundColor:
+            colors[gender as keyof typeof colors] || colors.neutral,
         }}
       >
         {voice.name.charAt(0).toUpperCase()}
@@ -162,8 +166,8 @@ export function VoiceSelector({
           label={label}
           MenuProps={{
             PaperProps: {
-              sx: { maxHeight: 400 }
-            }
+              sx: { maxHeight: 400 },
+            },
           }}
         >
           {/* Search option */}
@@ -178,36 +182,61 @@ export function VoiceSelector({
 
           {filteredVoices.map((voice) => {
             const isFavorite = preferences.favoriteVoices.includes(voice.id);
-            
+
             return (
               <MenuItem key={voice.id} value={voice.id}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    width: '100%',
+                  }}
+                >
                   {getVoiceIcon(voice)}
-                  
+
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Box sx={{ fontWeight: voice.id === selectedVoice?.id ? 'bold' : 'normal' }}>
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                    >
+                      <Box
+                        sx={{
+                          fontWeight:
+                            voice.id === selectedVoice?.id ? 'bold' : 'normal',
+                        }}
+                      >
                         {voice.name}
                       </Box>
                       {isFavorite && (
-                        <FavoriteIcon sx={{ fontSize: '1rem', color: 'error.main' }} />
+                        <FavoriteIcon
+                          sx={{ fontSize: '1rem', color: 'error.main' }}
+                        />
                       )}
                     </Box>
-                    
+
                     {voice.description && (
-                      <Box sx={{ 
-                        fontSize: '0.75rem', 
-                        color: 'text.secondary', 
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
+                      <Box
+                        sx={{
+                          fontSize: '0.75rem',
+                          color: 'text.secondary',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {voice.description}
                       </Box>
                     )}
-                    
+
                     {voice.style && voice.style.length > 0 && (
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 0.5,
+                          mt: 0.5,
+                          flexWrap: 'wrap',
+                        }}
+                      >
                         {voice.style.slice(0, 3).map((tag) => (
                           <Chip
                             key={tag}
@@ -224,20 +253,28 @@ export function VoiceSelector({
                   {/* Action buttons */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {showFavorites && (
-                      <Tooltip title={isFavorite ? "Remove from favorites" : "Add to favorites"}>
+                      <Tooltip
+                        title={
+                          isFavorite
+                            ? 'Remove from favorites'
+                            : 'Add to favorites'
+                        }
+                      >
                         <IconButton
                           size="small"
                           onClick={(e) => handleToggleFavorite(voice.id, e)}
                         >
                           {isFavorite ? (
-                            <FavoriteIcon sx={{ fontSize: '1rem', color: 'error.main' }} />
+                            <FavoriteIcon
+                              sx={{ fontSize: '1rem', color: 'error.main' }}
+                            />
                           ) : (
                             <FavoriteBorderIcon sx={{ fontSize: '1rem' }} />
                           )}
                         </IconButton>
                       </Tooltip>
                     )}
-                    
+
                     {showPreview && voice.previewUrl && (
                       <Tooltip title="Preview voice">
                         <IconButton
@@ -253,7 +290,7 @@ export function VoiceSelector({
               </MenuItem>
             );
           })}
-          
+
           {filteredVoices.length === 0 && (
             <MenuItem disabled>
               <ListItemText primary="No voices found" />
@@ -265,7 +302,8 @@ export function VoiceSelector({
       {/* Additional info */}
       {selectedVoice && selectedVoiceModel && (
         <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-          {selectedVoiceModel.provider} • {selectedVoice.gender || 'Unknown gender'}
+          {selectedVoiceModel.provider} •{' '}
+          {selectedVoice.gender || 'Unknown gender'}
           {selectedVoice.languages && selectedVoice.languages.length > 0 && (
             <> • {selectedVoice.languages.join(', ')}</>
           )}

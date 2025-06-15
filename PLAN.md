@@ -2,9 +2,16 @@
 
 **1. Goals Recap:**
 
-- Build a static, responsive React/Next.js web app using TypeScript, MUI, Effector, and fetch API.
-- Interface with VoidAI API for LLM interactions using user-provided keys (stored locally).
-- Support multiple chat histories (IndexedDB) with rename/delete/duplicate/regenerate title actions, dynamic model selection with filtering and info display, message editing (double-click/button)/deletion/retry, rich message content rendering (Markdown, code, LaTeX, Mermaid), basic settings (LocalStorage), and file attachments (text/image - future).
+- Build a static, responsive React/Next.js web app using TypeScript, MUI,
+  Effector, and fetch API.
+- Interface with VoidAI API for LLM interactions using user-provided keys
+  (stored locally).
+- Support multiple chat histories (IndexedDB) with
+  rename/delete/duplicate/regenerate title actions, dynamic model selection with
+  filtering and info display, message editing
+  (double-click/button)/deletion/retry, rich message content rendering
+  (Markdown, code, LaTeX, Mermaid), basic settings (LocalStorage), and file
+  attachments (text/image - future).
 - Provide persistent side drawers on desktop for History and Settings.
 
 **2. Core Technologies & Setup:**
@@ -16,7 +23,8 @@
 - **Data Fetching/Caching:** Effector Effects, fetch API
 - **Local Storage:**
   - IndexedDB (via `idb` library) for chat history.
-  - LocalStorage for global settings (API Key, default temperature/system prompt, show free models toggle, persistent drawer states).
+  - LocalStorage for global settings (API Key, default temperature/system
+    prompt, show free models toggle, persistent drawer states).
 - **Rich Content Rendering:**
   - `react-markdown` (Core Markdown)
   - `remark-gfm` (GitHub Flavored Markdown)
@@ -25,7 +33,8 @@
   - `@lightenna/react-mermaid-diagram`, `mermaid` (Mermaid Diagrams)
 - **Initial Setup:**
   - Initialize Next.js project: `npx create-next-app@latest --ts`
-  - Install dependencies: `@mui/material @emotion/react @emotion/styled @mui/icons-material effector effector-react idb react-markdown remark-gfm react-syntax-highlighter remark-math rehype-katex katex @lightenna/react-mermaid-diagram mermaid`
+  - Install dependencies:
+    `@mui/material @emotion/react @emotion/styled @mui/icons-material effector effector-react idb react-markdown remark-gfm react-syntax-highlighter remark-math rehype-katex katex @lightenna/react-mermaid-diagram mermaid`
   - Install dev dependencies: `@types/react-syntax-highlighter @types/katex`
 
 **3. Architecture Overview:**
@@ -36,14 +45,17 @@ The application will be a client-side Single Page Application (SPA).
 
 ### Phase 8 Modular Architecture Update
 
-Following Phase 8, the codebase adopts a **feature modularization** approach. Each major domain resides in `/src/features/<feature>/` with consistent internal structure:
+Following Phase 8, the codebase adopts a **feature modularization** approach.
+Each major domain resides in `/src/features/<feature>/` with consistent internal
+structure:
 
 - `model.ts` — Effector units (events, effects, stores)
 - `types.ts` — TypeScript interfaces, enums
 - `lib.ts` — Async effect handlers, pure functions
 - `index.ts` — Optional barrel export
 
-This modularization improves maintainability, scalability, and testability by decoupling types and async logic from Effector models.
+This modularization improves maintainability, scalability, and testability by
+decoupling types and async logic from Effector models.
 
 ---
 
@@ -183,53 +195,81 @@ graph TD
 
 - **Stores:**
   - `$modelsList`: Stores the array of models fetched from VoidAI.
-  - `$currentChatSession`: Holds the state of the active chat (ID, title, messages array, settings). (From `chat-history` feature)
-  - `$chatHistoryIndex`: An array holding summaries (ID, title, timestamp) of all saved chats. (From `chat-history` feature)
-  - `$globalSettings`: Holds API key, default temperature, default system prompt, **`showFreeOnly` boolean**. (From `chat-settings` feature)
-  - `$uiState`: Holds UI-related state (e.g., drawer open/closed, loading indicators, current error, **`isModelInfoAlertOpen` boolean**, **`isHistoryDrawerPersistentOpen`**, **`isSettingsDrawerPersistentOpen`**, **`editingMessageId`**). **(Updated)** (From `ui-state` feature)
+  - `$currentChatSession`: Holds the state of the active chat (ID, title,
+    messages array, settings). (From `chat-history` feature)
+  - `$chatHistoryIndex`: An array holding summaries (ID, title, timestamp) of
+    all saved chats. (From `chat-history` feature)
+  - `$globalSettings`: Holds API key, default temperature, default system
+    prompt, **`showFreeOnly` boolean**. (From `chat-settings` feature)
+  - `$uiState`: Holds UI-related state (e.g., drawer open/closed, loading
+    indicators, current error, **`isModelInfoAlertOpen` boolean**,
+    **`isHistoryDrawerPersistentOpen`**, **`isSettingsDrawerPersistentOpen`**,
+    **`editingMessageId`**). **(Updated)** (From `ui-state` feature)
   - `$messageText`: Current input field text. (From `chat` feature)
   - `$messages`: Array of messages for the current chat. (From `chat` feature)
-  - `$selectedModelId`: ID of the currently selected model. (From `models-select` feature)
-  - `$isGenerating`: Boolean indicating if an API request is in progress. (From `chat` feature)
-  - `$retryingMessageId`: ID of the message being retried (for spinner). (From `chat` feature)
-  - `$retryContext`: Holds `{ id, role }` of the original message that triggered a retry. **(New)** (From `chat` feature)
-  - `$preventScroll`: Boolean flag to temporarily disable auto-scroll. **(New)** (From `chat` feature)
+  - `$selectedModelId`: ID of the currently selected model. (From
+    `models-select` feature)
+  - `$isGenerating`: Boolean indicating if an API request is in progress. (From
+    `chat` feature)
+  - `$retryingMessageId`: ID of the message being retried (for spinner). (From
+    `chat` feature)
+  - `$retryContext`: Holds `{ id, role }` of the original message that triggered
+    a retry. **(New)** (From `chat` feature)
+  - `$preventScroll`: Boolean flag to temporarily disable auto-scroll. **(New)**
+    (From `chat` feature)
 - **Events:**
   - `appStarted`: Triggered on initial load. (From `app`)
   - `fetchModels`: Initiates fetching the model list. (From `models-select`)
   - `chatSelected`: Loads a specific chat from history. (From `chat-history`)
-  - `newChatCreated`: Clears the current chat state for a new session. (From `chat-history`)
-  - `selectModel`: User selects a model from the dropdown. (From `models-select`)
-  - `updateSetting`: User changes API key, default temp, system prompt, **show free models toggle**. (From `chat-settings`)
+  - `newChatCreated`: Clears the current chat state for a new session. (From
+    `chat-history`)
+  - `selectModel`: User selects a model from the dropdown. (From
+    `models-select`)
+  - `updateSetting`: User changes API key, default temp, system prompt, **show
+    free models toggle**. (From `chat-settings`)
   - `messageTextChanged`: Input field content changes. (From `chat`)
   - `messageSent`: User submits a message. (From `chat`)
   - `editMessage`: User confirms editing a message. (From `chat`)
   - `deleteMessage`: User confirms deleting a message. (From `chat`)
   - `messageRetry`: User clicks retry on a message. (From `chat`)
   - `chatTitleEdited`: User finishes editing a chat title. (From `chat-history`)
-  - `deleteChat`: User confirms deleting a chat from history. (From `chat-history`)
-  - `duplicateChatClicked`: User clicks "Duplicate" in history menu. (From `chat-history`)
-  - `regenerateTitleForChat`: User clicks "Regenerate Title" in history menu. **(New)** (From `chat-history`)
+  - `deleteChat`: User confirms deleting a chat from history. (From
+    `chat-history`)
+  - `duplicateChatClicked`: User clicks "Duplicate" in history menu. (From
+    `chat-history`)
+  - `regenerateTitleForChat`: User clicks "Regenerate Title" in history menu.
+    **(New)** (From `chat-history`)
   - `attachFile`: User selects a file. (Future)
   - `fileRead`: File content successfully read. (Future)
   - `showError`: An error occurred. (From `ui-state`)
   - `dismissError`: User closes the error dialog. (From `ui-state`)
-  - `toggleHistoryDrawer`, `toggleSettingsDrawer`, `openModelInfoAlert`, `closeModelInfoAlert`, `openMobileDrawer`, `closeMobileDrawer`, `setMobileDrawerTab`, `startEditingMessage`, `stopEditingMessage`. **(Updated)** (From `ui-state`)
+  - `toggleHistoryDrawer`, `toggleSettingsDrawer`, `openModelInfoAlert`,
+    `closeModelInfoAlert`, `openMobileDrawer`, `closeMobileDrawer`,
+    `setMobileDrawerTab`, `startEditingMessage`, `stopEditingMessage`.
+    **(Updated)** (From `ui-state`)
   - `setPreventScroll`. **(New)** (From `chat`)
 - **Effects:**
-  - `loadGlobalSettingsFx`: Load settings from LocalStorage. (From `chat-settings`)
-  - `saveGlobalSettingsFx`: Save settings to LocalStorage. (From `chat-settings`)
-  - `loadChatHistoryIndexFx`: Load chat list/index from IndexedDB. (From `chat-history`)
-  - `loadSpecificChatFx`: Load full message history for a selected chat from IndexedDB. (From `chat-history`)
-  - `saveChatFx`: Save/update a chat (messages, title, settings) to IndexedDB. (From `chat-history`)
+  - `loadGlobalSettingsFx`: Load settings from LocalStorage. (From
+    `chat-settings`)
+  - `saveGlobalSettingsFx`: Save settings to LocalStorage. (From
+    `chat-settings`)
+  - `loadChatHistoryIndexFx`: Load chat list/index from IndexedDB. (From
+    `chat-history`)
+  - `loadSpecificChatFx`: Load full message history for a selected chat from
+    IndexedDB. (From `chat-history`)
+  - `saveChatFx`: Save/update a chat (messages, title, settings) to IndexedDB.
+    (From `chat-history`)
   - `deleteChatFx`: Delete a chat from IndexedDB. (From `chat-history`)
   - `editChatTitleFx`: Update chat title in IndexedDB. (From `chat-history`)
-  - `duplicateChatFx`: Load, clone, and save a chat session. (From `chat-history`)
+  - `duplicateChatFx`: Load, clone, and save a chat session. (From
+    `chat-history`)
   - `fetchModelsFx`: Fetch model list from VoidAI API. (From `models-select`)
   - `sendApiRequestFx`: Send chat completion request to VoidAI. (From `chat`)
-  - `generateTitleFx`: Send request to VoidAI to generate chat title. (From `chat-history`)
+  - `generateTitleFx`: Send request to VoidAI to generate chat title. (From
+    `chat-history`)
   - `readFileFx`: Read file content client-side. (Future)
-  - `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(New)** (From `ui-state`)
+  - `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`.
+    **(New)** (From `ui-state`)
 - **Flow Example (Sending Message):** (Conceptually same, UI renders markdown)
   ```mermaid
   graph LR
@@ -254,8 +294,11 @@ graph TD
 
 **6. API Interaction (VoidAI):**
 
-- **Model List:** Use `fetchModelsFx` to fetch `https://api.voidai.app/v1/models`. Store in `$modelsList`. Includes pricing and other metadata.
-- **Chat Completions:** Use `sendApiRequestFx`. Format messages correctly. Handle token counts.
+- **Model List:** Use `fetchModelsFx` to fetch
+  `https://api.voidai.app/v1/models`. Store in `$modelsList`. Includes pricing
+  and other metadata.
+- **Chat Completions:** Use `sendApiRequestFx`. Format messages correctly.
+  Handle token counts.
 - **Title Generation:** Use `generateTitleFx`.
 
 **7. Data Persistence:**
@@ -263,39 +306,63 @@ graph TD
 - **IndexedDB (`idb` library):**
   - **Store Name:** `chats`
   - **Key:** `id` (UUID string)
-  - **Object Structure:** `{ id: string, title: string, createdAt: number, lastModified: number, messages: Message[], settings: { model: string, temperature: number, systemPrompt: string } }` (Message includes role, content, timestamp, isEdited, originalContent).
+  - **Object Structure:**
+    `{ id: string, title: string, createdAt: number, lastModified: number, messages: Message[], settings: { model: string, temperature: number, systemPrompt: string } }`
+    (Message includes role, content, timestamp, isEdited, originalContent).
   - **Index:** `lastModified`.
-  - Effects: `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`, `deleteChatFx`, `editChatTitleFx`, `duplicateChatFx`.
+  - Effects: `loadChatHistoryIndexFx`, `loadSpecificChatFx`, `saveChatFx`,
+    `deleteChatFx`, `editChatTitleFx`, `duplicateChatFx`.
 - **LocalStorage:**
-  - **Keys:** `voidai_api_key`, `default_temperature`, `default_system_prompt`, `show_free_only`, `ui_historyDrawerOpen`, `ui_settingsDrawerOpen`. **(Updated)**
-  - Effects: `loadGlobalSettingsFx`, `saveGlobalSettingsFx`, `loadUiSettingsFx`, `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(Updated)**
+  - **Keys:** `voidai_api_key`, `default_temperature`, `default_system_prompt`,
+    `show_free_only`, `ui_historyDrawerOpen`, `ui_settingsDrawerOpen`.
+    **(Updated)**
+  - Effects: `loadGlobalSettingsFx`, `saveGlobalSettingsFx`, `loadUiSettingsFx`,
+    `saveHistoryDrawerStateFx`, `saveSettingsDrawerStateFx`. **(Updated)**
 
 **8. Key Feature Implementation Notes:**
 
-- **Responsiveness:** Unified mobile drawer with tabs. Desktop uses persistent side drawers that shift content.
-- **Message Edits/Deletes/Retry:** Handled via Effector events and updates to `$messages` store, persisted via `saveChatFx`. Edit via double-click or button. Retry logic fixed.
-- **Rich Content Rendering:** `MarkdownRenderer` component handles Markdown, GFM, code syntax highlighting, LaTeX, and Mermaid diagrams.
-- **Model Selection:** Filter by search term and "Show Free Only" toggle. Display cleaned model name.
+- **Responsiveness:** Unified mobile drawer with tabs. Desktop uses persistent
+  side drawers that shift content.
+- **Message Edits/Deletes/Retry:** Handled via Effector events and updates to
+  `$messages` store, persisted via `saveChatFx`. Edit via double-click or
+  button. Retry logic fixed.
+- **Rich Content Rendering:** `MarkdownRenderer` component handles Markdown,
+  GFM, code syntax highlighting, LaTeX, and Mermaid diagrams.
+- **Model Selection:** Filter by search term and "Show Free Only" toggle.
+  Display cleaned model name.
 - **Model Info:** Displayed in a dismissible Alert dialog.
-- **Chat History Actions:** 3-dot menu on list items for Rename, Duplicate, Regenerate Title, Delete.
-- **File Attachments:** (Future) Use `<input type="file">`, `FileReader`, check model capabilities.
+- **Chat History Actions:** 3-dot menu on list items for Rename, Duplicate,
+  Regenerate Title, Delete.
+- **File Attachments:** (Future) Use `<input type="file">`, `FileReader`, check
+  model capabilities.
 - **Error Handling:** User-facing errors via MUI Alert components.
 - **Scroll Behavior:** Auto-scrolls only after sending a new user message.
 
 **9. Development Phasing (Updated):**
 
-1.  **Foundation:** Project setup, MUI theme, basic layout components. **(Complete)**
+1.  **Foundation:** Project setup, MUI theme, basic layout components.
+    **(Complete)**
 2.  **Settings:** Settings Drawer UI, LocalStorage persistence. **(Complete)**
 3.  **Core Chat:** Basic message sending/display, Effector state. **(Complete)**
-4.  **API Integration:** Connect to VoidAI, handle responses, token count. **(Complete)**
-5.  **Model Selection:** Fetch models, Model Selector dropdown UI. **(Complete)**
-6.  **History Persistence:** IndexedDB setup, save/load/delete logic, History Drawer UI. **(Complete)**
+4.  **API Integration:** Connect to VoidAI, handle responses, token count.
+    **(Complete)**
+5.  **Model Selection:** Fetch models, Model Selector dropdown UI.
+    **(Complete)**
+6.  **History Persistence:** IndexedDB setup, save/load/delete logic, History
+    Drawer UI. **(Complete)**
 7.  **Message Actions:** Edit, Delete, Retry logic and UI. **(Complete)**
 8.  **Architecture Refactoring:** Feature modularization. **(Complete)**
-9.  **Responsiveness & Polish:** Unified mobile drawer, UI/UX improvements. **(Complete)**
-10. **Rich Content & Feature Enhancements:** Markdown/Code/LaTeX/Mermaid rendering, Free Model Toggle, Model Info Panel, Chat Duplication. **(Complete)**
-11. **UI/UX Refinements & Fixes:** Persistent drawers, layout fixes, editing fixes, scroll fixes, hover outline restore, regenerate title action, double-click edit. **(Complete)**
-12. **File Attachments:** Implement file input, reading, multimodal checks, API updates. **(Next)**
-13. **Testing & Refinement:** Unit/integration tests, UI testing, bug fixing. **(Ongoing)**
+9.  **Responsiveness & Polish:** Unified mobile drawer, UI/UX improvements.
+    **(Complete)**
+10. **Rich Content & Feature Enhancements:** Markdown/Code/LaTeX/Mermaid
+    rendering, Free Model Toggle, Model Info Panel, Chat Duplication.
+    **(Complete)**
+11. **UI/UX Refinements & Fixes:** Persistent drawers, layout fixes, editing
+    fixes, scroll fixes, hover outline restore, regenerate title action,
+    double-click edit. **(Complete)**
+12. **File Attachments:** Implement file input, reading, multimodal checks, API
+    updates. **(Next)**
+13. **Testing & Refinement:** Unit/integration tests, UI testing, bug fixing.
+    **(Ongoing)**
 
 ---

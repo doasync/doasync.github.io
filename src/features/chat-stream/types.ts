@@ -9,7 +9,7 @@
 export interface APIStreamChoice {
   delta: {
     content: string | null; // Content can be null in some initial chunks
-    role?: "assistant"; // Optional role information
+    role?: 'assistant'; // Optional role information
     audio?: {
       id?: string;
       data?: string; // Base64 encoded audio data
@@ -53,20 +53,20 @@ export interface EventSourceParserEvent {
  * Type guard to check if a parsed SSE event is a data event.
  */
 export function isParsedDataEvent(
-  event: EventSourceParserEvent
+  event: EventSourceParserEvent,
 ): event is EventSourceParserEvent & { data: string } {
   // Check for the presence of the 'data' field and ensure it's a string
-  return typeof event.data === "string";
+  return typeof event.data === 'string';
 }
 
 /**
  * Type guard to check if a parsed SSE event signals stream completion.
  */
 export function isCompletionEvent(
-  event: EventSourceParserEvent
-): event is EventSourceParserEvent & { data: "[DONE]" } {
+  event: EventSourceParserEvent,
+): event is EventSourceParserEvent & { data: '[DONE]' } {
   // Check if it's a data event and the data is the specific completion marker
-  return isParsedDataEvent(event) && event.data === "[DONE]";
+  return isParsedDataEvent(event) && event.data === '[DONE]';
 }
 
 /**
@@ -80,7 +80,7 @@ export function isCommentEvent(event: EventSourceParserEvent): boolean {
   // Comments typically lack the 'data' field according to SSE spec.
   // We also check 'event' isn't set, as standard events usually have it.
   return (
-    typeof event.data === "undefined" && typeof event.event === "undefined"
+    typeof event.data === 'undefined' && typeof event.event === 'undefined'
   );
 }
 
@@ -120,27 +120,30 @@ export interface StreamAbortPayload {
 
 // Multimodal content types for OpenAI-compatible API
 export interface StreamTextContentPart {
-  type: "text";
+  type: 'text';
   text: string;
 }
 
 export interface StreamImageContentPart {
-  type: "image_url";
+  type: 'image_url';
   image_url: {
     url: string;
-    detail?: "low" | "high" | "auto";
+    detail?: 'low' | 'high' | 'auto';
   };
 }
 
 export interface StreamAudioContentPart {
-  type: "input_audio";
+  type: 'input_audio';
   input_audio: {
     data: string; // Base64 encoded audio data
-    format?: "wav" | "mp3" | "flac" | "opus"; // Audio format hint
+    format?: 'wav' | 'mp3' | 'flac' | 'opus'; // Audio format hint
   };
 }
 
-export type StreamMessageContentPart = StreamTextContentPart | StreamImageContentPart | StreamAudioContentPart;
+export type StreamMessageContentPart =
+  | StreamTextContentPart
+  | StreamImageContentPart
+  | StreamAudioContentPart;
 
 /**
  * Parameters required to initiate a chat stream request via streamChatFx.
@@ -152,7 +155,7 @@ export interface StreamChatParams {
   // --- Required API Provider Params (OpenAI-compatible) ---
   model: string;
   messages: ReadonlyArray<{
-    role: "system" | "user" | "assistant";
+    role: 'system' | 'user' | 'assistant';
     content: string | StreamMessageContentPart[]; // Support multimodal content
   }>;
   apiKey: string;
@@ -163,10 +166,10 @@ export interface StreamChatParams {
   max_tokens?: number;
   top_p?: number;
   // Audio-specific parameters
-  modalities?: ("text" | "audio")[];
+  modalities?: ('text' | 'audio')[];
   audio?: {
     voice?: string;
-    format?: "wav" | "mp3" | "flac" | "opus" | "pcm";
+    format?: 'wav' | 'mp3' | 'flac' | 'opus' | 'pcm';
   };
   // ... other valid OpenAI-compatible stream parameters
 
