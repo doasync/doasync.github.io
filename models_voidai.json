@@ -116,7 +116,7 @@
       "type": "/v1/chat/completions"
     },
     {
-      "id": "gpt-4.1-brainrot",
+      "id": "brainrot-sonnet-4-20250514",
       "object": "model",
       "owned_by": "anthropic",
       "type": "/v1/chat/completions"

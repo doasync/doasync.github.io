@@ -1,9 +1,10 @@
-import { createDomain, createEffect, sample, combine } from 'effector';
+import { combine, createDomain, createEffect, sample } from 'effector';
 import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
-import { VoiceModel, VoicePreferences, VoiceInfo } from './types';
-import voicesConfig from './config/voices.json';
+
 import modelsConfig from './config/models.json';
+import voicesConfig from './config/voices.json';
+import { VoiceInfo, VoiceModel, VoicePreferences } from './types';
 
 const domain = createDomain('voice-models');
 
@@ -12,7 +13,7 @@ const defaultPreferences: VoicePreferences = {
   favoriteVoices: [],
   defaultVoice: 'nova',
   defaultFormat: 'mp3',
-  defaultSpeed: 1.0,
+  defaultSpeed: 1,
   autoTranscribe: false,
 };
 
@@ -78,8 +79,10 @@ export const autoTranscribeToggled = domain.createEvent();
 export const loadVoiceModels = domain.createEvent();
 
 // Helper functions
-export const getDefaultVoiceForModel = (modelId: string): string => {
-  const models = $voiceModels.getState();
+export const getDefaultVoiceForModel = (
+  models: VoiceModel[],
+  modelId: string,
+): string => {
   const model = models.find((m) => m.id === modelId);
 
   if (!model || model.voices.length === 0) {
@@ -96,7 +99,7 @@ export const loadVoiceModelsFx = createEffect<void, VoiceModel[], Error>({
     // Load models configuration and merge with voice data
     const models = modelsConfig.models.map((model) => {
       // Special handling for specific models
-      let voiceKey = model.provider as string;
+      let voiceKey = model.provider;
 
       // ElevenLabs uses voidai provider but has its own voice set
       if (model.id === 'elevenlabs') {
@@ -147,13 +150,19 @@ $selectedVoiceModelId
     return current;
   });
 
-$selectedVoiceId
-  .on(voiceSelected, (_, id) => id)
-  .on(voiceModelSelected, (_, modelId) => {
+$selectedVoiceId.on(voiceSelected, (_, id) => id);
+
+// Use sample to handle voice model selection without getState
+sample({
+  clock: voiceModelSelected,
+  source: $voiceModels,
+  fn: (models, modelId) => {
     // Reset voice selection when model changes
-    const model = $voiceModels.getState().find((m) => m.id === modelId);
+    const model = models.find((m) => m.id === modelId);
     return model?.voices[0]?.id || null;
-  });
+  },
+  target: $selectedVoiceId,
+});
 
 // Preferences updates
 $voicePreferences
@@ -202,11 +211,14 @@ sample({
 sample({
   clock: voiceModelSelected,
   source: $voiceModels,
+  filter: (models, modelId) => {
+    const model = models.find((m) => m.id === modelId);
+    return Boolean(model?.voices[0]?.id);
+  },
   fn: (models, modelId) => {
     const model = models.find((m) => m.id === modelId);
     return model?.voices[0]?.id || '';
   },
-  filter: (voiceId) => Boolean(voiceId),
   target: voiceSelected,
 });
 

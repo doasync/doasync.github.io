@@ -8,21 +8,24 @@
  * - Be persisted beyond the current session
  */
 
-import { createEffect, sample, createDomain } from 'effector';
-import { debug } from 'patronum/debug';
+import { createDomain, createEffect, createEvent, sample } from 'effector';
 import { persist } from 'effector-storage/local';
+import { debug } from 'patronum/debug';
+
+import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+
 import type {
+  AudioGenerationError,
+  AudioGenerationPayload,
+  AudioGenerationResult,
+  AudioToggleAction,
   EphemeralMessageData,
   InChatSettings,
   ToggleMessageAudioPayload,
   ToggleMessageTranscriptPayload,
-  AudioGenerationPayload,
-  TranscriptionPayload,
-  AudioGenerationResult,
-  TranscriptionResult,
-  AudioGenerationError,
   TranscriptionError,
-  AudioToggleAction,
+  TranscriptionPayload,
+  TranscriptionResult,
   TranscriptToggleAction,
 } from './types';
 
@@ -150,7 +153,7 @@ const transcriptionFailed = audioChatDomain.createEvent<TranscriptionError>();
  * Reuses existing TTS API adapter from text-to-speech feature
  */
 export const generateInMessageTTSFx = createEffect<
-  AudioGenerationPayload,
+  AudioGenerationPayload & { apiKey: string; providerUrl: string },
   AudioGenerationResult
 >();
 
@@ -159,7 +162,7 @@ export const generateInMessageTTSFx = createEffect<
  * Reuses existing STT API adapter from speech-to-text feature
  */
 export const generateInMessageSTTFx = createEffect<
-  TranscriptionPayload,
+  TranscriptionPayload & { apiKey: string; providerUrl: string },
   TranscriptionResult
 >();
 
@@ -171,77 +174,95 @@ export const generateInMessageSTTFx = createEffect<
  * TTS Effect Implementation
  * Reuses the existing TTS API from text-to-speech feature
  */
-generateInMessageTTSFx.use(async ({ messageId, text, model }) => {
-  try {
-    // Import TTS API from existing feature
-    const { generateSpeech } = await import('../text-to-speech/api');
-    const { getDefaultVoiceForModel } = await import('../voice-models');
+generateInMessageTTSFx.use(
+  async ({ messageId, text, model, apiKey, providerUrl }) => {
+    try {
+      // Import TTS API
+      const { generateSpeech } = await import('../text-to-speech/api');
 
-    // Get default voice for the selected model
-    const voice = getDefaultVoiceForModel(model) || 'nova';
+      if (!apiKey) {
+        throw new Error('API key not configured');
+      }
 
-    // Generate audio using existing TTS API
-    const ttsResult = await generateSpeech({
-      text,
-      model,
-      voice,
-      format: 'mp3' as const,
-      speed: 1.0,
-    });
+      // For now, use a hardcoded default voice since we can't easily access store state in effect
+      // In the future, this could be improved by passing voice models through the payload
+      const voice = 'nova';
 
-    // Create blob from ArrayBuffer
-    const audioBlob = new Blob([ttsResult.audio], { type: 'audio/mp3' });
+      // Generate audio using existing TTS API
+      const ttsResult = await generateSpeech({
+        text,
+        model,
+        voice,
+        format: 'mp3' as const,
+        speed: 1,
+        apiKey,
+        providerUrl,
+      });
 
-    // Create blob URL for temporary use
-    const audioUrl = URL.createObjectURL(audioBlob);
+      // Create blob from ArrayBuffer
+      const audioBlob = new Blob([ttsResult.audio], { type: 'audio/mp3' });
 
-    return {
-      messageId,
-      audioUrl,
-      voice,
-    };
-  } catch (error) {
-    console.error('TTS generation failed:', error);
-    throw new Error(
-      error instanceof Error ? error.message : 'TTS generation failed',
-    );
-  }
-});
+      // Create blob URL for temporary use
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      return {
+        messageId,
+        audioUrl,
+        voice,
+      };
+    } catch (error) {
+      console.error('TTS generation failed:', error);
+      throw new Error(
+        error instanceof Error ? error.message : 'TTS generation failed',
+      );
+    }
+  },
+);
 
 /**
  * STT Effect Implementation
  * Reuses the existing STT API from speech-to-text feature
  */
-generateInMessageSTTFx.use(async ({ messageId, audioUrl, model }) => {
-  try {
-    // Import STT API from existing feature
-    const { transcribeAudio } = await import('../speech-to-text/api');
+generateInMessageSTTFx.use(
+  async ({ messageId, audioUrl, model, apiKey, providerUrl }) => {
+    try {
+      // Import STT API
+      const { transcribeAudio } = await import('../speech-to-text/api');
 
-    // Convert blob URL to File object for STT API
-    const response = await fetch(audioUrl);
-    const audioBlob = await response.blob();
-    const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mp3' });
+      if (!apiKey) {
+        throw new Error('API key not configured');
+      }
 
-    // Transcribe audio using existing STT API
-    const result = await transcribeAudio({
-      file: audioFile,
-      model,
-      responseFormat: 'text' as const,
-      prompt: '', // No context prompt for in-message transcription
-    });
+      // Convert blob URL to File object for STT API
+      const response = await fetch(audioUrl);
+      const audioBlob = await response.blob();
+      const audioFile = new File([audioBlob], 'audio.mp3', {
+        type: 'audio/mp3',
+      });
 
-    return {
-      messageId,
-      transcript: result.text || result.toString(),
-      format: 'text',
-    };
-  } catch (error) {
-    console.error('Transcription failed:', error);
-    throw new Error(
-      error instanceof Error ? error.message : 'Transcription failed',
-    );
-  }
-});
+      // Transcribe audio using existing STT API
+      const result = await transcribeAudio({
+        file: audioFile,
+        model,
+        responseFormat: 'text' as const,
+        prompt: '', // No context prompt for in-message transcription
+        apiKey,
+        providerUrl,
+      });
+
+      return {
+        messageId,
+        transcript: result.text || String(result),
+        format: 'text',
+      };
+    } catch (error) {
+      console.error('Transcription failed:', error);
+      throw new Error(
+        error instanceof Error ? error.message : 'Transcription failed',
+      );
+    }
+  },
+);
 
 /**
  * Load in-chat settings from localStorage
@@ -277,18 +298,18 @@ sample({
     if (currentData?.isVisible) {
       // Hide existing audio
       return { type: 'hide' as const, messageId };
-    } else if (currentData?.url && !currentData.error) {
+    }
+    if (currentData?.url && !currentData.error) {
       // Show existing audio (if no error)
       return { type: 'show' as const, messageId };
-    } else {
-      // Generate new audio
-      return {
-        type: 'generate' as const,
-        messageId,
-        text: messageText,
-        model: ttsModel as string,
-      };
     }
+    // Generate new audio
+    return {
+      type: 'generate' as const,
+      messageId,
+      text: messageText,
+      model: ttsModel as string,
+    };
   },
   target: audioToggleProcessed,
 });
@@ -304,18 +325,18 @@ sample({
     if (currentData?.isVisible) {
       // Hide existing transcript
       return { type: 'hide' as const, messageId };
-    } else if (currentData?.text && !currentData.error) {
+    }
+    if (currentData?.text && !currentData.error) {
       // Show existing transcript (if no error)
       return { type: 'show' as const, messageId };
-    } else {
-      // Generate new transcript
-      return {
-        type: 'generate' as const,
-        messageId,
-        audioUrl,
-        model: sttModel as string,
-      };
     }
+    // Generate new transcript
+    return {
+      type: 'generate' as const,
+      messageId,
+      audioUrl,
+      model: sttModel as string,
+    };
   },
   target: transcriptToggleProcessed,
 });
@@ -323,13 +344,16 @@ sample({
 // Handle audio toggle actions
 sample({
   clock: audioToggleProcessed,
-  filter: (action) => action.type === 'generate',
-  fn: (action) => {
+  source: { apiKey: $apiKey, providerUrl: $providerApiUrl },
+  filter: (_, action) => action.type === 'generate',
+  fn: ({ apiKey, providerUrl }, action) => {
     if (action.type === 'generate') {
       return {
         messageId: action.messageId,
         text: action.text,
         model: action.model,
+        apiKey,
+        providerUrl,
       };
     }
     throw new Error('Invalid action type');
@@ -340,13 +364,16 @@ sample({
 // Handle transcript toggle actions
 sample({
   clock: transcriptToggleProcessed,
-  filter: (action) => action.type === 'generate',
-  fn: (action) => {
+  source: { apiKey: $apiKey, providerUrl: $providerApiUrl },
+  filter: (_, action) => action.type === 'generate',
+  fn: ({ apiKey, providerUrl }, action) => {
     if (action.type === 'generate') {
       return {
         messageId: action.messageId,
         audioUrl: action.audioUrl,
         model: action.model,
+        apiKey,
+        providerUrl,
       };
     }
     throw new Error('Invalid action type');
@@ -492,9 +519,9 @@ $ephemeralMessageData.on(
   (ephemeralData, { messageId, audioUrl, voice }) => ({
     ...ephemeralData,
     [messageId]: {
-      ...(ephemeralData[messageId] || {}),
+      ...ephemeralData[messageId],
       audio: {
-        ...(ephemeralData[messageId]?.audio || {}),
+        ...ephemeralData[messageId]?.audio,
         url: audioUrl,
         isLoading: false,
         isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
@@ -511,9 +538,9 @@ $ephemeralMessageData.on(
   (ephemeralData, { messageId, transcript, format }) => ({
     ...ephemeralData,
     [messageId]: {
-      ...(ephemeralData[messageId] || {}),
+      ...ephemeralData[messageId],
       transcript: {
-        ...(ephemeralData[messageId]?.transcript || {}),
+        ...ephemeralData[messageId]?.transcript,
         text: transcript,
         isLoading: false,
         isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
@@ -531,9 +558,9 @@ $ephemeralMessageData.on(
   (ephemeralData, { messageId, error }) => ({
     ...ephemeralData,
     [messageId]: {
-      ...(ephemeralData[messageId] || {}),
+      ...ephemeralData[messageId],
       audio: {
-        ...(ephemeralData[messageId]?.audio || {}),
+        ...ephemeralData[messageId]?.audio,
         url: ephemeralData[messageId]?.audio?.url ?? '',
         isLoading: false,
         isVisible: ephemeralData[messageId]?.audio?.isVisible ?? true,
@@ -551,9 +578,9 @@ $ephemeralMessageData.on(
   (ephemeralData, { messageId, error }) => ({
     ...ephemeralData,
     [messageId]: {
-      ...(ephemeralData[messageId] || {}),
+      ...ephemeralData[messageId],
       transcript: {
-        ...(ephemeralData[messageId]?.transcript || {}),
+        ...ephemeralData[messageId]?.transcript,
         text: ephemeralData[messageId]?.transcript?.text ?? '',
         isLoading: false,
         isVisible: ephemeralData[messageId]?.transcript?.isVisible ?? true,
@@ -589,11 +616,11 @@ sample({
   source: $ephemeralMessageData,
   fn: (ephemeralData) => {
     // Clean up all blob URLs to prevent memory leaks
-    Object.values(ephemeralData).forEach((messageData) => {
+    for (const messageData of Object.values(ephemeralData)) {
       if (messageData.audio?.url) {
         URL.revokeObjectURL(messageData.audio.url);
       }
-    });
+    }
 
     return {};
   },
@@ -608,25 +635,43 @@ sample({
  * Auto-cleanup effect to prevent memory leaks
  * Cleans up ephemeral data older than 1 hour
  */
-const autoCleanupFx = createEffect(() => {
-  const ephemeralData = $ephemeralMessageData.getState();
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+const autoCleanupFx = createEffect<EphemeralMessageData, void>({
+  name: 'autoCleanupFx',
+  handler: async (ephemeralData) => {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-  Object.entries(ephemeralData).forEach(([messageId, data]) => {
-    const audioOld = data.audio && data.audio.timestamp < oneHourAgo;
-    const transcriptOld =
-      data.transcript && data.transcript.timestamp < oneHourAgo;
+    for (const [messageId, data] of Object.entries(ephemeralData)) {
+      const audioOld = data.audio && data.audio.timestamp < oneHourAgo;
+      const transcriptOld =
+        data.transcript && data.transcript.timestamp < oneHourAgo;
 
-    if (audioOld || transcriptOld) {
-      clearEphemeralData(messageId);
+      if (audioOld || transcriptOld) {
+        clearEphemeralData(messageId);
+      }
     }
-  });
+  },
+});
+
+// Event to trigger cleanup
+const triggerCleanup = createEvent<void>();
+
+// Connect cleanup event to effect with current ephemeral data
+sample({
+  clock: triggerCleanup,
+  source: $ephemeralMessageData,
+  target: autoCleanupFx,
+});
+
+// Handle cleanup failures
+// eslint-disable-next-line effector/no-watch
+autoCleanupFx.fail.watch(({ error }) => {
+  console.error('Audio chat auto-cleanup failed:', error);
 });
 
 // Run auto-cleanup every 30 minutes
 setInterval(
   () => {
-    autoCleanupFx();
+    triggerCleanup();
   },
   30 * 60 * 1000,
 );

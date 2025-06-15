@@ -1,12 +1,14 @@
 import { createDomain, sample } from 'effector';
-import { debug } from 'patronum/debug';
 import { persist } from 'effector-storage/local';
+import { debug } from 'patronum/debug';
+
 // import { debounce } from "patronum/debounce";
 import { buildModelsUrl } from '@/features/api-config';
-import { $providerApiUrl, $apiKey } from '@/features/chat-settings';
+import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+
 import type {
-  ModelInfo,
   ModelCapabilities,
+  ModelInfo,
   ModelLimits,
   RawModelsApiResponse,
 } from './types';
@@ -120,7 +122,7 @@ export const modelSelectorFocused = modelsDomain.event<boolean>( // Ensure this 
 export const testProviderUrl = modelsDomain.event<string>('testProviderUrl');
 
 // Comprehensive vision models list (from real API testing)
-const VISION_MODELS = [
+const VISION_MODELS = new Set([
   // OpenAI GPT models with vision (confirmed from OpenAI docs)
   'gpt-4.1',
   'gpt-4.1-mini',
@@ -210,10 +212,10 @@ const VISION_MODELS = [
 
   // Qwen VL models
   'Qwen/Qwen2.5-VL-72B-Instruct',
-];
+]);
 
 // Comprehensive audio models list (based on OpenAI and Gemini docs)
-const AUDIO_MODELS = [
+const AUDIO_MODELS = new Set([
   // OpenAI models with audio input support
   'gpt-4o-audio-preview',
   'gpt-4o-audio-preview-2024-12-17',
@@ -242,7 +244,7 @@ const AUDIO_MODELS = [
   'gemini-2.0-flash-live-001',
 
   // Note: Most Gemini models support audio, but we list the confirmed ones
-];
+]);
 
 // Model capability detection based on comprehensive real API testing
 const detectCapabilities = (
@@ -253,11 +255,11 @@ const detectCapabilities = (
 
   return {
     // Use comprehensive tested vision models list
-    vision: VISION_MODELS.includes(modelId),
+    vision: VISION_MODELS.has(modelId),
 
     // Use comprehensive audio models list and pattern matching
     audio:
-      AUDIO_MODELS.includes(modelId) ||
+      AUDIO_MODELS.has(modelId) ||
       id.includes('gpt-4o-audio') ||
       id.includes('whisper') ||
       id.includes('transcribe') ||
@@ -299,21 +301,35 @@ const detectLimits = (
   let maxImageSize = 20 * 1024 * 1024; // 20MB default
 
   // Provider-specific adjustments
-  if (ownedBy === 'openai') {
-    if (id.includes('gpt-4o')) {
-      maxTokens = 16384;
-      contextWindow = 128000;
-    } else if (id.includes('gpt-4')) {
-      maxTokens = 8192;
-      contextWindow = 8192;
+  switch (ownedBy) {
+    case 'openai': {
+      if (id.includes('gpt-4o')) {
+        maxTokens = 16_384;
+        contextWindow = 128_000;
+      } else if (id.includes('gpt-4')) {
+        maxTokens = 8192;
+        contextWindow = 8192;
+      }
+
+      break;
     }
-  } else if (ownedBy === 'anthropic') {
-    maxTokens = 8192;
-    contextWindow = 200000; // Claude has large context
-    maxImageSize = 5 * 1024 * 1024; // 5MB for Claude
-  } else if (ownedBy === 'google') {
-    maxTokens = 8192;
-    contextWindow = 2000000; // Gemini has very large context
+    case 'anthropic': {
+      maxTokens = 8192;
+      contextWindow = 200_000; // Claude has large context
+      maxImageSize = 5 * 1024 * 1024; // 5MB for Claude
+
+      break;
+    }
+    case 'google': {
+      maxTokens = 8192;
+      contextWindow = 2_000_000; // Gemini has very large context
+
+      break;
+    }
+    default: {
+      // Use defaults already set above
+      break;
+    }
   }
 
   return {
@@ -381,10 +397,10 @@ const isFreeModel = (modelId: string, pricing?: unknown): boolean => {
   // OpenRouter format: check actual pricing data
   if (pricing) {
     // If pricing exists, check if prompt and completion are both exactly "0"
-    const promptPrice = parseFloat(
+    const promptPrice = Number.parseFloat(
       (pricing as { prompt?: string }).prompt || '0',
     );
-    const completionPrice = parseFloat(
+    const completionPrice = Number.parseFloat(
       (pricing as { completion?: string }).completion || '0',
     );
 
@@ -420,7 +436,7 @@ const isChatModel = (model: Record<string, unknown>): boolean => {
 
   // OpenRouter format: check architecture.modality
   if ((model.architecture as { modality?: string })?.modality) {
-    const modality = (model.architecture as { modality: string }).modality;
+    const { modality } = model.architecture as { modality: string };
     // Chat models in OpenRouter have text output and can take text (and optionally images) as input
     return modality === 'text->text' || modality === 'text+image->text';
   }
@@ -466,7 +482,7 @@ const fetchModelsFx = modelsDomain.effect<
     };
 
     if (apiKey && apiKey.trim()) {
-      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+      headers.Authorization = `Bearer ${apiKey.trim()}`;
     }
 
     const response = await fetch(modelsUrl, {
@@ -481,7 +497,7 @@ const fetchModelsFx = modelsDomain.effect<
 
     // Filter for chat completion models and transform to ModelInfo
     const chatModels: ModelInfo[] = rawData.data
-      .filter(isChatModel)
+      .filter((model) => isChatModel(model))
       .map((model) => {
         // Handle different API formats for owned_by/provider
         let ownedBy = model.owned_by;
@@ -568,7 +584,7 @@ const testProviderUrlFx = modelsDomain.effect<
       };
 
       if (apiKey && apiKey.trim()) {
-        headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+        headers.Authorization = `Bearer ${apiKey.trim()}`;
       }
 
       const response = await fetch(modelsUrl, {
@@ -582,17 +598,17 @@ const testProviderUrlFx = modelsDomain.effect<
             success: false,
             message: `Authentication failed (${response.status}). Please check your API key.`,
           };
-        } else if (response.status === 404) {
+        }
+        if (response.status === 404) {
           return {
             success: false,
             message: `Endpoint not found (${response.status}). The URL may be incorrect.`,
           };
-        } else {
-          return {
-            success: false,
-            message: `HTTP error ${response.status}: ${response.statusText}`,
-          };
         }
+        return {
+          success: false,
+          message: `HTTP error ${response.status}: ${response.statusText}`,
+        };
       }
 
       const rawData: RawModelsApiResponse = await response.json();
@@ -604,7 +620,7 @@ const testProviderUrlFx = modelsDomain.effect<
         };
       }
 
-      const chatModels = rawData.data.filter(isChatModel);
+      const chatModels = rawData.data.filter((model) => isChatModel(model));
 
       return {
         success: true,

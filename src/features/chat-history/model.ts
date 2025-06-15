@@ -1,48 +1,52 @@
-import { createDomain, sample } from 'effector';
-import { debug } from 'patronum/debug';
-import { debounce } from 'patronum/debounce';
+import { combine, createDomain, sample } from 'effector';
 import { persist } from 'effector-storage/local';
-import { $messageText } from '@/features/chat';
+import { debounce } from 'patronum/debounce';
+import { debug } from 'patronum/debug';
+
+import { appStarted } from '@/app';
 import {
-  $messages,
   $currentChatTokens,
-  initialChatSaveNeeded,
-  editMessage,
+  $messages,
+  $messageText,
+  assistantResponseCompleted, // Added: For saving after generate/retry completion
   deleteMessage,
+  editMessage,
+  initialChatSaveNeeded,
   // retryUpdate, // Removed
   normalResponseProcessed, // For saving after normal API responses
-  assistantResponseCompleted, // Added: For saving after generate/retry completion
 } from '@/features/chat';
 import {
   $apiKey,
   $providerApiUrl,
-  $temperature,
   $systemPrompt,
+  $temperature,
 } from '@/features/chat-settings';
-import { $autoTitleModelId } from '@/features/models-select';
-import { $availableModels } from '@/features/models-select';
-import { $selectedModelId } from '@/features/models-select';
-import { modelSelected } from '@/features/models-select';
 import {
-  ChatSession,
-  ChatHistoryIndex,
-  GenerateTitleParams,
-  GenerateTitleResult,
-  EditTitleParams,
-} from './types';
+  $autoTitleModelId,
+  $availableModels,
+  $selectedModelId,
+  modelSelected,
+} from '@/features/models-select';
+import { resetEditingMessage } from '@/features/ui-state';
+
 import {
-  loadChatHistoryIndexHandler,
-  loadSpecificChatHandler,
-  saveChatHandler,
   deleteChatHandler,
   editChatTitleHandler,
   generateTitleHandler,
-  updateIndexOnSaveFn,
-  updateIndexOnTitleEditFn,
-  prepareChatSessionFn,
-} from './lib';
-import { appStarted } from '@/app';
-import { resetEditingMessage } from '@/features/ui-state';
+  loadChatHistoryIndexHandler,
+  loadSpecificChatHandler,
+  prepareChatSessionFunction,
+  saveChatHandler,
+  updateIndexOnSaveFunction,
+  updateIndexOnTitleEditFunction,
+} from './database';
+import {
+  ChatHistoryIndex,
+  ChatSession,
+  EditTitleParams,
+  GenerateTitleParams,
+  GenerateTitleResult,
+} from './types';
 
 const historyDomain = createDomain('history');
 
@@ -100,7 +104,7 @@ duplicateChatFx.use(async (chatId) => {
     id: newId,
     createdAt: now,
     lastModified: now,
-    title: originalChat.title + ' (Copy)',
+    title: `${originalChat.title} (Copy)`,
     messages: originalChat.messages ?? [],
     settings: originalChat.settings ?? {
       model: '',
@@ -166,39 +170,79 @@ export const generateTitleFx = historyDomain.effect<
   handler: generateTitleHandler,
 });
 export const regenerateTitleForChatFx = historyDomain.effect<
-  string,
+  {
+    chatId: string;
+    apiKey: string;
+    providerApiUrl: string;
+    modelId: string;
+    chat: ChatSession;
+  },
   void,
   Error
 >('regenerateTitleForChatFx');
 
-regenerateTitleForChatFx.use(async (chatId) => {
-  const apiKey = $apiKey.getState();
-  const providerApiUrl = $providerApiUrl.getState();
-  if (!apiKey) throw new Error('API key is missing');
+regenerateTitleForChatFx.use(
+  async ({ chatId, apiKey, providerApiUrl, modelId, chat }) => {
+    if (!chat.messages || chat.messages.length === 0) return;
 
-  const chat = await loadSpecificChatHandler(chatId);
-  if (!chat) throw new Error('Chat not found');
+    const result = await generateTitleHandler({
+      chatId,
+      messages: chat.messages,
+      apiKey,
+      providerApiUrl,
+      modelId,
+    });
 
-  if (!chat.messages || chat.messages.length === 0) return;
+    if (!result.generatedTitle) return;
 
-  const result = await generateTitleHandler({
-    chatId,
-    messages: chat.messages,
-    apiKey,
-    providerApiUrl,
-    modelId: $selectedModelId.getState(),
-  });
+    await editChatTitleHandler({
+      id: chatId,
+      newTitle: result.generatedTitle,
+    });
+  },
+);
 
-  if (!result.generatedTitle) return;
+const prepareRegenerateTitleFx = historyDomain.effect<
+  { chatId: string; apiKey: string; providerApiUrl: string; modelId: string },
+  {
+    chatId: string;
+    apiKey: string;
+    providerApiUrl: string;
+    modelId: string;
+    chat: ChatSession;
+  },
+  Error
+>('prepareRegenerateTitleFx');
 
-  await editChatTitleHandler({
-    id: chatId,
-    newTitle: result.generatedTitle,
-  });
-});
+prepareRegenerateTitleFx.use(
+  async ({ chatId, apiKey, providerApiUrl, modelId }) => {
+    if (!apiKey) throw new Error('API key is missing');
+
+    const chat = await loadSpecificChatHandler(chatId);
+    if (!chat) throw new Error('Chat not found');
+
+    return { chatId, apiKey, providerApiUrl, modelId, chat };
+  },
+);
 
 sample({
   clock: regenerateTitleForChat,
+  source: {
+    apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
+    modelId: $selectedModelId,
+  },
+  fn: ({ apiKey, providerApiUrl, modelId }, chatId) => ({
+    chatId,
+    apiKey,
+    providerApiUrl,
+    modelId,
+  }),
+  target: prepareRegenerateTitleFx,
+});
+
+sample({
+  clock: prepareRegenerateTitleFx.doneData,
   target: regenerateTitleForChatFx,
 });
 
@@ -260,7 +304,7 @@ sample({
   clock: saveChatFx.done,
   source: $chatHistoryIndex,
   fn: (currentIndex, { params: savedChat }) =>
-    updateIndexOnSaveFn(currentIndex, savedChat),
+    updateIndexOnSaveFunction(currentIndex, savedChat),
   target: $chatHistoryIndex,
 });
 
@@ -273,7 +317,7 @@ sample({
   source: $chatHistoryIndex,
   filter: (_, updatedIndexEntry) => !!updatedIndexEntry,
   fn: (currentIndex, updatedIndexEntry) =>
-    updateIndexOnTitleEditFn(currentIndex, updatedIndexEntry!), // Add non-null assertion
+    updateIndexOnTitleEditFunction(currentIndex, updatedIndexEntry), // Add non-null assertion
   target: $chatHistoryIndex,
 });
 
@@ -415,8 +459,9 @@ sample({
 // Update $selectedModelId in models-select feature when a chat is loaded
 sample({
   clock: loadSpecificChatFx.doneData,
-  filter: isChatSession,
-  fn: () => $selectedModelId.getState(),
+  source: $selectedModelId,
+  filter: (_, chat) => isChatSession(chat),
+  fn: (modelId) => modelId,
   target: $selectedModelId,
 });
 
@@ -511,31 +556,27 @@ sample({
     systemPrompt: $systemPrompt,
     tokens: $currentChatTokens,
     draft: $messageText, // <-- Add draft input
-    selectedModelInfo: $availableModels.map(
-      (models) =>
-        models.find((m) => m.id === $selectedModelId.getState()) ?? null,
+    selectedModelInfo: combine(
+      $availableModels,
+      $selectedModelId,
+      (models, selectedId) => models.find((m) => m.id === selectedId) ?? null,
     ),
     isRestoring: $isRestoring,
   },
   filter: ({ messages, isRestoring }) => messages.length > 0 && !isRestoring, // Only save if not restoring
   fn: (source) => {
     // Corrected logging function
-    console.log(
-      '[saveChatFx Trigger] Fired. Source Messages Length:',
-      source.messages.length,
-      'Restoring:',
-      source.isRestoring,
-    ); // DEBUG LOG
+    // [saveChatFx Trigger] Fired. Source Messages Length: source.messages.length, Restoring: source.isRestoring
     if (source.messages.length > 0) {
-      console.log(
-        '[saveChatFx Trigger] Last Message ID:',
-        source.messages[source.messages.length - 1].id,
-      ); // Log ID for easier tracking
+      const lastMessage = source.messages.at(-1);
+      if (lastMessage) {
+        // [saveChatFx Trigger] Last Message ID: lastMessage.id
+      }
     }
     // Remove isRestoring from session passed to prepareChatSessionFn
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { isRestoring, ...rest } = source;
-    return prepareChatSessionFn(rest);
+    return prepareChatSessionFunction(rest);
   },
   target: saveChatFx,
 });
@@ -545,20 +586,24 @@ sample({
 // Trigger title generation after the first save of a new chat
 sample({
   clock: saveChatFx.done,
-  source: { apiKey: $apiKey, providerApiUrl: $providerApiUrl },
+  source: {
+    apiKey: $apiKey,
+    providerApiUrl: $providerApiUrl,
+    autoTitleModelId: $autoTitleModelId,
+  },
   filter: ({ apiKey }, { params: savedChat }) =>
     !!apiKey &&
     savedChat.messages.length >= 2 &&
-    (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(savedChat.title) || !savedChat.title), // Generate if no title or has timestamp title
+    (/^(?:\d{1,2}\/){2}\d{4}/.test(savedChat.title) || !savedChat.title), // Generate if no title or has timestamp title
   fn: (
-    { apiKey, providerApiUrl },
+    { apiKey, providerApiUrl, autoTitleModelId },
     { params: savedChat },
   ): GenerateTitleParams => ({
     chatId: savedChat.id,
     messages: savedChat.messages,
-    apiKey: apiKey,
-    providerApiUrl: providerApiUrl,
-    modelId: $autoTitleModelId.getState(),
+    apiKey,
+    providerApiUrl,
+    modelId: autoTitleModelId,
   }),
   target: generateTitleFx,
 });
@@ -569,7 +614,7 @@ sample({
   filter: ({ generatedTitle }) => !!generatedTitle, // Ensure title was generated
   fn: ({ chatId, generatedTitle }): EditTitleParams => ({
     id: chatId,
-    newTitle: generatedTitle!, // Non-null assertion safe due to filter
+    newTitle: generatedTitle, // Non-null assertion safe due to filter
   }),
   target: editChatTitleFx,
 });
@@ -581,15 +626,16 @@ sample({
     apiKey: $apiKey,
     providerApiUrl: $providerApiUrl,
     currentChat: $currentChatSession,
+    autoTitleModelId: $autoTitleModelId,
   },
   filter: ({ apiKey, currentChat }) =>
     !!apiKey && !!currentChat && currentChat.messages.length > 0,
-  fn: ({ apiKey, providerApiUrl, currentChat }) => ({
+  fn: ({ apiKey, providerApiUrl, currentChat, autoTitleModelId }) => ({
     chatId: currentChat!.id,
     messages: currentChat!.messages,
-    apiKey: apiKey,
-    providerApiUrl: providerApiUrl,
-    modelId: $autoTitleModelId.getState(),
+    apiKey,
+    providerApiUrl,
+    modelId: autoTitleModelId,
   }),
   target: generateTitleFx,
 });
@@ -597,6 +643,7 @@ sample({
 // --- Debugging ---
 
 // Debug title generation flow
+// eslint-disable-next-line effector/no-watch
 generateTitleFx.done.watch(({ params, result }) => {
   console.log(
     `[DEBUG] Title generated for chat ${params.chatId}:`,
@@ -604,28 +651,28 @@ generateTitleFx.done.watch(({ params, result }) => {
   );
 });
 
+// eslint-disable-next-line effector/no-watch
 generateTitleFx.fail.watch(({ error, params }) => {
   console.error(`Failed to generate title for chat ${params.chatId}:`, error);
 });
 
+// eslint-disable-next-line effector/no-watch
 editChatTitleFx.done.watch(({ params, result }) => {
-  console.log(
-    `[DEBUG] Title edited for chat ${params.id}:`,
-    params.newTitle,
-    'Result:',
-    result,
-  );
+  console.log(`[DEBUG] Title edited for chat ${params.id}:`, result?.title);
 });
 
+// eslint-disable-next-line effector/no-watch
 editChatTitleFx.fail.watch(({ error, params }) => {
   console.error(`Failed to edit title for chat ${params.id}:`, error);
 });
 
-// Debug watches for development
+// eslint-disable-next-line effector/no-watch
 saveChatFx.done.watch(() => {
   console.log('Effect: saveChatFx done (Debug)');
 });
-saveChatFx.fail.watch((error) => {
+
+// eslint-disable-next-line effector/no-watch
+saveChatFx.fail.watch(({ error }) => {
   console.error('Effect: saveChatFx failed (Debug)', error);
 });
 
@@ -646,7 +693,7 @@ sample({
             prompt: Number(fullModel.pricing?.prompt) || 0,
             completion: Number(fullModel.pricing?.completion) || 0,
           },
-          context_length: fullModel.context_length ?? 1000000,
+          context_length: fullModel.context_length ?? 1_000_000,
         },
       },
     };

@@ -1,12 +1,14 @@
 import { createParser } from 'eventsource-parser';
-import {
-  StreamChatParams,
-  EventSourceParserEvent,
-  isParsedDataEvent,
-  isCompletionEvent,
-  APIParsedChunkData,
-} from './types';
+
 import { buildChatCompletionsUrl } from '@/features/api-config';
+
+import {
+  APIParsedChunkData,
+  EventSourceParserEvent,
+  isCompletionEvent,
+  isParsedDataEvent,
+  StreamChatParams,
+} from './types';
 
 /**
  * Performs the actual fetch request and processes the SSE stream.
@@ -60,8 +62,8 @@ export async function fetchChatStream(
     model,
     messages,
     temperature,
-    max_tokens,
-    top_p,
+    max_tokens: maxTokens,
+    top_p: topP,
     modalities,
     audio,
     // Callbacks
@@ -79,8 +81,8 @@ export async function fetchChatStream(
     model,
     messages,
     temperature,
-    max_tokens,
-    top_p,
+    max_tokens: maxTokens,
+    top_p: topP,
     stream: true, // Explicitly enable streaming
   };
 
@@ -116,7 +118,7 @@ export async function fetchChatStream(
     if (!response.ok) {
       let errorPayload: Record<string, unknown> = {};
       try {
-        errorPayload = await response.json();
+        errorPayload = (await response.json()) as Record<string, unknown>;
       } catch {
         // Ignore JSON parsing error if body is not valid JSON
       }
@@ -151,7 +153,9 @@ export async function fetchChatStream(
 
       if (isParsedDataEvent(event)) {
         try {
-          const jsonData: APIParsedChunkData = JSON.parse(event.data);
+          const jsonData: APIParsedChunkData = JSON.parse(
+            event.data,
+          ) as APIParsedChunkData;
           // console.log(`[Stream ${streamId}] Data chunk received:`, jsonData);
 
           // Check if this is an error response
@@ -187,7 +191,9 @@ export async function fetchChatStream(
           // For now, report error but let the stream continue if possible
           onError({
             streamId,
-            error: new Error(`Failed to parse JSON chunk: ${parseError}`),
+            error: new Error(
+              `Failed to parse JSON chunk: ${String(parseError)}`,
+            ),
           });
         }
       }
@@ -202,7 +208,8 @@ export async function fetchChatStream(
     const parser = createParser({ onEvent: onParse }); // Try 'onEvent' as the callback key
 
     // Read loop
-    while (true) {
+    let continueReading = true;
+    while (continueReading) {
       // Check signal before reading - fetch might not throw immediately
       if (signal.aborted) {
         // This check might be redundant if reader.read() throws AbortError reliably,
@@ -210,6 +217,7 @@ export async function fetchChatStream(
         throw new DOMException('Stream aborted by signal', 'AbortError');
       }
 
+      // eslint-disable-next-line no-await-in-loop
       const { done, value } = await reader.read();
 
       if (done) {
@@ -220,11 +228,11 @@ export async function fetchChatStream(
         // Relying on [DONE] event is safer. If the stream ends without
         // [DONE], it might indicate an issue. We could call onError here instead.
         // For now, assume API provider sends [DONE] reliably.
-        break;
+        continueReading = false;
+      } else {
+        // Feed the chunk to the parser
+        parser.feed(decoder.decode(value, { stream: true }));
       }
-
-      // Feed the chunk to the parser
-      parser.feed(decoder.decode(value, { stream: true }));
     }
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AbortError') {

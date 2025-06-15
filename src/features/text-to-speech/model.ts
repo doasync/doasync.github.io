@@ -1,36 +1,47 @@
-import { createDomain, createEffect, sample, combine } from 'effector';
+/* eslint-disable effector/no-watch */
+import { combine, createDomain, createEffect, sample } from 'effector';
 import { persist } from 'effector-storage/local';
 import { debug } from 'patronum/debug';
 import { spread } from 'patronum/spread';
+
+import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+
+import { generateSpeech, generateSpeechStream } from './api';
 import {
   AudioFormat,
+  GeneratedAudio,
   TTSParams,
   TTSResponse,
   VoiceOption,
   VoiceProvider,
-  GeneratedAudio,
 } from './types';
-import { generateSpeech, generateSpeechStream } from './api';
 
 const domain = createDomain('text-to-speech');
 
 // Get proper MIME type for audio format
 const getAudioMimeType = (format: AudioFormat): string => {
   switch (format) {
-    case 'mp3':
+    case 'mp3': {
       return 'audio/mpeg';
-    case 'wav':
+    }
+    case 'wav': {
       return 'audio/wav';
-    case 'aac':
+    }
+    case 'aac': {
       return 'audio/aac';
-    case 'opus':
+    }
+    case 'opus': {
       return 'audio/opus';
-    case 'flac':
+    }
+    case 'flac': {
       return 'audio/flac';
-    case 'pcm':
-      return 'audio/wav'; // PCM data is typically in WAV container
-    default:
-      return 'audio/mpeg'; // fallback
+    }
+    case 'pcm': {
+      return 'audio/wav';
+    } // PCM data is typically in WAV container
+    default: {
+      return 'audio/mpeg';
+    } // fallback
   }
 };
 
@@ -47,20 +58,21 @@ const getSupportedFormats = (modelId: string): AudioFormat[] => {
   if (modelId === 'elevenlabs') {
     // ElevenLabs supports: mp3, opus, aac, flac, wav, pcm
     return ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
-  } else if (modelId.startsWith('gemini-')) {
+  }
+  if (modelId.startsWith('gemini-')) {
     // Gemini supports: wav only (PCM format)
     return ['wav'];
-  } else if (
+  }
+  if (
     modelId === 'gpt-4o-audio-preview' ||
     modelId === 'gpt-4o-audio-preview-2024-12-17'
   ) {
     // GPT-4o audio models using chat completions endpoint support: mp3, wav, opus, flac, pcm
     // Note: AAC is not supported by chat completions audio format
     return ['mp3', 'wav', 'opus', 'flac', 'pcm'];
-  } else {
-    // Standard OpenAI models support: mp3, opus, aac, flac, wav, pcm
-    return ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
   }
+  // Standard OpenAI models support: mp3, opus, aac, flac, wav, pcm
+  return ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'];
 };
 
 // Stores
@@ -70,14 +82,16 @@ export const $selectedFormat = domain.createStore<AudioFormat>('mp3');
 export const $selectedModel = domain.createStore<string>('tts-1');
 
 // Current model's supported formats (computed)
-export const $supportedFormats = $selectedModel.map(getSupportedFormats);
+export const $supportedFormats = $selectedModel.map((model) =>
+  getSupportedFormats(model),
+);
 export const $selectedProvider = domain.createStore<VoiceProvider>('voidai');
 export const $isLoading = domain.createStore<boolean>(false);
 export const $error = domain.createStore<string | null>(null);
 export const $previewUrl = domain.createStore<string | null>(null);
 export const $audioUrl = domain.createStore<string | null>(null);
 export const $availableVoices = domain.createStore<VoiceOption[]>([]);
-export const $speed = domain.createStore<number>(1.0);
+export const $speed = domain.createStore<number>(1);
 export const $instructions = domain.createStore<string>('');
 export const $generatedAudios = domain.createStore<GeneratedAudio[]>([]);
 export const $isStreaming = domain.createStore<boolean>(false);
@@ -87,14 +101,14 @@ export const $streamingAudioUrl = domain.createStore<string | null>(null);
 export const $modelPreferences = domain.createStore<
   Record<string, ModelPreferences>
 >({
-  'tts-1': { voice: 'nova', format: 'mp3', speed: 1.0 },
-  'tts-1-hd': { voice: 'nova', format: 'mp3', speed: 1.0 },
-  'gpt-4o-audio-preview': { voice: 'alloy', format: 'mp3', speed: 1.0 },
-  'gpt-4o-mini-audio-preview': { voice: 'echo', format: 'mp3', speed: 1.0 },
-  'gpt-4o-mini-tts': { voice: 'ash', format: 'mp3', speed: 1.0 },
-  elevenlabs: { voice: 'Will (US male)', format: 'mp3', speed: 1.0 },
-  'gemini-2.5-flash-preview-tts': { voice: 'Aoede', format: 'wav', speed: 1.0 },
-  'gemini-2.5-pro-preview-tts': { voice: 'Kore', format: 'wav', speed: 1.0 },
+  'tts-1': { voice: 'nova', format: 'mp3', speed: 1 },
+  'tts-1-hd': { voice: 'nova', format: 'mp3', speed: 1 },
+  'gpt-4o-audio-preview': { voice: 'alloy', format: 'mp3', speed: 1 },
+  'gpt-4o-mini-audio-preview': { voice: 'echo', format: 'mp3', speed: 1 },
+  'gpt-4o-mini-tts': { voice: 'ash', format: 'mp3', speed: 1 },
+  elevenlabs: { voice: 'Will (US male)', format: 'mp3', speed: 1 },
+  'gemini-2.5-flash-preview-tts': { voice: 'Aoede', format: 'wav', speed: 1 },
+  'gemini-2.5-pro-preview-tts': { voice: 'Kore', format: 'wav', speed: 1 },
 });
 
 export const $ttsState = combine({
@@ -131,11 +145,19 @@ export const ttsDialogClosed = domain.createEvent();
 export const deleteAudio = domain.createEvent<string>(); // Delete by ID
 
 // Effects
-export const generateTTSFx = createEffect<TTSParams, TTSResponse, Error>({
+export const generateTTSFx = createEffect<
+  TTSParams & { apiKey: string; providerUrl: string },
+  TTSResponse,
+  Error
+>({
   handler: generateSpeech,
 });
 
-export const generateTTSStreamFx = createEffect<TTSParams, TTSResponse, Error>({
+export const generateTTSStreamFx = createEffect<
+  TTSParams & { apiKey: string; providerUrl: string },
+  TTSResponse,
+  Error
+>({
   handler: async (params) => {
     try {
       // For now, use a simpler streaming approach
@@ -181,9 +203,9 @@ export const downloadAudioFx = createEffect<
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
-    document.body.appendChild(a);
+    document.body.append(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
     URL.revokeObjectURL(url);
   },
 });
@@ -200,14 +222,14 @@ export const playPreviewFx = createEffect<
     const audioElement = new Audio(url);
 
     return new Promise<void>((resolve, reject) => {
-      audioElement.onended = () => {
+      audioElement.addEventListener('ended', () => {
         URL.revokeObjectURL(url);
         resolve();
-      };
-      audioElement.onerror = () => {
+      });
+      audioElement.addEventListener('error', () => {
         URL.revokeObjectURL(url);
         reject(new Error('Failed to play audio'));
-      };
+      });
       audioElement.play().catch(reject);
     });
   },
@@ -217,23 +239,37 @@ export const loadVoicesFx = createEffect<string, VoiceOption[], Error>({
   handler: async (modelId) => {
     // Load voices from voice-models feature based on model ID
     const { $voiceModels } = await import('../voice-models');
-    const models = $voiceModels.getState();
-    const model = models.find((m) => m.id === modelId);
 
-    if (!model) {
-      console.warn(`No voice model found for ${modelId}`);
-      return [];
-    }
+    // Get current voice models in a reactive way
+    return new Promise<VoiceOption[]>((resolve, reject) => {
+      const unsubscribe = $voiceModels.watch((models) => {
+        try {
+          const model = models.find((m) => m.id === modelId);
 
-    // Map VoiceInfo to VoiceOption format
-    return (model.voices || []).map((voice) => ({
-      id: voice.id,
-      name: voice.name,
-      provider: model.provider as VoiceProvider,
-      gender: voice.gender,
-      style: voice.style,
-      description: voice.description,
-    }));
+          if (!model) {
+            console.warn(`No voice model found for ${modelId}`);
+            resolve([]);
+            return;
+          }
+
+          // Map VoiceInfo to VoiceOption format
+          const voices = (model.voices || []).map((voice) => ({
+            id: voice.id,
+            name: voice.name,
+            provider: model.provider as VoiceProvider,
+            gender: voice.gender,
+            style: voice.style,
+            description: voice.description,
+          }));
+
+          resolve(voices);
+        } catch (error) {
+          reject(error);
+        } finally {
+          unsubscribe();
+        }
+      });
+    });
   },
 });
 
@@ -289,7 +325,7 @@ sample({
     return {
       voice,
       format,
-      speed: prefs?.speed || 1.0,
+      speed: prefs?.speed || 1,
       instructions: prefs?.instructions || '',
     };
   },
@@ -345,15 +381,21 @@ $generatedAudios.on(deleteAudio, (audios, audioId) => {
 // Generate TTS when requested
 sample({
   clock: generateTTSClicked,
-  source: $ttsState,
-  filter: (state) => state.text.trim().length > 0,
-  fn: (state) => ({
+  source: {
+    state: $ttsState,
+    apiKey: $apiKey,
+    providerUrl: $providerApiUrl,
+  },
+  filter: ({ state, apiKey }) => state.text.trim().length > 0 && !!apiKey,
+  fn: ({ state, apiKey, providerUrl }) => ({
     text: state.text,
     voice: state.selectedVoice,
     model: state.selectedModel,
     format: state.selectedFormat,
     speed: state.speed,
     instructions: state.instructions,
+    apiKey,
+    providerUrl,
   }),
   target: generateTTSFx,
 });
@@ -361,15 +403,21 @@ sample({
 // Generate TTS with streaming when requested
 sample({
   clock: generateTTSStreamClicked,
-  source: $ttsState,
-  filter: (state) => state.text.trim().length > 0,
-  fn: (state) => ({
+  source: {
+    state: $ttsState,
+    apiKey: $apiKey,
+    providerUrl: $providerApiUrl,
+  },
+  filter: ({ state, apiKey }) => state.text.trim().length > 0 && !!apiKey,
+  fn: ({ state, apiKey, providerUrl }) => ({
     text: state.text,
     voice: state.selectedVoice,
     model: state.selectedModel,
     format: state.selectedFormat,
     speed: state.speed,
     instructions: state.instructions,
+    apiKey,
+    providerUrl,
   }),
   target: generateTTSStreamFx,
 });
@@ -385,7 +433,7 @@ sample({
 
     // Generate unique filename based on timestamp
     const now = new Date();
-    const dateStr = now
+    const dateString = now
       .toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
@@ -393,10 +441,10 @@ sample({
         minute: '2-digit',
         hour12: false,
       })
-      .replace(/[\s,/:]/g, '-');
+      .replaceAll(/[\s,/:]/g, '-');
     const count =
-      audios.filter((a) => a.timestamp > Date.now() - 60000).length + 1; // Count within same minute
-    const filename = `tts-${dateStr}-${count}.${response.format}`;
+      audios.filter((a) => a.timestamp > Date.now() - 60_000).length + 1; // Count within same minute
+    const filename = `tts-${dateString}-${count}.${response.format}`;
 
     const newAudio: GeneratedAudio = {
       id: `audio-${Date.now()}`,

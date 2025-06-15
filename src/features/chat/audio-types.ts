@@ -74,7 +74,7 @@ export async function createAudioContentPart(
 ): Promise<AudioContentPartExtended> {
   // Convert blob to base64
   const arrayBuffer = await blob.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const base64 = btoa(String.fromCodePoint(...new Uint8Array(arrayBuffer)));
 
   // Detect format from MIME type
   const format = blob.type.replace('audio/', '') as

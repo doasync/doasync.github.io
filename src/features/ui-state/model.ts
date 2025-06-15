@@ -1,10 +1,11 @@
-import { sample, createDomain, createEffect } from 'effector';
+import { createDomain, createEffect, sample } from 'effector';
 import { debug } from 'patronum/debug';
+
 import { appStarted } from '@/app'; // Import app started event
 
 const uiDomain = createDomain('ui');
 
-type DrawerTabs = 'history' | 'settings' | 'modelInfo' | 'usage';
+export type DrawerTabs = 'history' | 'settings' | 'modelInfo' | 'usage';
 
 // --- Events ---
 

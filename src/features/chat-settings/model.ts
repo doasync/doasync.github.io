@@ -1,5 +1,6 @@
-import { createDomain, sample, combine } from 'effector';
+import { combine, createDomain, sample } from 'effector';
 import { debug } from 'patronum/debug';
+
 import { appStarted } from '@/app';
 
 // Define LocalStorage keys
@@ -107,15 +108,15 @@ const loadSettingsFx = settingsDomain.effect<
 
     const providerApiUrl =
       localStorage.getItem(PROVIDER_API_URL_LS_KEY) ?? DEFAULT_PROVIDER_API_URL;
-    const tempRaw = localStorage.getItem(TEMPERATURE_LS_KEY);
+    const temporaryRaw = localStorage.getItem(TEMPERATURE_LS_KEY);
     const systemPrompt =
       localStorage.getItem(SYSTEM_PROMPT_LS_KEY) ?? DEFAULT_SYSTEM_PROMPT;
 
     let temperature = DEFAULT_TEMPERATURE;
-    if (tempRaw) {
-      const parsedTemp = parseFloat(tempRaw);
-      if (!isNaN(parsedTemp)) {
-        temperature = parsedTemp;
+    if (temporaryRaw) {
+      const parsedTemporary = Number.parseFloat(temporaryRaw);
+      if (!Number.isNaN(parsedTemporary)) {
+        temperature = parsedTemporary;
       }
     }
     return { apiKey, providerApiUrl, temperature, systemPrompt };
@@ -197,10 +198,13 @@ sample({
 });
 
 // Handle potential loading errors (optional: could show an error message)
+
+// eslint-disable-next-line effector/no-watch
 loadSettingsFx.fail.watch(({ error }) => {
   console.error('Failed to load settings:', error);
 });
 
+// eslint-disable-next-line effector/no-watch
 saveSettingsFx.fail.watch(({ error }) => {
   console.error('Failed to save settings:', error);
 });

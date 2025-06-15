@@ -1,28 +1,24 @@
 export {
-  // Events
-  processDocuments,
-  documentProcessingConfigUpdated,
-  clearProcessingResults,
-
+  $isProcessingDocuments,
+  $processingConfig,
+  $processingError,
   // Stores
   $processingResults,
-  $isProcessingDocuments,
-  $processingError,
-  $processingConfig,
-
+  clearProcessingResults,
+  documentProcessingConfigUpdated,
+  // Events
+  processDocuments,
   // Effects
   processDocumentsFx,
 } from './model';
-
+export { createDOCXProcessor } from './processors/docx-processor';
+export { createHTMLProcessor } from './processors/html-processor';
+export { createPDFProcessor } from './processors/pdf-processor';
+export { createTextProcessor } from './processors/text-processor';
 export type {
-  DocumentProcessor,
-  DocumentProcessingResult,
   DocumentMetadata,
-  TextChunk,
   DocumentProcessingConfig,
+  DocumentProcessingResult,
+  DocumentProcessor,
+  TextChunk,
 } from './types';
-
-export { PDFProcessor } from './processors/pdf-processor';
-export { DOCXProcessor } from './processors/docx-processor';
-export { TextProcessor } from './processors/text-processor';
-export { HTMLProcessor } from './processors/html-processor';

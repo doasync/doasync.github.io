@@ -79,9 +79,7 @@ export function isCommentEvent(event: EventSourceParserEvent): boolean {
   // Return boolean as we can't narrow down the type much further reliably
   // Comments typically lack the 'data' field according to SSE spec.
   // We also check 'event' isn't set, as standard events usually have it.
-  return (
-    typeof event.data === 'undefined' && typeof event.event === 'undefined'
-  );
+  return event.data === undefined && event.event === undefined;
 }
 
 // --- Feature API Types ---

@@ -66,7 +66,7 @@ export const IMAGE_GENERATION_MODELS: ImageGenerationModelInfo[] = [
     provider: 'openai',
     supportedSizes: ['1024x1024', '1536x1024', '1024x1536', 'auto'],
     supportedQualities: ['auto', 'high', 'medium', 'low'],
-    maxPromptLength: 32000,
+    maxPromptLength: 32_000,
     maxImages: 1,
     supportsEditing: true,
   },
@@ -220,14 +220,12 @@ export const IMAGE_GENERATION_MODELS: ImageGenerationModelInfo[] = [
 // Helper function to get model info
 export const getImageGenerationModelInfo = (
   modelId: string,
-): ImageGenerationModelInfo | undefined => {
-  return IMAGE_GENERATION_MODELS.find((model) => model.id === modelId);
-};
+): ImageGenerationModelInfo | undefined =>
+  IMAGE_GENERATION_MODELS.find((model) => model.id === modelId);
 
 // Helper to check if a string is an image generation command
-export const isImageGenerationCommand = (text: string): boolean => {
-  return /^\/imagine\s+.+/i.test(text.trim());
-};
+export const isImageGenerationCommand = (text: string): boolean =>
+  /^\/imagine\s+.+/i.test(text.trim());
 
 // Helper to extract prompt from command
 export const extractImagePrompt = (command: string): string => {
@@ -247,33 +245,33 @@ export const parseImageGenerationCommand = (
   // Extract --size parameter
   const sizeMatch = prompt.match(/--size\s+(\w+x\w+)/i);
   if (sizeMatch) {
-    params.size = sizeMatch[1];
+    [, params.size] = sizeMatch;
   }
 
   // Extract --quality parameter
   const qualityMatch = prompt.match(/--quality\s+(\w+)/i);
   if (qualityMatch) {
-    params.quality = qualityMatch[1];
+    [, params.quality] = qualityMatch;
   }
 
   // Extract --style parameter
   const styleMatch = prompt.match(/--style\s+(\w+)/i);
   if (styleMatch) {
-    params.style = styleMatch[1];
+    [, params.style] = styleMatch;
   }
 
   // Extract --n parameter
   const nMatch = prompt.match(/--n\s+(\d+)/i);
   if (nMatch) {
-    params.n = parseInt(nMatch[1], 10);
+    params.n = Number.parseInt(nMatch[1], 10);
   }
 
   // Clean prompt of parameters
   const cleanPrompt = prompt
-    .replace(/--size\s+\w+x\w+/gi, '')
-    .replace(/--quality\s+\w+/gi, '')
-    .replace(/--style\s+\w+/gi, '')
-    .replace(/--n\s+\d+/gi, '')
+    .replaceAll(/--size\s+\w+x\w+/gi, '')
+    .replaceAll(/--quality\s+\w+/gi, '')
+    .replaceAll(/--style\s+\w+/gi, '')
+    .replaceAll(/--n\s+\d+/gi, '')
     .trim();
 
   return { prompt: cleanPrompt, params };

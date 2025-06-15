@@ -1,82 +1,75 @@
 export {
-  // Core Stores
-  $sttFile,
-  $sttModel,
-  $sttPrompt,
-  $isLoading,
-  $sttError,
-
-  // Results and history
-  $transcriptionResults,
-  $selectedResult,
-
-  // UI state
-  $isDialogOpen,
-  $availableModels,
-  $currentModel,
-  $currentResponseFormat,
-  $responseFormatsPerModel,
-  $fileValidation,
-  $canTranscribe,
-  $sttState,
-
-  // Events
-  dialogOpened,
-  dialogClosed,
-  fileSelected,
-  fileCleared,
-  modelChanged,
-  promptChanged,
-  responseFormatChanged,
-  transcribeClicked,
-  resultSelected,
-  copyTextClicked,
-  generateMessageClicked,
-  deleteResultClicked,
-  clearError,
-
-  // Effects
-  transcribeAudioFx,
-  saveTranscriptionFx,
-  loadTranscriptionHistoryFx,
-  deleteTranscriptionFx,
-  loadResponseFormatsSettingsFx,
-  saveResponseFormatSettingFx,
-
-  // Legacy compatibility
-  $sttProgress,
-  $sttResult,
-  $sttLanguage,
-  $sttProvider,
-  $sttSegments,
-  audioFileDropped,
-  transcriptionStarted,
-  progressUpdated,
-  transcriptionCompleted,
-  transcriptionFailed,
-  insertToChat,
-  createNewMessage,
-  clearTranscription,
-  providerChanged,
-} from './model';
-
-export type {
-  STTParams,
-  STTResponse,
-  TranscriptionSegment,
-  TranscriptionResult,
-  STTModel,
-  STTState,
-  AudioFileInfo,
-  ValidationResult,
-  TranscribeParams,
-  ResponseFormat,
-  ResponseFormatOption,
-} from './types';
-
-export {
+  RESPONSE_FORMAT_OPTIONS,
+  STT_MODELS,
   transcribeAudio,
   validateAudioFile,
-  STT_MODELS,
-  RESPONSE_FORMAT_OPTIONS,
 } from './api';
+export {
+  $availableModels,
+  $canTranscribe,
+  $currentModel,
+  $currentResponseFormat,
+  $fileValidation,
+  // UI state
+  $isDialogOpen,
+  $isLoading,
+  $responseFormatsPerModel,
+  $selectedResult,
+  $sttError,
+  // Core Stores
+  $sttFile,
+  $sttLanguage,
+  $sttModel,
+  // Legacy compatibility
+  $sttProgress,
+  $sttPrompt,
+  $sttProvider,
+  $sttResult,
+  $sttSegments,
+  $sttState,
+  // Results and history
+  $transcriptionResults,
+  audioFileDropped,
+  clearError,
+  clearTranscription,
+  copyTextClicked,
+  createNewMessage,
+  deleteResultClicked,
+  deleteTranscriptionFx,
+  dialogClosed,
+  // Events
+  dialogOpened,
+  fileCleared,
+  fileSelected,
+  generateMessageClicked,
+  insertToChat,
+  loadResponseFormatsSettingsFx,
+  loadTranscriptionHistoryFx,
+  modelChanged,
+  progressUpdated,
+  promptChanged,
+  providerChanged,
+  responseFormatChanged,
+  resultSelected,
+  saveResponseFormatSettingFx,
+  saveTranscriptionFx,
+  // Effects
+  transcribeAudioFx,
+  transcribeClicked,
+  transcriptionCompleted,
+  transcriptionFailed,
+  transcriptionStarted,
+} from './model';
+export type {
+  AudioFileInfo,
+  ResponseFormat,
+  ResponseFormatOption,
+  STTModel,
+  STTParams,
+  STTResponse,
+  STTState,
+  TranscribeParams,
+  TranscriptionResult,
+  TranscriptionSegment,
+  ValidationResult,
+} from './types';

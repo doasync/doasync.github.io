@@ -1,0 +1,118 @@
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import {
+  Box,
+  Divider,
+  IconButton,
+  Stack,
+  Toolbar,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import { useUnit } from 'effector-react';
+import React from 'react';
+
+import type { ModelInfo } from '@/features/models-select/types';
+import { $isMobileDrawerOpen } from '@/features/ui-state';
+
+interface ModelInfoDrawerProps {
+  model: ModelInfo;
+}
+
+function ModelInfoDrawer({ model }: ModelInfoDrawerProps) {
+  const isMobileDrawerOpen = useUnit($isMobileDrawerOpen); // Get scroll prevention state
+
+  const isFree =
+    model.pricing?.prompt === '0' && model.pricing?.completion === '0';
+
+  const formattedDate = model.created
+    ? new Date(model.created * 1000).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(model.id).catch(console.error);
+  };
+
+  const promptPrice = model.pricing?.prompt
+    ? (Number.parseFloat(model.pricing.prompt) * 1_000_000).toFixed(2)
+    : '0';
+
+  const completionPrice = model.pricing?.completion
+    ? (Number.parseFloat(model.pricing.completion) * 1_000_000).toFixed(2)
+    : '0';
+
+  return (
+    <Box>
+      {!isMobileDrawerOpen && (
+        <Toolbar variant="dense" disableGutters>
+          <Typography variant="h6" fontWeight="bold">
+            Model Info
+          </Typography>
+        </Toolbar>
+      )}
+
+      <Box padding={2}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="h6" fontWeight="bold">
+            {model.name}
+          </Typography>
+          {isFree && (
+            <Tooltip title="Free model">
+              <CardGiftcardIcon fontSize="small" />
+            </Tooltip>
+          )}
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1} mt={1}>
+          <Typography variant="body2" fontFamily="monospace">
+            {model.id}
+          </Typography>
+          <Tooltip title="Copy model ID">
+            <IconButton size="small" onClick={handleCopy}>
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Stack spacing={1} flexWrap="wrap">
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Typography variant="body2" color="text.secondary">
+              Created {formattedDate}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {
+                // TODO: Why is there no model.context_length?
+                model.context_length
+                  ? model.context_length.toLocaleString()
+                  : 'N/A'
+              }{' '}
+              context
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Typography variant="body2" color="text.secondary">
+              ${promptPrice}/M input tokens
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              ${completionPrice}/M output tokens
+            </Typography>
+          </Stack>
+        </Stack>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography variant="body2" color="text.primary" whiteSpace="pre-line">
+          {model.description}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+export { ModelInfoDrawer };

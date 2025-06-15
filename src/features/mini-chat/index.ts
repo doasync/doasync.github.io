@@ -1,43 +1,39 @@
 // Public API for the mini-chat feature
 
 export {
-  // Types
-  type MiniChatToolbarState,
-  type MiniChatMessage,
-  type MiniChatState,
-
+  $miniChat,
+  $miniChatActiveStreamId,
+  $miniChatModelId,
+  $miniChatScrollTrigger,
   // Stores
   $miniChatToolbar,
-  $miniChat,
-  $miniChatScrollTrigger,
-  $miniChatModelId,
-  $miniChatActiveStreamId,
-
-  // Events - Toolbar
-  showMiniChatToolbar,
-  hideMiniChatToolbar,
-
-  // Events - Dialog
-  miniChatOpened,
-  miniChatClosed,
-  updateMiniChatInput,
-  sendMiniChatMessage,
   expandMiniChat,
-  minimizeMiniChat,
-  restoreMiniChat,
-  resetMiniChat,
-  triggerMiniChatScroll,
-  stopMiniChatGenerationClicked,
-
+  hideMiniChatToolbar,
+  miniChatClosed,
+  type MiniChatMessage,
   // Events - Settings
   miniChatModelSelected,
+  // Events - Dialog
+  miniChatOpened,
   miniChatSettingsLoaded,
+  type MiniChatState,
+  // Types
+  type MiniChatToolbarState,
+  minimizeMiniChat,
+  resetMiniChat,
+  restoreMiniChat,
+  sendMiniChatMessage,
+  // Events - Toolbar
+  showMiniChatToolbar,
+  stopMiniChatGenerationClicked,
+  triggerMiniChatScroll,
+  updateMiniChatInput,
 } from './model';
 
 // Export components
-export { MiniChatDialog } from './MiniChatDialog';
-export { MiniChatToolbar } from './MiniChatToolbar';
-export { MiniChatFAB } from './MiniChatFAB';
+export { MiniChatDialog } from './mini-chat-dialog';
+export { MiniChatFAB } from './mini-chat-fab';
+export { MiniChatToolbar } from './mini-chat-toolbar';
 
 // Export hooks
-export { useMiniChatTextSelection } from './useTextSelection';
+export { useMiniChatTextSelection } from './use-text-selection';

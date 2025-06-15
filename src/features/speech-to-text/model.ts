@@ -1,20 +1,23 @@
 import {
+  combine,
   createDomain,
   createEffect,
-  sample,
-  combine,
   createEvent,
+  sample,
 } from 'effector';
 import { debug } from 'patronum/debug';
+
+import { messageTextChanged } from '@/features/chat/model';
+import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+
+import { STT_MODELS, transcribeAudio, validateAudioFile } from './api';
 import {
-  TranscriptionResult,
+  ResponseFormat,
   STTResponse,
   TranscribeParams,
+  TranscriptionResult,
   ValidationResult,
-  ResponseFormat,
 } from './types';
-import { transcribeAudio, validateAudioFile, STT_MODELS } from './api';
-import { messageTextChanged } from '../chat/model';
 
 const domain = createDomain('speech-to-text');
 
@@ -52,12 +55,9 @@ export const $currentResponseFormat = combine(
   $sttModel,
   $responseFormatsPerModel,
   $currentModel,
-  (modelId, formatsPerModel, currentModel) => {
+  (modelId, formatsPerModel, currentModel) =>
     // Return saved format for this model, or default format
-    return (
-      formatsPerModel[modelId] || currentModel?.defaultResponseFormat || 'text'
-    );
-  },
+    formatsPerModel[modelId] || currentModel?.defaultResponseFormat || 'text',
 );
 
 export const $fileValidation = combine(
@@ -133,7 +133,7 @@ export const clearError = domain.createEvent<void>();
 
 // Effects
 export const transcribeAudioFx = createEffect<
-  TranscribeParams,
+  TranscribeParams & { apiKey: string; providerUrl: string },
   STTResponse,
   Error
 >({
@@ -147,9 +147,9 @@ export const saveTranscriptionFx = createEffect<
 >({
   handler: async (result) => {
     try {
-      const existingResults = JSON.parse(
+      const existingResults: TranscriptionResult[] = JSON.parse(
         localStorage.getItem('stt-transcriptions') || '[]',
-      );
+      ) as TranscriptionResult[];
       const updatedResults = [result, ...existingResults.slice(0, 49)]; // Keep last 50
       localStorage.setItem(
         'stt-transcriptions',
@@ -174,7 +174,9 @@ export const loadTranscriptionHistoryFx = createEffect<
   handler: async () => {
     try {
       const stored = localStorage.getItem('stt-transcriptions');
-      const results = stored ? JSON.parse(stored) : [];
+      const results: TranscriptionResult[] = stored
+        ? (JSON.parse(stored) as TranscriptionResult[])
+        : [];
 
       if (process.env.NODE_ENV === 'development') {
         console.log('Loaded transcription history:', results);
@@ -197,7 +199,9 @@ export const loadResponseFormatsSettingsFx = createEffect<
   handler: async () => {
     try {
       const stored = localStorage.getItem('stt-response-formats');
-      return stored ? JSON.parse(stored) : {};
+      return stored
+        ? (JSON.parse(stored) as Record<string, ResponseFormat>)
+        : {};
     } catch (error) {
       console.warn('Failed to load response format settings:', error);
       return {};
@@ -212,9 +216,9 @@ export const saveResponseFormatSettingFx = createEffect<
 >({
   handler: async ({ modelId, format }) => {
     try {
-      const existing = JSON.parse(
+      const existing: Record<string, ResponseFormat> = JSON.parse(
         localStorage.getItem('stt-response-formats') || '{}',
-      );
+      ) as Record<string, ResponseFormat>;
       const updated = { ...existing, [modelId]: format };
       localStorage.setItem('stt-response-formats', JSON.stringify(updated));
     } catch (error) {
@@ -226,9 +230,9 @@ export const saveResponseFormatSettingFx = createEffect<
 export const deleteTranscriptionFx = createEffect<string, string, Error>({
   handler: async (id) => {
     try {
-      const existingResults = JSON.parse(
+      const existingResults: TranscriptionResult[] = JSON.parse(
         localStorage.getItem('stt-transcriptions') || '[]',
-      );
+      ) as TranscriptionResult[];
       const filteredResults = existingResults.filter(
         (r: TranscriptionResult) => r.id !== id,
       );
@@ -310,13 +314,17 @@ sample({
     model: $sttModel,
     prompt: $sttPrompt,
     responseFormat: $currentResponseFormat,
+    apiKey: $apiKey,
+    providerUrl: $providerApiUrl,
   },
-  filter: ({ file }) => Boolean(file),
-  fn: ({ file, model, prompt, responseFormat }) => ({
+  filter: ({ file, apiKey }) => Boolean(file && apiKey),
+  fn: ({ file, model, prompt, responseFormat, apiKey, providerUrl }) => ({
     file: file!,
     model,
     prompt: prompt.trim() || undefined,
     responseFormat,
+    apiKey,
+    providerUrl,
   }),
   target: transcribeAudioFx,
 });
@@ -343,7 +351,7 @@ sample({
     ).length;
 
     return {
-      id: `stt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `stt-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       text: response.text,
       rawResponse: response.rawResponse,
       fileName: file!.name,
@@ -362,16 +370,26 @@ sample({
 });
 
 // Copy text functionality
+const copyTextFx = createEffect<string, void>({
+  name: 'copyTextFx',
+  handler: async (text: string) => {
+    await navigator.clipboard.writeText(text);
+  },
+});
+
 sample({
   clock: copyTextClicked,
   source: $transcriptionResults,
+  filter: (results, id) => {
+    const result = results.find((r) => r.id === id);
+    const text = result ? result.rawResponse || result.text : '';
+    return text !== '';
+  },
   fn: (results, id) => {
     const result = results.find((r) => r.id === id);
-    if (result) {
-      const textToCopy = result.rawResponse || result.text;
-      navigator.clipboard.writeText(textToCopy).catch(console.error);
-    }
+    return result ? result.rawResponse || result.text : '';
   },
+  target: copyTextFx,
 });
 
 // Generate message functionality

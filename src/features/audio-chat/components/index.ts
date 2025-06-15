@@ -8,9 +8,8 @@
 export {
   EphemeralAudioPlayer,
   type EphemeralAudioPlayerProps,
-} from './EphemeralAudioPlayer';
-
+} from './ephemeral-audio-player';
 export {
   EphemeralTranscript,
   type EphemeralTranscriptProps,
-} from './EphemeralTranscript';
+} from './ephemeral-transcript';

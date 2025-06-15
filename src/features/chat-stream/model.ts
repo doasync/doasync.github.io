@@ -1,10 +1,12 @@
 import { createDomain, createEvent, Effect } from 'effector';
+import { debug } from 'patronum';
+
 import { fetchChatStream } from './api';
 import {
-  StreamChatParams,
   AbortStreamPayload,
-  StreamErrorPayload,
   StreamAbortPayload, // Import StreamAbortPayload
+  StreamChatParams,
+  StreamErrorPayload,
 } from './types';
 
 // --- Domain ---
@@ -98,7 +100,8 @@ export const streamChatFx: Effect<StreamChatParams, void, Error> =
 
 // --- Logic ---
 
-// Watch for abortStream events and trigger the corresponding AbortController
+// Handle abortStream events and trigger the corresponding AbortController
+// eslint-disable-next-line effector/no-watch
 abortStream.watch(({ streamId }) => {
   const controller = activeStreams.get(streamId);
   if (controller) {
@@ -112,5 +115,4 @@ abortStream.watch(({ streamId }) => {
   }
 });
 
-import { debug } from 'patronum';
 debug(abortStream, streamChatFx);

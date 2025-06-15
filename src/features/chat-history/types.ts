@@ -1,4 +1,5 @@
 import { DBSchema } from 'idb';
+
 import type { Message } from '@/features/chat/types'; // Import Message type directly from types file
 import type { ModelInfo } from '@/features/models-select/types'; // Import ModelInfo type directly from types file
 

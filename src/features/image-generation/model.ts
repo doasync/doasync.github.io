@@ -1,24 +1,26 @@
-import { createDomain, sample, combine } from 'effector';
-import { debug } from 'patronum/debug';
+import { combine, createDomain, sample } from 'effector';
 import { persist } from 'effector-storage/local';
-import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+import { debug } from 'patronum/debug';
+
 import { buildImageGenerationsUrl } from '@/features/api-config';
+import { $apiKey, $providerApiUrl } from '@/features/chat-settings';
+
 import {
+  clearGeneratedImagesHandler,
+  loadGeneratedImagesHandler,
+  migrateFromLocalStorageHandler,
+  removeGeneratedImageHandler,
+  saveGeneratedImageHandler,
+  saveGeneratedImagesHandler,
+} from './library';
+import {
+  GeneratedImage,
+  getImageGenerationModelInfo,
+  IMAGE_GENERATION_MODELS,
   ImageGenerationParams,
   ImageGenerationResponse,
-  GeneratedImage,
   ImageGenerationStatus,
-  IMAGE_GENERATION_MODELS,
-  getImageGenerationModelInfo,
 } from './types';
-import {
-  loadGeneratedImagesHandler,
-  saveGeneratedImagesHandler,
-  saveGeneratedImageHandler,
-  removeGeneratedImageHandler,
-  clearGeneratedImagesHandler,
-  migrateFromLocalStorageHandler,
-} from './lib';
 
 const imageGenerationDomain = createDomain('imageGeneration');
 
@@ -124,13 +126,10 @@ export const $imageGenerationSettings = imageGenerationDomain.store<{
 sample({
   clock: $selectedImageGenModel,
   source: $imageGenerationSettingsPerModel,
-  fn: (settingsPerModel, selectedModel) => {
+  fn: (settingsPerModel, selectedModel) =>
     // Return settings for current model, or defaults if not set
-    return (
-      settingsPerModel[selectedModel] ||
-      getDefaultSettingsForModel(selectedModel)
-    );
-  },
+    settingsPerModel[selectedModel] ||
+    getDefaultSettingsForModel(selectedModel),
   target: $imageGenerationSettings,
 });
 
@@ -138,13 +137,10 @@ sample({
 sample({
   clock: $imageGenerationSettingsPerModel,
   source: $selectedImageGenModel,
-  fn: (selectedModel, settingsPerModel) => {
+  fn: (selectedModel, settingsPerModel) =>
     // Return settings for current model, or defaults if not set
-    return (
-      settingsPerModel[selectedModel] ||
-      getDefaultSettingsForModel(selectedModel)
-    );
-  },
+    settingsPerModel[selectedModel] ||
+    getDefaultSettingsForModel(selectedModel),
   target: $imageGenerationSettings,
 });
 
@@ -301,6 +297,7 @@ export const generateImageFx = imageGenerationDomain.effect<
     }
 
     // Validate size
+    // eslint-disable-next-line unicorn/explicit-length-check -- params.size is a string property, not a collection
     if (params.size && !modelInfo.supportedSizes.includes(params.size)) {
       throw new ImageGenerationError(
         `Unsupported size ${params.size} for ${modelInfo.name}. Supported sizes: ${modelInfo.supportedSizes.join(', ')}`,
@@ -347,6 +344,7 @@ export const generateImageFx = imageGenerationDomain.effect<
     };
 
     // Add optional parameters based on model support
+    // eslint-disable-next-line unicorn/explicit-length-check -- params.size is a string property, not a collection
     if (params.size) {
       requestBody.size = params.size;
     }
@@ -370,11 +368,15 @@ export const generateImageFx = imageGenerationDomain.effect<
     });
 
     if (!response.ok) {
-      const errorData = await response
+      const errorData = (await response
         .json()
-        .catch(() => ({ error: { message: 'Unknown error' } }));
+        .catch(() => ({ error: { message: 'Unknown error' } }))) as {
+        error?: { message?: string };
+      };
       throw new ImageGenerationError(
-        errorData.error?.message || `HTTP error! status: ${response.status}`,
+        typeof errorData.error?.message === 'string'
+          ? errorData.error.message
+          : `HTTP error! status: ${response.status}`,
         currentRequestId,
       );
     }
@@ -417,12 +419,12 @@ sample({
 
     // Validate size
     if (!modelInfo.supportedSizes.includes(currentSettings.size)) {
-      validatedSettings.size = modelInfo.supportedSizes[0];
+      [validatedSettings.size] = modelInfo.supportedSizes;
     }
 
     // Validate quality
     if (!modelInfo.supportedQualities.includes(currentSettings.quality)) {
-      validatedSettings.quality = modelInfo.supportedQualities[0];
+      [validatedSettings.quality] = modelInfo.supportedQualities;
     }
 
     // Validate style (if model supports styles)
@@ -449,10 +451,13 @@ sample({
 });
 
 // Update image generation settings for the current model
-$imageGenerationSettingsPerModel.on(
-  updateImageGenSettings,
-  (allSettings, updates) => {
-    const currentModel = $selectedImageGenModel.getState();
+sample({
+  clock: updateImageGenSettings,
+  source: {
+    allSettings: $imageGenerationSettingsPerModel,
+    currentModel: $selectedImageGenModel,
+  },
+  fn: ({ allSettings, currentModel }, updates) => {
     const currentSettings =
       allSettings[currentModel] || getDefaultSettingsForModel(currentModel);
 
@@ -464,7 +469,8 @@ $imageGenerationSettingsPerModel.on(
       },
     };
   },
-);
+  target: $imageGenerationSettingsPerModel,
+});
 
 // Update loading state to reflect any active generations
 $isGeneratingImage.on($generatedImages, (_, images) =>

@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
-
 import './globals.css';
 
-import { ThemeRegistry } from '@/features/ui-core/components/ThemeRegistry'; // Import the ThemeRegistry
+import type { Metadata } from 'next';
+
+import { ThemeRegistry } from '@/features/ui-core/components/theme-registry'; // Import the ThemeRegistry
 
 // Removed Geist font setup
 
@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       {/* Removed Geist font classNames */}
-      <body>
+      <body suppressHydrationWarning>
         <ThemeRegistry>{children}</ThemeRegistry>
       </body>
     </html>

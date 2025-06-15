@@ -8,33 +8,30 @@
 export {
   // Ephemeral Data Stores
   $ephemeralMessageData,
-  $inChatTtsModel,
   $inChatTranscriptionModel,
-
+  $inChatTtsModel,
+  clearAllEphemeralData,
+  clearEphemeralData,
+  generateInMessageSTTFx,
+  // Effects (for debugging/monitoring)
+  generateInMessageTTSFx,
+  setInChatTranscriptionModel,
+  setInChatTtsModel,
   // Public Events
   toggleMessageAudio,
   toggleMessageTranscript,
-  clearEphemeralData,
-  clearAllEphemeralData,
-  setInChatTtsModel,
-  setInChatTranscriptionModel,
-
-  // Effects (for debugging/monitoring)
-  generateInMessageTTSFx,
-  generateInMessageSTTFx,
 } from './model';
-
 export type {
-  EphemeralMessageData,
+  AudioGenerationError,
+  AudioGenerationPayload,
+  AudioGenerationResult,
   EphemeralAudioData,
+  EphemeralMessageData,
   EphemeralTranscriptData,
   InChatSettings,
   ToggleMessageAudioPayload,
   ToggleMessageTranscriptPayload,
-  AudioGenerationPayload,
-  TranscriptionPayload,
-  AudioGenerationResult,
-  TranscriptionResult,
-  AudioGenerationError,
   TranscriptionError,
+  TranscriptionPayload,
+  TranscriptionResult,
 } from './types';

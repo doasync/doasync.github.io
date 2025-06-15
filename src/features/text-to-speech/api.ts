@@ -1,5 +1,4 @@
-import { TTSParams, TTSResponse, VoiceProvider, AudioFormat } from './types';
-import { $apiKey, $providerApiUrl } from '../chat-settings/model';
+import { AudioFormat, TTSParams, TTSResponse, VoiceProvider } from './types';
 
 interface ProviderConfig {
   endpoint: string;
@@ -10,10 +9,9 @@ interface ProviderConfig {
 
 async function getProviderConfig(
   provider: VoiceProvider,
+  apiKey: string,
+  providerUrl: string,
 ): Promise<ProviderConfig> {
-  const apiKey = $apiKey.getState();
-  const providerUrl = $providerApiUrl.getState();
-
   if (!apiKey) {
     throw new Error('API key is not set');
   }
@@ -91,9 +89,7 @@ async function getProviderConfig(
         input: params.text,
         voice: params.voice,
         response_format: params.format,
-        ...(params.speed && params.speed !== 1.0
-          ? { speed: params.speed }
-          : {}),
+        ...(params.speed && params.speed !== 1 ? { speed: params.speed } : {}),
 
         // Gemini-style fields for native support
         contents: [
@@ -129,12 +125,12 @@ async function getProviderConfig(
           const audioData =
             data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
-          if (audioData) {
+          if (audioData && typeof audioData === 'string') {
             // Convert base64 to ArrayBuffer (Gemini native response)
             const binaryString = atob(audioData);
             const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+            for (let index = 0; index < binaryString.length; index++) {
+              bytes[index] = binaryString.codePointAt(index) ?? 0;
             }
 
             return {
@@ -157,102 +153,11 @@ async function getProviderConfig(
   return baseConfigs[provider];
 }
 
-export async function generateSpeechStream(
-  params: TTSParams,
-  onChunk?: (chunk: ArrayBuffer) => void,
-): Promise<Response> {
-  // Handle GPT-4o audio models that use chat completions endpoint
-  if (
-    params.model === 'gpt-4o-audio-preview' ||
-    params.model === 'gpt-4o-audio-preview-2024-12-17'
-  ) {
-    const result = await generateSpeechWithChatCompletions(params);
-    const blob = new Blob([result.audio]);
-    return new Response(blob);
-  }
-
-  // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
-  const provider: VoiceProvider = params.model.startsWith('gemini-')
-    ? 'gemini'
-    : 'voidai';
-  const config = await getProviderConfig(provider);
-
-  const response = await fetch(config.endpoint, {
-    method: 'POST',
-    headers: config.headers,
-    body: JSON.stringify(config.body(params)),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`TTS failed: ${error}`);
-  }
-
-  // For streaming, return the response directly
-  if (onChunk && response.body) {
-    const reader = response.body.getReader();
-    const chunks: ArrayBuffer[] = [];
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Convert Uint8Array to ArrayBuffer
-        const buffer = new ArrayBuffer(value.byteLength);
-        const view = new Uint8Array(buffer);
-        view.set(value);
-
-        chunks.push(buffer);
-        onChunk(buffer);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-
-    // Return a new response with the collected chunks
-    const blob = new Blob(chunks);
-    return new Response(blob);
-  }
-
-  return response;
-}
-
-export async function generateSpeech(params: TTSParams): Promise<TTSResponse> {
-  // Handle GPT-4o audio models that use chat completions endpoint
-  if (
-    params.model === 'gpt-4o-audio-preview' ||
-    params.model === 'gpt-4o-audio-preview-2024-12-17'
-  ) {
-    return await generateSpeechWithChatCompletions(params);
-  }
-
-  // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
-  const provider: VoiceProvider = params.model.startsWith('gemini-')
-    ? 'gemini'
-    : 'voidai';
-  const config = await getProviderConfig(provider);
-
-  const response = await fetch(config.endpoint, {
-    method: 'POST',
-    headers: config.headers,
-    body: JSON.stringify(config.body(params)),
-  });
-
-  const result = await config.parseResponse(response);
-
-  // Override format with the requested format
-  result.format = params.format;
-
-  return result;
-}
-
 // Special handler for GPT-4o audio models using chat completions endpoint
 async function generateSpeechWithChatCompletions(
-  params: TTSParams,
+  params: TTSParams & { apiKey: string; providerUrl: string },
 ): Promise<TTSResponse> {
-  const apiKey = $apiKey.getState();
-  const providerUrl = $providerApiUrl.getState();
+  const { apiKey, providerUrl } = params;
 
   if (!apiKey) {
     throw new Error('API key is not set');
@@ -305,19 +210,123 @@ async function generateSpeechWithChatCompletions(
   const choice = data.choices?.[0];
   const audioData = choice?.message?.audio?.data;
 
-  if (!audioData) {
+  if (!audioData || typeof audioData !== 'string') {
     throw new Error('No audio data in chat completions response');
   }
 
   // Convert base64 to ArrayBuffer
   const binaryString = atob(audioData);
   const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  for (let index = 0; index < binaryString.length; index++) {
+    bytes[index] = binaryString.codePointAt(index) ?? 0;
   }
 
   return {
     audio: bytes.buffer,
     format: audioFormat === 'pcm16' ? 'pcm' : (audioFormat as AudioFormat),
   };
+}
+
+export async function generateSpeechStream(
+  params: TTSParams & { apiKey: string; providerUrl: string },
+  onChunk?: (chunk: ArrayBuffer) => void,
+): Promise<Response> {
+  // Handle GPT-4o audio models that use chat completions endpoint
+  if (
+    params.model === 'gpt-4o-audio-preview' ||
+    params.model === 'gpt-4o-audio-preview-2024-12-17'
+  ) {
+    const result = await generateSpeechWithChatCompletions(params);
+    const blob = new Blob([result.audio]);
+    return new Response(blob);
+  }
+
+  // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
+  const provider: VoiceProvider = params.model.startsWith('gemini-')
+    ? 'gemini'
+    : 'voidai';
+  const config = await getProviderConfig(
+    provider,
+    params.apiKey,
+    params.providerUrl,
+  );
+
+  const response = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: config.headers,
+    body: JSON.stringify(config.body(params)),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`TTS failed: ${error}`);
+  }
+
+  // For streaming, return the response directly
+  if (onChunk && response.body) {
+    const reader = response.body.getReader();
+    const chunks: ArrayBuffer[] = [];
+
+    try {
+      let done = false;
+      while (!done) {
+        // eslint-disable-next-line no-await-in-loop
+        const result = await reader.read();
+        done = result.done;
+        const { value } = result;
+        if (done) break;
+
+        // Convert Uint8Array to ArrayBuffer
+        if (value) {
+          const buffer = new ArrayBuffer(value.byteLength);
+          const view = new Uint8Array(buffer);
+          view.set(value);
+
+          chunks.push(buffer);
+          onChunk(buffer);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    // Return a new response with the collected chunks
+    const blob = new Blob(chunks);
+    return new Response(blob);
+  }
+
+  return response;
+}
+
+export async function generateSpeech(
+  params: TTSParams & { apiKey: string; providerUrl: string },
+): Promise<TTSResponse> {
+  const { apiKey, providerUrl } = params;
+
+  // Handle GPT-4o audio models that use chat completions endpoint
+  if (
+    params.model === 'gpt-4o-audio-preview' ||
+    params.model === 'gpt-4o-audio-preview-2024-12-17'
+  ) {
+    return generateSpeechWithChatCompletions(params);
+  }
+
+  // Determine provider based on model - Gemini models still use VoidAI endpoint with hybrid format
+  const provider: VoiceProvider = params.model.startsWith('gemini-')
+    ? 'gemini'
+    : 'voidai';
+  const config = await getProviderConfig(provider, apiKey, providerUrl);
+
+  const response = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: config.headers,
+    body: JSON.stringify(config.body(params)),
+  });
+
+  const result = await config.parseResponse(response);
+
+  // Override format with the requested format
+  result.format = params.format;
+
+  return result;
 }

@@ -1,13 +1,14 @@
-import { sample, createDomain } from 'effector';
+import { createDomain, sample } from 'effector';
 import { debug } from 'patronum/debug';
-import { PDFProcessor } from './processors/pdf-processor';
-import { DOCXProcessor } from './processors/docx-processor';
-import { TextProcessor } from './processors/text-processor';
-import { HTMLProcessor } from './processors/html-processor';
+
+import { createDOCXProcessor } from './processors/docx-processor';
+import { createHTMLProcessor } from './processors/html-processor';
+import { createPDFProcessor } from './processors/pdf-processor';
+import { createTextProcessor } from './processors/text-processor';
 import type {
-  DocumentProcessor,
-  DocumentProcessingResult,
   DocumentProcessingConfig,
+  DocumentProcessingResult,
+  DocumentProcessor,
 } from './types';
 
 const documentDomain = createDomain('document-processing');
@@ -41,16 +42,19 @@ export const processDocumentsFx = documentDomain.effect<
     }
 
     const processors: DocumentProcessor[] = [
-      new PDFProcessor(),
-      new DOCXProcessor(),
-      new TextProcessor(),
-      new HTMLProcessor(),
+      createPDFProcessor(),
+      createDOCXProcessor(),
+      createTextProcessor(),
+      createHTMLProcessor(),
     ];
 
-    const results: DocumentProcessingResult[] = [];
-    const errors: string[] = [];
-
-    for (const file of files) {
+    // Process files concurrently to avoid no-await-in-loop ESLint error
+    const processFile = async (
+      file: File,
+    ): Promise<
+      | { success: true; result: DocumentProcessingResult }
+      | { success: false; error: string }
+    > => {
       try {
         // Validate file
         if (!file.name || file.name.trim() === '') {
@@ -93,19 +97,35 @@ export const processDocumentsFx = documentDomain.effect<
           throw new Error('No text content could be extracted from this file');
         }
 
-        if (result.extractedText.length > 1000000) {
+        if (result.extractedText.length > 1_000_000) {
           // 1MB text limit
           console.warn(
             `Large text extracted from ${file.name}: ${result.extractedText.length} characters`,
           );
         }
 
-        results.push(result);
         console.log(`Successfully processed: ${file.name}`);
+        return { success: true, result };
       } catch (error) {
         const errorMessage = `Failed to process "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`;
         console.error(errorMessage, error);
-        errors.push(errorMessage);
+        return { success: false, error: errorMessage };
+      }
+    };
+
+    // Process all files concurrently
+    const fileResults = await Promise.all(
+      files.map((file) => processFile(file)),
+    );
+
+    const results: DocumentProcessingResult[] = [];
+    const errors: string[] = [];
+
+    for (const fileResult of fileResults) {
+      if (fileResult.success) {
+        results.push(fileResult.result);
+      } else {
+        errors.push(fileResult.error);
       }
     }
 

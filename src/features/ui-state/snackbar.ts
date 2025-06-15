@@ -1,5 +1,5 @@
 import { createEvent, createStore, sample } from 'effector';
-import { delay, debug } from 'patronum';
+import { debug, delay } from 'patronum';
 
 interface SnackbarState {
   open?: boolean;
@@ -27,8 +27,8 @@ delay({
 });
 
 sample({
-  source: $snackbar,
   clock: showSnackbar,
+  source: $snackbar,
   filter: ({ open }, { message }) => !open && Boolean(message),
   fn: (skip, { message, severity = 'info' }) => ({
     open: true,

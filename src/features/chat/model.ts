@@ -1,57 +1,55 @@
-import { sample, createDomain } from 'effector'; // Removed split
+import { createDomain, sample } from 'effector'; // Removed split
 import { debug } from 'patronum/debug';
+
 import {
   $apiKey,
   $providerApiUrl,
-  $temperature,
   $systemPrompt,
+  $temperature,
   apiKeyMissing,
 } from '@/features/chat-settings';
-import {
-  $selectedModelId,
-  $currentModelSupportsVision,
-  $currentModelSupportsAudio,
-  autoSelectModelForCapabilities,
-} from '@/features/models-select';
-import { $selectedVoice as $ttsVoice } from '@/features/text-to-speech';
 // Import chat-stream feature
 import {
-  streamChatFx,
   abortStream,
+  streamChatFx,
   StreamChatParams,
   StreamChunkPayload,
   StreamErrorPayload,
 } from '@/features/chat-stream';
-
-import {
-  Message,
-  Attachment,
-  MessageContentPart,
-  TextContentPart,
-  GeneratedImageContentPart,
-  MessageRetryInitiatedPayload, // Keep for spinner logic potentially
-  Role, // Import Role type
-} from './types';
-import {
-  prepareRetryRequestParamsFn, // Keep for retry param prep
-  determineRetryingMessageIdFn, // Keep for spinner logic
-  formatMessagesForAPI, // New function for message formatting
-} from './lib'; // Only keep necessary imports
-
-// Import image generation feature
-import {
-  generateImageFx,
-  $selectedImageGenModel,
-  $imageGenerationSettings,
-  $generatedImages,
-  sendImageToChat,
-  isImageGenerationCommand,
-  parseImageGenerationCommand,
-  type ImageGenerationParams,
-} from '@/features/image-generation';
-
 // Import document processing feature
 import { processDocumentsFx } from '@/features/document-processing';
+// Import image generation feature
+import {
+  $generatedImages,
+  $imageGenerationSettings,
+  $selectedImageGenModel,
+  generateImageFx,
+  type ImageGenerationParams,
+  isImageGenerationCommand,
+  parseImageGenerationCommand,
+  sendImageToChat,
+} from '@/features/image-generation';
+import {
+  $currentModelSupportsAudio,
+  $currentModelSupportsVision,
+  $selectedModelId,
+  autoSelectModelForCapabilities,
+} from '@/features/models-select';
+import { $selectedVoice as $ttsVoice } from '@/features/text-to-speech';
+
+import {
+  determineRetryingMessageIdFunction, // Keep for spinner logic
+  formatMessagesForAPI, // New function for message formatting
+  prepareRetryRequestParamsFunction, // Keep for retry param prep
+} from './library'; // Only keep necessary imports
+import {
+  Attachment,
+  GeneratedImageContentPart,
+  Message,
+  MessageContentPart,
+  MessageRetryInitiatedPayload, // Keep for spinner logic potentially
+  TextContentPart,
+} from './types';
 
 // --- Helper Functions ---
 
@@ -201,17 +199,17 @@ const streamRequestInitiated = chatDomain.event<{ streamId: string }>(
 );
 
 // Internal events for stream callbacks, now using targetMessageId
-const _messageChunkReceived = chatDomain.event<{
+const messageChunkReceived = chatDomain.event<{
   targetMessageId: string;
   chunkContent: string;
   isFirstChunk: boolean; // Added isFirstChunk
 }>();
-const _messageCompleted = chatDomain.event<{ targetMessageId: string }>();
-const _messageErrored = chatDomain.event<{
+const messageCompleted = chatDomain.event<{ targetMessageId: string }>();
+const messageErrored = chatDomain.event<{
   targetMessageId: string;
   error: Error;
 }>();
-const _messageAborted = chatDomain.event<{ targetMessageId: string }>();
+const messageAborted = chatDomain.event<{ targetMessageId: string }>();
 
 // Internal event to signal chat stream has finished (success, error, or abort) for local state management
 const chatStreamFinished = chatDomain.event<void>('chatStreamFinished');
@@ -279,13 +277,13 @@ const processFilesFx = chatDomain.effect<File[], Message>({
   name: 'processFilesFx',
   handler: async (files: File[]) => {
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB for audio, 20MB for images
-    const SUPPORTED_IMAGE_TYPES = [
+    const SUPPORTED_IMAGE_TYPES = new Set([
       'image/jpeg',
       'image/png',
       'image/gif',
       'image/webp',
-    ];
-    const SUPPORTED_AUDIO_TYPES = [
+    ]);
+    const SUPPORTED_AUDIO_TYPES = new Set([
       'audio/wav',
       'audio/mp3',
       'audio/aiff',
@@ -297,8 +295,8 @@ const processFilesFx = chatDomain.effect<File[], Message>({
       'audio/mpga',
       'audio/m4a',
       'audio/webm',
-    ];
-    const SUPPORTED_DOCUMENT_TYPES = [
+    ]);
+    const SUPPORTED_DOCUMENT_TYPES = new Set([
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/msword',
@@ -307,14 +305,14 @@ const processFilesFx = chatDomain.effect<File[], Message>({
       'application/x-markdown',
       'text/html',
       'application/xhtml+xml',
-    ];
+    ]);
 
     const contentParts: MessageContentPart[] = [];
     const attachments: Attachment[] = [];
 
     // Separate files by type for batch processing (documents need special handling)
     const documentFiles = files.filter((f) =>
-      SUPPORTED_DOCUMENT_TYPES.includes(f.type),
+      SUPPORTED_DOCUMENT_TYPES.has(f.type),
     );
 
     // Process document files and create a map for later lookup
@@ -324,9 +322,8 @@ const processFilesFx = chatDomain.effect<File[], Message>({
         const documentResults = await processDocumentsFx(documentFiles);
 
         // Create a map of file name to result for later lookup
-        for (let i = 0; i < documentFiles.length; i++) {
-          const file = documentFiles[i];
-          const result = documentResults[i];
+        for (const [index, file] of documentFiles.entries()) {
+          const result = documentResults[index];
           if (result) {
             // Use file name + size as key to handle duplicate names
             documentResultsMap.set(`${file.name}_${file.size}`, result);
@@ -342,9 +339,9 @@ const processFilesFx = chatDomain.effect<File[], Message>({
 
     // Process all files in their original order (preserving user selection order)
     for (const file of files) {
-      const isImage = SUPPORTED_IMAGE_TYPES.includes(file.type);
-      const isAudio = SUPPORTED_AUDIO_TYPES.includes(file.type);
-      const isDocument = SUPPORTED_DOCUMENT_TYPES.includes(file.type);
+      const isImage = SUPPORTED_IMAGE_TYPES.has(file.type);
+      const isAudio = SUPPORTED_AUDIO_TYPES.has(file.type);
+      const isDocument = SUPPORTED_DOCUMENT_TYPES.has(file.type);
 
       // Validate file
       if (!isImage && !isAudio && !isDocument) {
@@ -372,227 +369,231 @@ const processFilesFx = chatDomain.effect<File[], Message>({
           | import('@/features/document-processing/types').DocumentProcessingResult
           | undefined;
 
-        if (!result) {
-          console.warn(
-            `Document processing result not found for: ${file.name}`,
-          );
-          continue;
-        }
+        if (result) {
+          // Create document content part
+          contentParts.push({
+            type: 'document',
+            document: {
+              text: result.extractedText,
+              previewHtml: result.previewHtml,
+              originalContent: result.originalContent, // Include original HTML content if available
+              metadata: {
+                fileName: result.metadata.fileName,
+                fileSize: result.metadata.fileSize,
+                mimeType: result.metadata.mimeType,
+                wordCount: result.metadata.wordCount,
+                pageCount: result.metadata.pageCount,
+                title: result.metadata.title,
+                author: result.metadata.author,
+              },
+            },
+          });
 
-        // Create document content part
-        contentParts.push({
-          type: 'document',
-          document: {
-            text: result.extractedText,
-            previewHtml: result.previewHtml,
-            originalContent: result.originalContent, // Include original HTML content if available
+          const attachment: Attachment = {
+            id: crypto.randomUUID(),
+            type: 'document',
+            fileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+            extractedText: result.extractedText,
+            originalContent: result.originalContent, // Store original HTML content if available
+            chunks: result.chunks,
             metadata: {
-              fileName: result.metadata.fileName,
-              fileSize: result.metadata.fileSize,
-              mimeType: result.metadata.mimeType,
               wordCount: result.metadata.wordCount,
               pageCount: result.metadata.pageCount,
               title: result.metadata.title,
               author: result.metadata.author,
             },
-          },
-        });
+          };
 
-        const attachment: Attachment = {
-          id: crypto.randomUUID(),
-          type: 'document',
-          fileName: file.name,
-          mimeType: file.type,
-          size: file.size,
-          extractedText: result.extractedText,
-          originalContent: result.originalContent, // Store original HTML content if available
-          chunks: result.chunks,
-          metadata: {
-            wordCount: result.metadata.wordCount,
-            pageCount: result.metadata.pageCount,
-            title: result.metadata.title,
-            author: result.metadata.author,
-          },
-        };
-
-        attachments.push(attachment);
-        continue; // Skip to next file
-      }
-
-      // Read file for media files (images and audio)
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = () => {
-          resolve(reader.result as string);
-        };
-
-        reader.onerror = () => {
-          reject(new Error(`Failed to read file: ${file.name}`));
-        };
-
-        reader.readAsDataURL(file);
-      });
-
-      if (isImage) {
-        // Get image dimensions
-        const dimensions = await new Promise<{ width: number; height: number }>(
-          (resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              resolve({ width: img.width, height: img.height });
-            };
-            img.onerror = () => {
-              resolve({ width: 0, height: 0 }); // Fallback if dimensions can't be determined
-            };
-            img.src = dataUrl;
-          },
-        );
-
-        // Create image content part
-        contentParts.push({
-          type: 'image_url',
-          image_url: {
-            url: dataUrl,
-            detail: 'auto',
-          },
-        });
-
-        const attachment: Attachment = {
-          id: crypto.randomUUID(),
-          type: 'image',
-          fileName: file.name,
-          mimeType: file.type,
-          size: file.size,
-          dataUrl,
-          metadata: {
-            dimensions: dimensions.width > 0 ? dimensions : undefined,
-          },
-        };
-
-        attachments.push(attachment);
+          attachments.push(attachment);
+        } else {
+          console.warn(
+            `Document processing result not found for: ${file.name}`,
+          );
+        }
       } else {
-        // Audio file
-        // Get audio duration with improved handling for different formats and proper isolation
-        const duration = await new Promise<number | undefined>((resolve) => {
-          const audio = new Audio();
-          let resolved = false;
-          let timeoutId: NodeJS.Timeout | null = null;
+        // Read file for media files (images and audio)
+        // eslint-disable-next-line no-await-in-loop
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
 
-          const cleanup = () => {
-            if (timeoutId) clearTimeout(timeoutId);
-            audio.onloadedmetadata = null;
-            audio.oncanplaythrough = null;
-            audio.ondurationchange = null;
-            audio.onerror = null;
-            audio.src = '';
-            audio.load(); // Clear the audio element
+          reader.addEventListener('load', () => {
+            resolve(reader.result as string);
+          });
+
+          reader.addEventListener('error', () => {
+            reject(new Error(`Failed to read file: ${file.name}`));
+          });
+
+          reader.readAsDataURL(file);
+        });
+
+        if (isImage) {
+          // Get image dimensions
+          // eslint-disable-next-line no-await-in-loop
+          const dimensions = await new Promise<{
+            width: number;
+            height: number;
+          }>((resolve) => {
+            const img = new Image();
+            img.addEventListener('load', () => {
+              resolve({ width: img.width, height: img.height });
+            });
+            img.addEventListener('error', () => {
+              resolve({ width: 0, height: 0 }); // Fallback if dimensions can't be determined
+            });
+            img.src = dataUrl;
+          });
+
+          // Create image content part
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: dataUrl,
+              detail: 'auto',
+            },
+          });
+
+          const attachment: Attachment = {
+            id: crypto.randomUUID(),
+            type: 'image',
+            fileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+            dataUrl,
+            metadata: {
+              dimensions: dimensions.width > 0 ? dimensions : undefined,
+            },
           };
 
-          const resolveWithValue = (
-            value: number | undefined,
-            source: string,
-          ) => {
-            if (!resolved) {
-              resolved = true;
-              cleanup();
-              if (value && isFinite(value) && !isNaN(value) && value > 0) {
-                console.log(
-                  `[${file.name}] Audio duration extracted from ${source}:`,
-                  value,
-                );
-                resolve(value);
-              } else {
-                console.log(
-                  `[${file.name}] Invalid duration from ${source}:`,
-                  value,
-                );
-                resolve(undefined);
+          attachments.push(attachment);
+        } else {
+          // Audio file
+          // Get audio duration with improved handling for different formats and proper isolation
+          // eslint-disable-next-line no-await-in-loop
+          const duration = await new Promise<number | null>((resolve) => {
+            const audio = new Audio();
+            let resolved = false;
+            let timeoutId: NodeJS.Timeout | null = null;
+
+            let cleanup: () => void;
+
+            const resolveWithValue = (value: number | undefined) => {
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                if (
+                  value &&
+                  Number.isFinite(value) &&
+                  !Number.isNaN(value) &&
+                  value > 0
+                ) {
+                  // Audio duration extracted from source
+                  resolve(value);
+                } else {
+                  // Invalid duration from source
+                  resolve(null);
+                }
               }
-            }
+            };
+
+            // Store event handler references for proper cleanup
+            const onLoadedMetadata = () => {
+              // Audio metadata loaded
+              resolveWithValue(audio.duration);
+            };
+
+            const onCanPlayThrough = () => {
+              console.log(
+                `[${file.name}] Audio can play through, duration:`,
+                audio.duration,
+              );
+              resolveWithValue(audio.duration);
+            };
+
+            const onDurationChange = () => {
+              console.log(
+                `[${file.name}] Audio duration changed:`,
+                audio.duration,
+              );
+              resolveWithValue(audio.duration);
+            };
+
+            const onError = (error: Event) => {
+              console.log(`[${file.name}] Audio loading error:`, error);
+              resolveWithValue(audio.duration);
+            };
+
+            // Define cleanup after all handlers are defined
+            cleanup = () => {
+              if (timeoutId) clearTimeout(timeoutId);
+              audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              audio.removeEventListener('canplaythrough', onCanPlayThrough);
+              audio.removeEventListener('durationchange', onDurationChange);
+              audio.removeEventListener('error', onError);
+              audio.src = '';
+              audio.load(); // Clear the audio element
+            };
+
+            // Multiple event handlers for different browsers/formats
+            audio.addEventListener('loadedmetadata', onLoadedMetadata);
+            audio.addEventListener('canplaythrough', onCanPlayThrough);
+            audio.addEventListener('durationchange', onDurationChange);
+            audio.addEventListener('error', onError);
+
+            // Shorter timeout for better UX
+            timeoutId = setTimeout(() => {
+              console.log(
+                `[${file.name}] Audio duration extraction timeout for format:`,
+                file.type,
+              );
+              resolveWithValue(audio.duration);
+            }, 3000);
+
+            // Set source and preload - create unique data URL for this specific audio element
+            audio.preload = 'metadata';
+            audio.src = dataUrl; // Each audio element gets its own dataUrl from the file iteration
+            audio.load();
+          });
+
+          // Extract format from MIME type
+          const formatMap: Record<string, string> = {
+            'audio/wav': 'wav',
+            'audio/mp3': 'mp3',
+            'audio/mpeg': 'mp3',
+            'audio/mp4': 'mp4',
+            'audio/m4a': 'mp4',
+            'audio/flac': 'flac',
+            'audio/ogg': 'opus',
+            'audio/webm': 'opus',
+            'audio/aac': 'aac',
+          };
+          const format = formatMap[file.type] || 'mp3';
+
+          // Create audio content part
+          contentParts.push({
+            type: 'input_audio',
+            input_audio: {
+              data: dataUrl.split(',')[1], // Remove data URL prefix
+              format: format as 'wav' | 'mp3' | 'flac' | 'opus',
+            },
+          });
+
+          const attachment: Attachment = {
+            id: crypto.randomUUID(),
+            type: 'audio',
+            fileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+            dataUrl,
+            metadata: {
+              duration: duration ?? undefined,
+            },
           };
 
-          // Multiple event handlers for different browsers/formats
-          audio.onloadedmetadata = () => {
-            console.log(
-              `[${file.name}] Audio metadata loaded, duration:`,
-              audio.duration,
-            );
-            resolveWithValue(audio.duration, 'loadedmetadata');
-          };
-
-          audio.oncanplaythrough = () => {
-            console.log(
-              `[${file.name}] Audio can play through, duration:`,
-              audio.duration,
-            );
-            resolveWithValue(audio.duration, 'canplaythrough');
-          };
-
-          audio.ondurationchange = () => {
-            console.log(
-              `[${file.name}] Audio duration changed:`,
-              audio.duration,
-            );
-            resolveWithValue(audio.duration, 'durationchange');
-          };
-
-          audio.onerror = (e) => {
-            console.log(`[${file.name}] Audio loading error:`, e);
-            resolveWithValue(undefined, 'error');
-          };
-
-          // Shorter timeout for better UX
-          timeoutId = setTimeout(() => {
-            console.log(
-              `[${file.name}] Audio duration extraction timeout for format:`,
-              file.type,
-            );
-            resolveWithValue(undefined, 'timeout');
-          }, 3000);
-
-          // Set source and preload - create unique data URL for this specific audio element
-          audio.preload = 'metadata';
-          audio.src = dataUrl; // Each audio element gets its own dataUrl from the file iteration
-          audio.load();
-        });
-
-        // Extract format from MIME type
-        const formatMap: Record<string, string> = {
-          'audio/wav': 'wav',
-          'audio/mp3': 'mp3',
-          'audio/mpeg': 'mp3',
-          'audio/mp4': 'mp4',
-          'audio/m4a': 'mp4',
-          'audio/flac': 'flac',
-          'audio/ogg': 'opus',
-          'audio/webm': 'opus',
-          'audio/aac': 'aac',
-        };
-        const format = formatMap[file.type] || 'mp3';
-
-        // Create audio content part
-        contentParts.push({
-          type: 'input_audio',
-          input_audio: {
-            data: dataUrl.split(',')[1], // Remove data URL prefix
-            format: format as 'wav' | 'mp3' | 'flac' | 'opus',
-          },
-        });
-
-        const attachment: Attachment = {
-          id: crypto.randomUUID(),
-          type: 'audio',
-          fileName: file.name,
-          mimeType: file.type,
-          size: file.size,
-          dataUrl,
-          metadata: {
-            duration,
-          },
-        };
-
-        attachments.push(attachment);
+          attachments.push(attachment);
+        }
       }
     }
 
@@ -613,9 +614,8 @@ const processFilesFx = chatDomain.effect<File[], Message>({
 // --- Helper Functions / Type Guards ---
 const isRetryableMessage = (
   message: Message | undefined,
-): message is Message & { role: 'user' | 'assistant' } => {
-  return !!message && (message.role === 'user' || message.role === 'assistant');
-};
+): message is Message & { role: 'user' | 'assistant' } =>
+  !!message && (message.role === 'user' || message.role === 'assistant');
 
 // --- Store Updates (.on/.reset) ---
 
@@ -744,101 +744,112 @@ $activePendingMultimodalMessage.on(
         status: 'pending' as const,
         attachments: [],
       };
-    } else {
-      // Add to existing pending message
-      const existingContent = Array.isArray(currentPending.content)
-        ? currentPending.content
-        : currentPending.content
-          ? [{ type: 'text' as const, text: currentPending.content }]
-          : [];
-
-      return {
-        ...currentPending,
-        content: [...existingContent, generatedImagePart],
-        timestamp: Date.now(), // Update timestamp to latest
-      };
     }
+    // Add to existing pending message
+    let existingContent: MessageContentPart[];
+    if (Array.isArray(currentPending.content)) {
+      existingContent = currentPending.content;
+    } else if (currentPending.content) {
+      existingContent = [
+        { type: 'text' as const, text: currentPending.content },
+      ];
+    } else {
+      existingContent = [];
+    }
+
+    return {
+      ...currentPending,
+      content: [...existingContent, generatedImagePart],
+      timestamp: Date.now(), // Update timestamp to latest
+    };
   },
 );
 
 // Sync $messages store with active pending message
-$messages.on(mergeFilesIntoPendingMessage, (messages, newFileMessage) => {
-  const activePending = $activePendingMultimodalMessage.getState();
+sample({
+  clock: mergeFilesIntoPendingMessage,
+  source: {
+    messages: $messages,
+    activePending: $activePendingMultimodalMessage,
+  },
+  fn: ({ messages, activePending }, newFileMessage) => {
+    if (!activePending) {
+      // This shouldn't happen, but handle gracefully
+      return [...messages, newFileMessage];
+    }
 
-  if (!activePending) {
-    // This shouldn't happen, but handle gracefully
-    return [...messages, newFileMessage];
-  }
+    // Find and replace existing pending message, or add new one
+    const existingPendingIndex = messages.findIndex(
+      (message) =>
+        message.status === 'pending' &&
+        message.role === 'user' &&
+        Array.isArray(message.content) &&
+        message.content.some(
+          (part) =>
+            part.type === 'image_url' ||
+            part.type === 'input_audio' ||
+            part.type === 'document',
+        ),
+    );
 
-  // Find and replace existing pending message, or add new one
-  const existingPendingIndex = messages.findIndex(
-    (msg) =>
-      msg.status === 'pending' &&
-      msg.role === 'user' &&
-      Array.isArray(msg.content) &&
-      msg.content.some(
-        (part) =>
-          part.type === 'image_url' ||
-          part.type === 'input_audio' ||
-          part.type === 'document',
-      ),
-  );
-
-  if (existingPendingIndex >= 0) {
-    // Replace existing pending message
-    const updatedMessages = [...messages];
-    updatedMessages[existingPendingIndex] = activePending;
-    return updatedMessages;
-  } else {
+    if (existingPendingIndex >= 0) {
+      // Replace existing pending message
+      const updatedMessages = [...messages];
+      updatedMessages[existingPendingIndex] = activePending;
+      return updatedMessages;
+    }
     // Add new pending message
     return [...messages, activePending];
-  }
+  },
+  target: $messages,
 });
 
 // Sync $messages when a generated image is added to pending message
-$messages.on(addGeneratedImageToChat, (messages) => {
-  const activePending = $activePendingMultimodalMessage.getState();
+sample({
+  clock: addGeneratedImageToChat,
+  source: {
+    messages: $messages,
+    activePending: $activePendingMultimodalMessage,
+  },
+  filter: ({ activePending }) => !!activePending,
+  fn: ({ messages, activePending }) => {
+    // Find and replace existing pending message, or add new one
+    const existingPendingIndex = messages.findIndex(
+      (message) =>
+        message.status === 'pending' &&
+        message.role === 'user' &&
+        Array.isArray(message.content) &&
+        message.content.some(
+          (part) =>
+            part.type === 'image_url' ||
+            part.type === 'input_audio' ||
+            part.type === 'document' ||
+            part.type === 'generated_image',
+        ),
+    );
 
-  if (!activePending) {
-    return messages;
-  }
-
-  // Find and replace existing pending message, or add new one
-  const existingPendingIndex = messages.findIndex(
-    (msg) =>
-      msg.status === 'pending' &&
-      msg.role === 'user' &&
-      Array.isArray(msg.content) &&
-      msg.content.some(
-        (part) =>
-          part.type === 'image_url' ||
-          part.type === 'input_audio' ||
-          part.type === 'document' ||
-          part.type === 'generated_image',
-      ),
-  );
-
-  if (existingPendingIndex >= 0) {
-    // Replace existing pending message
-    const updatedMessages = [...messages];
-    updatedMessages[existingPendingIndex] = activePending;
-    return updatedMessages;
-  } else {
+    if (existingPendingIndex >= 0) {
+      // Replace existing pending message
+      const updatedMessages = [...messages];
+      updatedMessages[existingPendingIndex] = activePending!;
+      return updatedMessages;
+    }
     // Add new pending message
-    return [...messages, activePending];
-  }
+    return [...messages, activePending!];
+  },
+  target: $messages,
 });
 
 // Clear pending message from $messages when cleared from active store
-$messages.on(clearActivePendingMessage, (messages) => {
-  return messages.filter((msg) => {
+$messages.on(clearActivePendingMessage, (messages) =>
+  messages.filter((message) => {
     // Remove pending media-only messages
     if (
-      msg.status === 'pending' &&
-      msg.role === 'user' &&
-      Array.isArray(msg.content)
+      message.status === 'pending' &&
+      message.role === 'user' &&
+      Array.isArray(message.content)
     ) {
-      const isMediaOnly = msg.content.every(
+      const isMediaOnly = message.content.every(
         (part) =>
           part.type === 'image_url' ||
           part.type === 'input_audio' ||
@@ -847,76 +858,80 @@ $messages.on(clearActivePendingMessage, (messages) => {
       return !isMediaOnly;
     }
     return true;
-  });
-});
+  }),
+);
 
 // Sync $messages when $activePendingMultimodalMessage changes due to deletion
 $messages.on(deleteMessage, (messages, messageId) => {
   // Check if the deleted message was a pending message
-  const deletedMessage = messages.find((msg) => msg.id === messageId);
+  const deletedMessage = messages.find((message) => message.id === messageId);
   if (deletedMessage && deletedMessage.status === 'pending') {
     // If the deleted pending message was the active one, we need to keep stores in sync
     // The $activePendingMultimodalMessage handler above already cleared it
     // This ensures $messages reflects the same state
   }
-  return messages.filter((msg) => msg.id !== messageId);
+  return messages.filter((message) => message.id !== messageId);
 });
 
 // Sync $messages when an attachment is deleted from the active pending message
-$messages.on(deleteAttachment, (messages, { messageId, attachmentIndex }) => {
-  return messages
-    .map((msg) => {
-      if (msg.id !== messageId) return msg;
+sample({
+  clock: deleteAttachment,
+  source: {
+    messages: $messages,
+    activePending: $activePendingMultimodalMessage,
+  },
+  fn: ({ messages, activePending }, { messageId, attachmentIndex }) =>
+    messages
+      .map((message) => {
+        if (message.id !== messageId) return message;
 
-      // Get the updated state from $activePendingMultimodalMessage to stay in sync
-      const activePending = $activePendingMultimodalMessage.getState();
+        // If this is the active pending message and it was cleared due to attachment deletion
+        if (
+          message.status === 'pending' &&
+          activePending === null &&
+          message.id === messageId
+        ) {
+          // The message should be removed entirely
+          return null;
+        }
 
-      // If this is the active pending message and it was cleared due to attachment deletion
-      if (
-        msg.status === 'pending' &&
-        activePending === null &&
-        msg.id === messageId
-      ) {
-        // The message should be removed entirely
-        return null;
-      }
+        // If this is the active pending message and it was updated
+        if (
+          message.status === 'pending' &&
+          activePending &&
+          message.id === activePending.id
+        ) {
+          // Use the updated pending message from the active store
+          return activePending;
+        }
 
-      // If this is the active pending message and it was updated
-      if (
-        msg.status === 'pending' &&
-        activePending &&
-        msg.id === activePending.id
-      ) {
-        // Use the updated pending message from the active store
-        return activePending;
-      }
+        // For non-pending messages, use the original logic
+        if (typeof message.content === 'string') return message;
 
-      // For non-pending messages, use the original logic
-      if (typeof msg.content === 'string') return msg;
+        const newContent = message.content.filter(
+          (_, index) => index !== attachmentIndex,
+        );
 
-      const newContent = msg.content.filter(
-        (_, index) => index !== attachmentIndex,
-      );
+        if (newContent.length === 1 && newContent[0].type === 'text') {
+          return {
+            ...message,
+            content: newContent[0].text,
+            attachments: message.attachments?.filter(
+              (_, index) => index !== attachmentIndex,
+            ),
+          };
+        }
 
-      if (newContent.length === 1 && newContent[0].type === 'text') {
         return {
-          ...msg,
-          content: newContent[0].text,
-          attachments: msg.attachments?.filter(
+          ...message,
+          content: newContent,
+          attachments: message.attachments?.filter(
             (_, index) => index !== attachmentIndex,
           ),
         };
-      }
-
-      return {
-        ...msg,
-        content: newContent,
-        attachments: msg.attachments?.filter(
-          (_, index) => index !== attachmentIndex,
-        ),
-      };
-    })
-    .filter((msg) => msg !== null); // Remove null entries (cleared pending messages)
+      })
+      .filter((message) => message !== null), // Remove null entries (cleared pending messages)
+  target: $messages,
 });
 
 // Trigger file processing when files are selected
@@ -982,6 +997,7 @@ sample({
       providerApiUrl,
       prompt,
       model: selectedModel,
+      // eslint-disable-next-line unicorn/explicit-length-check
       size: params.size || settings.size,
       quality: params.quality || settings.quality,
       style: params.style || settings.style,
@@ -1032,16 +1048,16 @@ sample({
 
 $messages
   .on(editMessage, (list, { messageId, newContent }) =>
-    list.map((msg) =>
-      msg.id === messageId
+    list.map((message) =>
+      message.id === messageId
         ? {
-            ...msg,
+            ...message,
             content:
-              msg.content && Array.isArray(msg.content)
+              message.content && Array.isArray(message.content)
                 ? // For multimodal messages, preserve all non-text parts and update/add text part
                   (() => {
                     // Filter out existing text parts
-                    const nonTextParts = msg.content.filter(
+                    const nonTextParts = message.content.filter(
                       (part) => part.type !== 'text',
                     );
 
@@ -1059,11 +1075,11 @@ $messages
                 : // For text-only messages, just replace with new text
                   newContent,
             isEdited: true,
-            originalContent: msg.content,
+            originalContent: message.content,
             // Preserve attachments array - critical for UI rendering
-            attachments: msg.attachments,
+            attachments: message.attachments,
           }
-        : msg,
+        : message,
     ),
   )
   // deleteMessage and deleteAttachment handlers moved to separate .on() calls above for better sync
@@ -1082,27 +1098,33 @@ $messages
             isLoading: true,
           } as Message,
         ];
-      } else {
-        // Update an existing message (e.g., clear content and set loading)
-        return messages.map((msg) =>
-          msg.id === targetMessageId
-            ? { ...msg, isLoading: true } // Preserve content, only set loading for existing
-            : msg,
-        );
       }
+      // Update an existing message (e.g., clear content and set loading)
+      return messages.map((message) =>
+        message.id === targetMessageId
+          ? { ...message, isLoading: true } // Preserve content, only set loading for existing
+          : message,
+      );
     },
   );
 
 $apiError.reset(messageSent, generateResponseClicked, messageRetry); // Reset on user action start
 
-$retryingMessageId
-  .on(messageRetryInitiated, (_, payload) => {
+sample({
+  clock: messageRetryInitiated,
+  source: $messages,
+  fn: (messages, payload) => {
     // Keep spinner logic for retry initiation
-    const messages = $messages.getState();
     if (payload.role === 'assistant') return payload.messageId;
-    return determineRetryingMessageIdFn(messages, payload);
-  })
-  .on(streamInitiatedWithTarget, (_, { targetMessageId }) => targetMessageId); // Show spinner on target message
+    return determineRetryingMessageIdFunction(messages, payload);
+  },
+  target: $retryingMessageId,
+});
+
+$retryingMessageId.on(
+  streamInitiatedWithTarget,
+  (_, { targetMessageId }) => targetMessageId,
+); // Show spinner on target message
 
 $preventScroll
   .on(editMessage, () => true) // Prevent scroll during edit
@@ -1110,83 +1132,93 @@ $preventScroll
   .on(streamInitiatedWithTarget, () => false); // Allow scroll when a stream target is prepared
 
 // Now, add reset logic to stores using these events
-$activeChatStreamId.reset(_messageCompleted, _messageErrored, _messageAborted);
-$retryingMessageId.reset(_messageCompleted, _messageErrored, _messageAborted);
-$preventScroll.reset(_messageCompleted, _messageErrored, _messageAborted); // Reset scroll lock on finish
+$activeChatStreamId.reset(messageCompleted, messageErrored, messageAborted);
+$retryingMessageId.reset(messageCompleted, messageErrored, messageAborted);
+$preventScroll.reset(messageCompleted, messageErrored, messageAborted); // Reset scroll lock on finish
 
 // Add handlers to $messages for internal events
 $messages
   .on(
-    _messageChunkReceived,
+    messageChunkReceived,
     (messages, { targetMessageId, chunkContent, isFirstChunk }) => {
-      const targetMsgIndex = messages.findIndex(
+      const targetMessageIndex = messages.findIndex(
         (m) => m.id === targetMessageId,
       );
-      if (targetMsgIndex === -1) {
+      if (targetMessageIndex === -1) {
         console.warn(`Target message not found for chunk: ${targetMessageId}`);
         return messages; // Safety check: if message not found, return original array
       }
 
-      const currentContent = messages[targetMsgIndex].content;
+      const currentContent = messages[targetMessageIndex].content;
       const updatedContent = isFirstChunk
         ? chunkContent
-        : currentContent + chunkContent;
+        : (typeof currentContent === 'string' ? currentContent : '') +
+          chunkContent;
 
-      const updatedMsg = {
-        ...messages[targetMsgIndex],
+      const updatedMessage = {
+        ...messages[targetMessageIndex],
         content: updatedContent,
         isLoading: true, // Keep loading during chunks
       };
       const newMsgs = [...messages];
-      newMsgs[targetMsgIndex] = updatedMsg;
+      newMsgs[targetMessageIndex] = updatedMessage;
       return newMsgs;
     },
   )
-  .on(_messageCompleted, (messages, { targetMessageId }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
-    if (targetMsgIndex === -1) {
+  .on(messageCompleted, (messages, { targetMessageId }) => {
+    const targetMessageIndex = messages.findIndex(
+      (m) => m.id === targetMessageId,
+    );
+    if (targetMessageIndex === -1) {
       console.warn(
         `Target message not found for completion: ${targetMessageId}`,
       );
       return messages;
     }
-    const updatedMsg = {
-      ...messages[targetMsgIndex],
+    const updatedMessage = {
+      ...messages[targetMessageIndex],
       isLoading: false,
     };
     const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
+    newMsgs[targetMessageIndex] = updatedMessage;
     return newMsgs;
   })
-  .on(_messageErrored, (messages, { targetMessageId, error }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
-    if (targetMsgIndex === -1) {
+  .on(messageErrored, (messages, { targetMessageId, error }) => {
+    const targetMessageIndex = messages.findIndex(
+      (m) => m.id === targetMessageId,
+    );
+    if (targetMessageIndex === -1) {
       console.warn(`Target message not found for error: ${targetMessageId}`);
       return messages;
     }
-    const updatedMsg = {
-      ...messages[targetMsgIndex],
+    const updatedMessage = {
+      ...messages[targetMessageIndex],
       isLoading: false,
       content: `Error: ${error.message}`, // Show error in content
     };
     const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
+    newMsgs[targetMessageIndex] = updatedMessage;
     return newMsgs;
   })
-  .on(_messageAborted, (messages, { targetMessageId }) => {
-    const targetMsgIndex = messages.findIndex((m) => m.id === targetMessageId);
-    if (targetMsgIndex === -1) {
+  .on(messageAborted, (messages, { targetMessageId }) => {
+    const targetMessageIndex = messages.findIndex(
+      (m) => m.id === targetMessageId,
+    );
+    if (targetMessageIndex === -1) {
       console.warn(`Target message not found for abort: ${targetMessageId}`);
       return messages;
     }
-    const updatedMsg = { ...messages[targetMsgIndex], isLoading: false };
+    const updatedMessage = {
+      ...messages[targetMessageIndex],
+      isLoading: false,
+    };
     const newMsgs = [...messages];
-    newMsgs[targetMsgIndex] = updatedMsg;
+    newMsgs[targetMessageIndex] = updatedMessage;
     return newMsgs;
   });
 
 // Add handler to $apiError
-$apiError.on(_messageErrored, (_, { error }) => error.message);
+$apiError.on(messageErrored, (_, { error }) => error.message);
 
 // --- Samples (Flow Logic) ---
 
@@ -1203,15 +1235,16 @@ $messages.on(
   (messages, { bundledMessage, pendingMediaIds, markAsSent }) => {
     if (markAsSent) {
       // Scenario 1: Just mark pending media as sent, don't add new message
-      return messages.map((msg) =>
-        pendingMediaIds.includes(msg.id)
-          ? { ...msg, status: 'sent' as const }
-          : msg,
+      return messages.map((message) =>
+        pendingMediaIds.includes(message.id)
+          ? { ...message, status: 'sent' as const }
+          : message,
       );
-    } else if (bundledMessage) {
+    }
+    if (bundledMessage) {
       // Scenario 2: Remove pending media and add bundled message
       const filteredMessages = messages.filter(
-        (msg) => !pendingMediaIds.includes(msg.id),
+        (message) => !pendingMediaIds.includes(message.id),
       );
       return [...filteredMessages, bundledMessage];
     }
@@ -1261,7 +1294,8 @@ sample({
         pendingMediaIds: [activePending.id],
         markAsSent: false,
       };
-    } else if (hasText && activePending) {
+    }
+    if (hasText && activePending) {
       // Scenario 2: Text with pending media - combine them
       const existingContent = Array.isArray(activePending.content)
         ? activePending.content
@@ -1288,7 +1322,8 @@ sample({
         pendingMediaIds: [activePending.id],
         markAsSent: false,
       };
-    } else if (hasText && !activePending) {
+    }
+    if (hasText && !activePending) {
       // Scenario 3: Just text, no media
       const textOnlyMessage: Message = {
         id: crypto.randomUUID(),
@@ -1337,16 +1372,16 @@ sample({
   clock: bundledMessageCreated,
   source: $messages,
   filter: (_, { markAsSent }) => markAsSent === true,
-  fn: (messages, { pendingMediaIds }) => {
+  fn: (messages, { pendingMediaIds }) =>
     // Find the sent media messages
-    return messages.filter((msg) => pendingMediaIds.includes(msg.id));
-  },
+    messages.filter((message) => pendingMediaIds.includes(message.id)),
   target: individualMediaSent,
 });
 
 // Trigger userMessageCreated for each individual media message
+// eslint-disable-next-line effector/no-watch
 individualMediaSent.watch((mediaMessages) => {
-  mediaMessages.forEach((media) => userMessageCreated(media));
+  for (const media of mediaMessages) userMessageCreated(media);
 });
 
 // Clear message input after sending
@@ -1424,7 +1459,7 @@ sample({
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices?.[0]?.delta?.content;
       if (content) {
-        _messageChunkReceived({
+        messageChunkReceived({
           targetMessageId,
           chunkContent: content,
           isFirstChunk: isFirstChunkForThisStream,
@@ -1434,7 +1469,7 @@ sample({
     };
 
     const onComplete = () => {
-      _messageCompleted({ targetMessageId });
+      messageCompleted({ targetMessageId });
       normalResponseProcessed(); // Trigger save/downstream logic for normal flow
       assistantResponseCompleted(); // Signal completion for history save etc.
       scrollToLastMessageNeeded(); // Trigger scroll
@@ -1443,13 +1478,13 @@ sample({
 
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}] Error callback:`, error);
-      _messageErrored({ targetMessageId, error });
+      messageErrored({ targetMessageId, error });
       chatStreamFinished(); // Signal that this chat's stream has finished due to error
     };
 
     const onAbort = () => {
       console.log(`[Stream ${streamId}] Abort callback triggered.`);
-      _messageAborted({ targetMessageId });
+      messageAborted({ targetMessageId });
       chatStreamFinished(); // Signal that this chat's stream has finished due to abort
     };
 
@@ -1522,7 +1557,7 @@ sample({
     let shouldAddNewMessage: boolean;
 
     // Check if the last message is an assistant placeholder that was loading
-    const lastMessage = messages[messages.length - 1];
+    const lastMessage = messages.at(-1);
 
     if (
       lastMessage &&
@@ -1549,11 +1584,10 @@ sample({
     } else {
       // If updating an existing assistant message, slice the history *before* that message.
       const targetIndex = messages.findIndex((m) => m.id === targetMessageId);
-      if (targetIndex !== -1) {
-        messagesForApi = messages.slice(0, targetIndex);
-      } else {
-        messagesForApi = [...messages]; // Fallback, should not happen if logic is correct
-      }
+      messagesForApi =
+        targetIndex === -1
+          ? [...messages] // Fallback, should not happen if logic is correct
+          : messages.slice(0, targetIndex);
     }
 
     // Prepend system prompt if present
@@ -1577,7 +1611,7 @@ sample({
     const onChunk = ({ chunk }: StreamChunkPayload) => {
       const content = chunk.choices?.[0]?.delta?.content;
       if (content) {
-        _messageChunkReceived({
+        messageChunkReceived({
           targetMessageId,
           chunkContent: content,
           isFirstChunk: isFirstChunkForThisStream,
@@ -1586,18 +1620,18 @@ sample({
       }
     };
     const onComplete = () => {
-      _messageCompleted({ targetMessageId });
+      messageCompleted({ targetMessageId });
       assistantResponseCompleted();
       chatStreamFinished();
     };
     const onError = ({ error }: StreamErrorPayload) => {
       console.error(`[Stream ${streamId}/Generate] Error callback:`, error);
-      _messageErrored({ targetMessageId, error });
+      messageErrored({ targetMessageId, error });
       chatStreamFinished();
     };
     const onAbort = () => {
       console.log(`[Stream ${streamId}/Generate] Abort callback triggered.`);
-      _messageAborted({ targetMessageId });
+      messageAborted({ targetMessageId });
       chatStreamFinished();
     };
 
@@ -1680,10 +1714,11 @@ sample({
     let shouldAddNewMessage: boolean;
 
     // Use prepareRetryRequestParamsFn to get the correct history slice for the API call
-    const { messages: messagesForApi, modelId } = prepareRetryRequestParamsFn(
-      { messages, apiKey, temperature, systemPrompt, selectedModelId },
-      messageToRetry,
-    );
+    const { messages: messagesForApi, modelId } =
+      prepareRetryRequestParamsFunction(
+        { messages, apiKey, temperature, systemPrompt, selectedModelId },
+        messageToRetry,
+      );
 
     // Prepend system prompt if present
     const messagesBeforeFormatting = systemPrompt.trim()
@@ -1705,9 +1740,7 @@ sample({
     );
 
     if (originalMessageIndex === -1) {
-      console.warn(
-        'messageRetry: Original message not found in $messages. Creating new.',
-      );
+      // Original message not found, creating new
       targetMessageId = crypto.randomUUID();
       shouldAddNewMessage = true;
     } else if (messageToRetry.role === 'assistant') {
@@ -1742,7 +1775,7 @@ sample({
       onChunk: ({ chunk }: StreamChunkPayload) => {
         const content = chunk.choices?.[0]?.delta?.content;
         if (content) {
-          _messageChunkReceived({
+          messageChunkReceived({
             targetMessageId,
             chunkContent: content,
             isFirstChunk: isFirstChunkForThisStream,
@@ -1751,18 +1784,18 @@ sample({
         }
       },
       onComplete: () => {
-        _messageCompleted({ targetMessageId });
+        messageCompleted({ targetMessageId });
         assistantResponseCompleted();
         chatStreamFinished();
       },
       onError: ({ error }: StreamErrorPayload) => {
         console.error(`[Stream ${streamId}/Retry] Error callback:`, error);
-        _messageErrored({ targetMessageId, error });
+        messageErrored({ targetMessageId, error });
         chatStreamFinished();
       },
       onAbort: () => {
         console.log(`[Stream ${streamId}/Retry] Abort callback triggered.`);
-        _messageAborted({ targetMessageId });
+        messageAborted({ targetMessageId });
         chatStreamFinished();
       },
     };
@@ -1778,7 +1811,7 @@ sample({
   filter: isRetryableMessage,
   fn: (messageToRetry): MessageRetryInitiatedPayload => ({
     messageId: messageToRetry.id,
-    role: messageToRetry.role as Role & ('user' | 'assistant'),
+    role: messageToRetry.role,
   }),
   target: messageRetryInitiated,
 });
@@ -1843,10 +1876,10 @@ debug(
   userMessageCreated,
   streamRequestInitiated, // Keep streamRequestInitiated in debug
   streamInitiatedWithTarget, // Add new event to debug
-  _messageChunkReceived,
-  _messageCompleted,
-  _messageErrored,
-  _messageAborted,
+  messageChunkReceived,
+  messageCompleted,
+  messageErrored,
+  messageAborted,
   chatStreamFinished,
   messageRetryInitiated,
   scrollToLastMessageNeeded,

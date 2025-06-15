@@ -1,38 +1,34 @@
 // Public API for the models-select feature
 
 // Import and re-export types from types.ts
-export type { ModelInfo, ModelCapabilities, ModelLimits } from './types';
-
 export {
+  $autoTitleModelId, // For auto title generation
   // Stores - Needed by UI (ModelSelector, Header)
   $availableModels,
+  $currentModelSupportsAudio,
+  $currentModelSupportsVision,
   $filteredModels, // Filtered models based on showFreeOnly setting
+  $isLoadingModels,
+  // Model Info Alert (moved from ui-state to avoid circular dependency)
+  $isModelInfoAlertOpen,
+  $isModelSelectorActive, // For model selector state
+  // URL Testing stores
+  $isTestingUrl,
+  $modelsError,
   $selectedModelId, // Also needed by chat feature
   $selectedModelInfo,
-  $visionModels,
-  $currentModelSupportsVision,
-  $currentModelSupportsAudio,
-  $isLoadingModels,
-  $modelsError,
   $showFreeOnly,
-  $autoTitleModelId, // For auto title generation
-  $isModelSelectorActive, // For model selector state
-
+  $urlTestResult,
+  $visionModels,
+  autoSelectModelForCapabilities,
+  autoTitleModelSelected, // For auto title model selection
+  closeModelInfoAlert,
   // Events - Triggered by UI or app initialization
   fetchModels, // Triggered on app start
   modelSelected, // Triggered by ModelSelector component
-  setShowFreeOnly,
   modelSelectorFocused,
-  autoSelectModelForCapabilities,
-  autoTitleModelSelected, // For auto title model selection
-  testProviderUrl, // Triggered to test URL connectivity
-
-  // URL Testing stores
-  $isTestingUrl,
-  $urlTestResult,
-
-  // Model Info Alert (moved from ui-state to avoid circular dependency)
-  $isModelInfoAlertOpen,
   openModelInfoAlert,
-  closeModelInfoAlert,
+  setShowFreeOnly,
+  testProviderUrl, // Triggered to test URL connectivity
 } from './model';
+export type { ModelCapabilities, ModelInfo, ModelLimits } from './types';

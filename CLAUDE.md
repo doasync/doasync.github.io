@@ -12,12 +12,20 @@ npm run dev        # Start development server with Turbopack
 npm run build      # Create production build (static export to out/)
 npm run start      # Start production server
 npm run lint       # Run ESLint
+npm run qa         # Run full quality assurance (ts + lint + codestyle + deps)
+npm run ts         # TypeScript compilation check
+npm run codestyle  # Prettier formatting check
+npm run fix        # Auto-fix ESLint and formatting issues
+npm run deps       # Check for circular dependencies with madge
 ```
 
 ## Architecture Overview
 
 This is a Next.js chat application using Effector for state management. The app
 integrates with OpenAI-compatible API for LLM interactions.
+
+**Note**: The codebase has been recently refactored to use consistent kebab-case
+naming for components and alphabetical export organization.
 
 ### Key Technologies
 
@@ -54,9 +62,19 @@ src/features/
 Each feature follows this pattern:
 
 - `model.ts` - Effector state management (stores, events, effects)
-- `index.ts` - Public API exports
+- `index.ts` - Public API exports (alphabetically organized)
 - `types.ts` - TypeScript interfaces (if needed)
-- Component files - React components (if UI is involved)
+- `components/` - React components using kebab-case naming (e.g.,
+  `message-item.tsx`)
+
+### File Naming Conventions
+
+- **Components**: Use kebab-case for React component files (e.g.,
+  `message-item.tsx`, `chat-settings-content.tsx`)
+- **Other files**: Use kebab-case for non-component files as well (e.g.,
+  `use-text-selection.ts`)
+- **Exports**: All feature exports in `index.ts` files are organized
+  alphabetically for consistency
 
 ### State Management Pattern
 
@@ -85,13 +103,13 @@ sample({
 
 ### Key Implementation Notes
 
-1. **API Integration**: The app integrates with unified API for LLM
+1. **API Integration**: The app integrates with VoidAI unified API for LLM
    interactions, with automatic model capability detection for vision, audio,
-   and other features.
+   and other features. User-provided API keys are stored in LocalStorage.
 
 2. **Chat Streaming**: The `chat-stream` feature is stateless and reusable. It
    manages SSE connections with proper cleanup via AbortController for real-time
-   responses.
+   responses using `eventsource-parser`.
 
 3. **Multimodal Support**: Messages support text, images, and file attachments.
    Vision models are automatically selected when images are attached via the
@@ -107,16 +125,13 @@ sample({
    - Auto-save is debounced to prevent excessive writes
    - Message drafts are persisted per chat session
 
-6. **API Integration**: All LLM calls go through an API provider endpoint with
-   OpenAI-compatible format. The app supports multiple providers (OpenAI,
-   Anthropic, Google, etc.) through VoidAI, for example.
-
-7. **Audio Features**: Standalone STT (Speech-to-Text) and TTS (Text-to-Speech)
+6. **Audio Features**: Standalone STT (Speech-to-Text) and TTS (Text-to-Speech)
    dialogs provide transcription and voice generation without affecting main
    chat.
 
-8. **Static Export**: The app is configured for static export
-   (`output: 'export'`), meaning no server-side rendering.
+7. **Static Export**: The app is configured for static export
+   (`output: 'export'`), meaning no server-side rendering. Images are
+   unoptimized for static export compatibility.
 
 ### Development Guidelines
 
@@ -126,6 +141,9 @@ sample({
 4. Follow the existing file structure patterns
 5. Test SSE streaming thoroughly as it's critical for UX
 6. Respect feature boundaries - import only from feature's `index.ts`
+7. **File naming**: Use kebab-case for all new component and utility files
+8. **Export organization**: Maintain alphabetical order in `index.ts` exports
+9. **Code quality**: Run `npm run qa` before committing to ensure consistency
 
 ### Common Tasks
 
@@ -133,18 +151,20 @@ sample({
 
 1. Create a new directory under `src/features/`
 2. Add `model.ts` with state logic
-3. Export public API through `index.ts`
-4. Connect to main app in `src/app/page.tsx` if needed
+3. Create `components/` directory if UI components are needed
+4. Use kebab-case naming for all component files (e.g., `my-component.tsx`)
+5. Export public API through `index.ts` with alphabetical organization
+6. Connect to main app in `src/app/page.tsx` if needed
 
 **Modifying chat behavior:**
 
 - Main logic is in `src/features/chat/model.ts`
 - Streaming logic is in `src/features/chat-stream/model.ts`
-- UI components are in `src/components/MessageItem.tsx`
+- UI components are in `src/features/chat/components/message-item.tsx`
 
 **Working with multimodal features:**
 
-- Image attachments: `src/components/ImageAttachmentInput.tsx`
+- File attachments: `src/features/chat/components/attachment-menu.tsx`
 - Document processing: `src/features/document-processing/`
 - Audio transcription: `src/features/speech-to-text/`
 - Text-to-speech: `src/features/text-to-speech/`
@@ -187,12 +207,14 @@ The app supports uploading various file types:
 ## Development Advice
 
 - Always run `npm run build` to test static export compatibility
+- Use `npm run qa` for comprehensive quality checks before committing
+- Run `npm run fix` to automatically resolve lint and formatting issues
+- Use `npm run deps` to check for circular dependencies
 
 ## Coding Guidelines
 
 - Don't use default exports
-
-```
-
-</invoke>
-```
+- ESLint is disabled during build (`ignoreDuringBuilds: true`) but should be run
+  manually via `npm run lint`
+- The app is configured for static export only - no server-side rendering
+  capabilities

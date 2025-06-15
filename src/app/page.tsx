@@ -1,116 +1,117 @@
-'use client'; // Mark as client component for future interactivity
+'use client';
 
-import * as React from 'react';
-import { showSnackbar } from '@/features/ui-state/snackbar';
-import { $snackbar, hideSnackbar } from '@/features/ui-state/snackbar';
-import {
-  useMiniChatTextSelection,
-  MiniChatToolbar,
-  MiniChatDialog,
-  MiniChatFAB,
-} from '@/features/mini-chat';
-import QueryStatsIcon from '@mui/icons-material/QueryStats';
-import { UsageInfoDialog } from '@/features/usage-info/components/UsageInfoDialog';
-import { refreshUsageInfo } from '@/features/usage-info';
-import { TTSDialog } from '@/features/text-to-speech/components/TTSDialog';
-import { TranscriptionDialog } from '@/features/speech-to-text/components/TranscriptionDialog';
-import {
-  useTheme,
-  useMediaQuery,
-  Snackbar,
-  LinearProgress,
-} from '@mui/material';
-import { MobileUnifiedDrawer } from '@/features/ui-layout/components/MobileUnifiedDrawer';
-import {
-  $isMobileDrawerOpen,
-  openMobileDrawer,
-  $editingMessageId,
-  closeMobileDrawer,
-} from '@/features/ui-state';
-import { useUnit } from 'effector-react';
-import Box from '@mui/material/Box';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-import IconButton from '@mui/material/IconButton';
-import SubjectIcon from '@mui/icons-material/Subject';
-import SettingsIcon from '@mui/icons-material/Settings';
+// Mark as client component for future interactivity
+
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import SettingsIcon from '@mui/icons-material/Settings';
 import StopIcon from '@mui/icons-material/Stop'; // Use standard Stop icon
-import Stack from '@mui/material/Stack';
-import Alert from '@mui/material/Alert';
-import { generateResponseClicked } from '@/features/chat';
-
-// Import components
-import { MessageItem } from '@/features/chat/components/MessageItem';
-import { AttachmentMenu } from '@/features/chat/components/AttachmentMenu';
-import { ApiKeyMissingDialog } from '@/features/chat-settings/components/ApiKeyMissingDialog';
-import { ImageGenerationDialog } from '@/features/image-generation/components/ImageGenerationDialog';
-import { dialogOpened as openImageGenerationDialog } from '@/features/image-generation';
-import Drawer from '@mui/material/Drawer';
-import { ChatHistoryContent } from '@/features/chat-history/components/ChatHistoryContent';
-import { ChatSettingsContent } from '@/features/chat-settings/components/ChatSettingsContent';
-import { ModelSelector } from '@/features/models-select/components/ModelSelector';
+import SubjectIcon from '@mui/icons-material/Subject';
 import {
-  $selectedModelId,
-  $availableModels,
-  ModelInfo,
-} from '@/features/models-select';
+  LinearProgress,
+  Snackbar,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import Alert from '@mui/material/Alert';
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Drawer from '@mui/material/Drawer';
+import IconButton from '@mui/material/IconButton';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Toolbar from '@mui/material/Toolbar';
+import { useUnit } from 'effector-react';
+import * as React from 'react';
 
+import { appStarted } from '@/app'; // Correct import path
 // Import Effector models
 import {
+  $apiError, // Import error state
+  $currentChatTokens,
+  $isGenerating, // Import loading state
   $messages,
   $messageText,
+  $preventScroll, // Import scroll prevention state
+  $scrollTrigger, // Import explicit scroll trigger
+  generateResponseClicked,
+  mainInputFocused,
   messageSent,
   messageTextChanged,
-  $isGenerating, // Import loading state
-  $apiError, // Import error state
-  $preventScroll, // Import scroll prevention state
   setPreventScroll, // Import scroll prevention setter
-  $scrollTrigger, // Import explicit scroll trigger
-  mainInputFocused,
   stopGenerationClicked, // Import the cancellation event
 } from '@/features/chat';
-// import { editMessage } from "@/model/chat"; // Remove editMessage import
-import { loadSettings } from '@/features/chat-settings'; // Import settings loader
+import { AttachmentMenu } from '@/features/chat/components/attachment-menu';
+// Import components
+import { MessageItem } from '@/features/chat/components/message-item';
 import {
-  // $isSettingsDrawerOpen, // Use persistent store instead for desktop
-  closeSettingsDrawer,
-  toggleHistoryDrawer, // Use for persistent toggle
-  // $isHistoryDrawerOpen, // Use persistent store instead for desktop
-  $isHistoryDrawerPersistentOpen, // Import persistent state
-  $isSettingsDrawerPersistentOpen, // Import persistent state
-  toggleSettingsDrawer, // Import settings toggle// Import scroll prevention event
-} from '@/features/ui-state';
-import { fetchModels } from '@/features/models-select'; // Import model fetch trigger
-import {
-  newChatCreated,
-  $currentChatSession,
   $chatHistoryIndex,
+  $currentChatSession,
   $isLoadingHistory,
-  chatSelected,
-  deleteChat,
-  chatTitleEdited,
   ChatHistoryIndex,
+  chatSelected,
+  chatTitleEdited,
+  deleteChat,
+  generateTitle,
+  newChatCreated,
   // appStarted, // Moved to app/model
 } from '@/features/chat-history'; // Import history events and stores
-import { appStarted } from '@/app'; // Correct import path
+import { ChatHistoryContent } from '@/features/chat-history/components/chat-history-content';
+// import { editMessage } from "@/model/chat"; // Remove editMessage import
 import {
   $apiKey,
   $providerApiUrl,
-  $temperature,
   $systemPrompt,
+  $temperature,
   apiKeyChanged,
+  loadSettings,
   providerApiUrlChanged,
-  temperatureChanged,
   systemPromptChanged,
-} from '@/features/chat-settings';
-import { $currentChatTokens } from '@/features/chat';
-import { generateTitle } from '@/features/chat-history';
-import { ModelInfoAlert } from '@/features/models-select/components/ModelInfoAlert';
+  temperatureChanged,
+} from '@/features/chat-settings'; // Import settings loader
+import { ApiKeyMissingDialog } from '@/features/chat-settings/components/api-key-missing-dialog';
+import { ChatSettingsContent } from '@/features/chat-settings/components/chat-settings-content';
+import { dialogOpened as openImageGenerationDialog } from '@/features/image-generation';
+import { ImageGenerationDialog } from '@/features/image-generation/components/image-generation-dialog';
+import {
+  MiniChatDialog,
+  MiniChatFAB,
+  MiniChatToolbar,
+  useMiniChatTextSelection,
+} from '@/features/mini-chat';
+import {
+  $availableModels,
+  $selectedModelId,
+  fetchModels,
+} from '@/features/models-select'; // Import model fetch trigger
+import { ModelInfoAlert } from '@/features/models-select/components/model-info-alert';
+import { ModelSelector } from '@/features/models-select/components/model-selector';
+import { TranscriptionDialog } from '@/features/speech-to-text/components/transcription-dialog';
+import { TTSDialog } from '@/features/text-to-speech/components/tts-dialog';
+import { MobileUnifiedDrawer } from '@/features/ui-layout/components/mobile-unified-drawer';
+import {
+  $editingMessageId,
+  // $isHistoryDrawerOpen, // Use persistent store instead for desktop
+  $isHistoryDrawerPersistentOpen, // Import persistent state
+  $isMobileDrawerOpen,
+  $isSettingsDrawerPersistentOpen, // Import persistent state
+  closeMobileDrawer,
+  // $isSettingsDrawerOpen, // Use persistent store instead for desktop
+  closeSettingsDrawer,
+  openMobileDrawer,
+  toggleHistoryDrawer, // Use for persistent toggle
+  toggleSettingsDrawer, // Import settings toggle// Import scroll prevention event
+} from '@/features/ui-state';
+import {
+  $snackbar,
+  hideSnackbar,
+  showSnackbar,
+} from '@/features/ui-state/snackbar';
+import { refreshUsageInfo } from '@/features/usage-info';
+import { UsageInfoDialog } from '@/features/usage-info/components/usage-info-dialog';
 
 // Define drawer widths (adjust as needed)
 const DRAWER_WIDTH = 300;
@@ -124,8 +125,7 @@ export default function HomePage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [messages, messageText] = useUnit([$messages, $messageText]);
-  const lastMessage =
-    messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessage = messages.length > 0 ? messages.at(-1) : null;
 
   // Use persistent state for desktop drawers
   const [isHistoryPersistentOpen, isSettingsPersistentOpen] = useUnit([
@@ -151,7 +151,7 @@ export default function HomePage() {
     $isLoadingHistory,
     chatSelected,
     deleteChat,
-    $currentChatSession.map((i) => i?.id ?? null),
+    $currentChatSession.map((index) => index?.id ?? null),
   ]);
 
   const {
@@ -168,6 +168,57 @@ export default function HomePage() {
     currentChatTokens: $currentChatTokens,
   });
 
+  // Bind Effector events using useUnit for React component usage
+  const [
+    openMobileDrawerBound,
+    toggleHistoryDrawerBound,
+    toggleSettingsDrawerBound,
+    newChatCreatedBound,
+    chatTitleEditedBound,
+    closeMobileDrawerBound,
+    messageTextChangedBound,
+    showSnackbarBound,
+    messageSentBound,
+    generateResponseClickedBound,
+    apiKeyChangedBound,
+    providerApiUrlChangedBound,
+    temperatureChangedBound,
+    systemPromptChangedBound,
+    setPreventScrollBound,
+    loadSettingsBound,
+    fetchModelsBound,
+    appStartedBound,
+    refreshUsageInfoBound,
+    hideSnackbarBound,
+    openImageGenerationDialogBound,
+    mainInputFocusedBound,
+    stopGenerationClickedBound,
+  ] = useUnit([
+    openMobileDrawer,
+    toggleHistoryDrawer,
+    toggleSettingsDrawer,
+    newChatCreated,
+    chatTitleEdited,
+    closeMobileDrawer,
+    messageTextChanged,
+    showSnackbar,
+    messageSent,
+    generateResponseClicked,
+    apiKeyChanged,
+    providerApiUrlChanged,
+    temperatureChanged,
+    systemPromptChanged,
+    setPreventScroll,
+    loadSettings,
+    fetchModels,
+    appStarted,
+    refreshUsageInfo,
+    hideSnackbar,
+    openImageGenerationDialog,
+    mainInputFocused,
+    stopGenerationClicked,
+  ]);
+
   const [historySearchTerm, setHistorySearchTerm] = React.useState('');
   const [usageDialogOpen, setUsageDialogOpen] = React.useState(false);
   // Image generation dialog is now managed by its own state
@@ -183,39 +234,43 @@ export default function HomePage() {
 
   const filteredHistory = React.useMemo(() => {
     if (!historySearchTerm) return historyIndex;
-    return historyIndex.filter((i: ChatHistoryIndex) =>
-      i.title.toLowerCase().includes(historySearchTerm.toLowerCase()),
+    return historyIndex.filter((index: ChatHistoryIndex) =>
+      index.title.toLowerCase().includes(historySearchTerm.toLowerCase()),
     );
   }, [historyIndex, historySearchTerm]);
 
   const clickHistory = () => {
     if (isMobile) {
-      openMobileDrawer({ tab: 'history' });
+      openMobileDrawerBound({ tab: 'history' });
     } else {
-      toggleHistoryDrawer();
+      toggleHistoryDrawerBound();
     }
   };
 
   const clickSettings = () => {
     if (isMobile) {
-      openMobileDrawer({ tab: 'settings' });
+      openMobileDrawerBound({ tab: 'settings' });
     } else {
-      toggleSettingsDrawer(); // Use toggle for persistent drawer
+      toggleSettingsDrawerBound(); // Use toggle for persistent drawer
     }
   };
 
-  const clickNewChat = () => newChatCreated();
+  const clickNewChat = () => newChatCreatedBound();
 
   useUnit([generateTitle]);
 
-  const handleStartEdit = (id: string, title: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleStartEdit = (
+    id: string,
+    title: string,
+    event: React.MouseEvent,
+  ) => {
+    event.stopPropagation();
     setEditingHistoryId(id);
     setEditedTitle(title);
   };
 
   const handleSaveEdit = (id: string) => {
-    chatTitleEdited({ id, newTitle: editedTitle.trim() });
+    chatTitleEditedBound({ id, newTitle: editedTitle.trim() });
     setEditingHistoryId(null);
   };
 
@@ -223,19 +278,19 @@ export default function HomePage() {
     setEditingHistoryId(null);
   };
 
-  const handleDeleteChat = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteChat = (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
     removeChat(id);
   };
 
   const handleSelectChat = (id: string) => {
     selectChat(id);
     if (isMobile) {
-      closeMobileDrawer();
+      closeMobileDrawerBound();
     }
   };
 
-  const handleClickShowApiKey = () => setShowApiKey((prev) => !prev);
+  const handleClickShowApiKey = () => setShowApiKey((previous) => !previous);
 
   const handleMouseDownApiKey = (
     event: React.MouseEvent<HTMLButtonElement>,
@@ -246,18 +301,18 @@ export default function HomePage() {
   useUnit([closeSettingsDrawer]);
 
   const changeMessage = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => messageTextChanged(e.target.value);
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => messageTextChangedBound(event.target.value);
 
   const handleSendButtonClick = () => {
     if (editingMessageId !== null) {
       // Scroll to the editing message
-      const element = document.getElementById(editingMessageId);
+      const element = document.querySelector(`#${editingMessageId}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      console.log('Editing message, not sending new one');
-      showSnackbar({
+      // User is currently editing a message, prevent sending new message
+      showSnackbarBound({
         message: 'Finish editing before sending a new message.',
         severity: 'warning',
       });
@@ -275,14 +330,12 @@ export default function HomePage() {
     if (!isInputEmpty || hasPendingImages) {
       // Case 3 & 4: Input has text or pending images, send it as a new message
       if (!isGenerating) {
-        messageSent();
+        messageSentBound();
       }
-    } else {
+    } else if (isLastMessageUser && !isGenerating) {
       // Input is empty and no pending images
       // Case 2: Input empty, last message was user -> Generate new response
-      if (isLastMessageUser && !isGenerating) {
-        generateResponseClicked(); // Trigger the new event
-      }
+      generateResponseClickedBound(); // Trigger the new event
       // Case 1: Input empty, last message was assistant -> Button is disabled, do nothing onClick
     }
   };
@@ -310,10 +363,10 @@ export default function HomePage() {
     temperature,
     systemPrompt,
     currentChatTokens,
-    handleApiKeyChange: apiKeyChanged,
-    handleProviderApiUrlChange: providerApiUrlChanged,
-    handleTemperatureChange: temperatureChanged,
-    handleSystemPromptChange: systemPromptChanged,
+    handleApiKeyChange: apiKeyChangedBound,
+    handleProviderApiUrlChange: providerApiUrlChangedBound,
+    handleTemperatureChange: temperatureChangedBound,
+    handleSystemPromptChange: systemPromptChangedBound,
     handleClickShowApiKey,
     handleMouseDownApiKey,
   };
@@ -321,18 +374,19 @@ export default function HomePage() {
   const [selectedModelId, models] = useUnit([
     $selectedModelId,
     $availableModels,
-  ]) as [string, ModelInfo[]];
+  ]);
 
-  const selectedModel = React.useMemo(() => {
-    return models.find((m) => m.id === selectedModelId);
-  }, [models, selectedModelId]);
+  const selectedModel = React.useMemo(
+    () => models.find((m) => m.id === selectedModelId),
+    [models, selectedModelId],
+  );
 
   // Effect to reset preventScroll flag after edit/retry potentially caused it to be true
   React.useEffect(() => {
     if (preventScroll) {
-      setPreventScroll(false);
+      setPreventScrollBound(false);
     }
-  }, [preventScroll]); // Only run when preventScroll changes
+  }, [preventScroll, setPreventScrollBound]); // Only run when preventScroll changes
 
   const preventScrollFlag = useUnit($preventScroll);
   const scrollTrigger = useUnit($scrollTrigger);
@@ -348,10 +402,10 @@ export default function HomePage() {
   // Remove the old effect that depended on scrollToLastMessageNeeded
 
   React.useEffect(() => {
-    loadSettings();
-    fetchModels();
-    appStarted(); // Trigger app started event
-  }, []);
+    loadSettingsBound();
+    fetchModelsBound();
+    appStartedBound(); // Trigger app started event
+  }, [loadSettingsBound, fetchModelsBound, appStartedBound]);
 
   return (
     <Box sx={{ height: '100vh', overflow: 'hidden', fontSize: 20 }}>
@@ -360,7 +414,7 @@ export default function HomePage() {
       {/* AppBar */}
       <AppBar
         position="fixed"
-        sx={(theme) => {
+        sx={(appBarTheme) => {
           // Add theme access for transitions and spacing
           const isLeftOpen = !isMobile && isHistoryPersistentOpen;
           const isRightOpen = !isMobile && isSettingsPersistentOpen;
@@ -369,8 +423,8 @@ export default function HomePage() {
           let targetMarginRight = '0px'; // Use string '0px' for consistency
           // Default transition (when drawers are closing)
           let transitionProps = {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
+            easing: appBarTheme.transitions.easing.sharp,
+            duration: appBarTheme.transitions.duration.leavingScreen,
           };
 
           // Calculate width and margins based on open drawers
@@ -380,24 +434,24 @@ export default function HomePage() {
             targetMarginRight = `${DRAWER_WIDTH}px`;
             // Use 'entering' transition when any drawer is open/opening
             transitionProps = {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
+              easing: appBarTheme.transitions.easing.easeOut,
+              duration: appBarTheme.transitions.duration.enteringScreen,
             };
           } else if (isLeftOpen) {
             targetWidth = `calc(100% - ${DRAWER_WIDTH}px)`;
             targetMarginLeft = `${DRAWER_WIDTH}px`;
             targetMarginRight = '0px';
             transitionProps = {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
+              easing: appBarTheme.transitions.easing.easeOut,
+              duration: appBarTheme.transitions.duration.enteringScreen,
             };
           } else if (isRightOpen) {
             targetWidth = `calc(100% - ${DRAWER_WIDTH}px)`;
             targetMarginLeft = '0px';
             targetMarginRight = `${DRAWER_WIDTH}px`;
             transitionProps = {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
+              easing: appBarTheme.transitions.easing.easeOut,
+              duration: appBarTheme.transitions.duration.enteringScreen,
             };
           }
           // Apply calculated styles and transition
@@ -405,7 +459,7 @@ export default function HomePage() {
             width: targetWidth,
             marginLeft: targetMarginLeft,
             marginRight: targetMarginRight,
-            transition: theme.transitions.create(
+            transition: appBarTheme.transitions.create(
               ['margin', 'width'],
               transitionProps,
             ),
@@ -456,7 +510,7 @@ export default function HomePage() {
               color="inherit"
               aria-label="usage info"
               onClick={() => {
-                refreshUsageInfo();
+                refreshUsageInfoBound();
                 setUsageDialogOpen(true);
               }}
             >
@@ -491,37 +545,37 @@ export default function HomePage() {
       {/* Main Content Area Wrapper */}
       <Box
         component="main"
-        sx={(theme) => ({
+        sx={(mainTheme) => ({
           // Use theme callback for consistency
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
           height: '100vh', // Occupy full viewport height
           // Adjust transitions and margins for main content
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
+          transition: mainTheme.transitions.create('margin', {
+            easing: mainTheme.transitions.easing.sharp,
+            duration: mainTheme.transitions.duration.leavingScreen,
           }),
           marginLeft: 0, // Start at 0
           marginRight: 0, // Start at 0
           ...(isHistoryPersistentOpen &&
             !isMobile && {
               marginLeft: `${DRAWER_WIDTH}px`, // Add left margin when history open
-              transition: theme.transitions.create('margin', {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
+              transition: mainTheme.transitions.create('margin', {
+                easing: mainTheme.transitions.easing.easeOut,
+                duration: mainTheme.transitions.duration.enteringScreen,
               }),
             }),
           ...(isSettingsPersistentOpen &&
             !isMobile && {
               marginRight: `${DRAWER_WIDTH}px`, // Add right margin when settings open
-              transition: theme.transitions.create('margin', {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
+              transition: mainTheme.transitions.create('margin', {
+                easing: mainTheme.transitions.easing.easeOut,
+                duration: mainTheme.transitions.duration.enteringScreen,
               }),
             }),
           // Ensure content below AppBar starts correctly
-          pt: `${Number(theme.mixins.toolbar.minHeight) - 16}px`, // Use theme value for AppBar height
+          pt: `${Number(mainTheme.mixins.toolbar.minHeight) - 16}px`, // Use theme value for AppBar height
           pb: 0, // Remove potential bottom padding if any
           boxSizing: 'border-box', // Include padding in height calculation
         })}
@@ -573,8 +627,8 @@ export default function HomePage() {
                   width: '100%',
                 }}
               >
-                {messages.map((msg) => (
-                  <MessageItem message={msg} key={msg.id} />
+                {messages.map((message) => (
+                  <MessageItem message={message} key={message.id} />
                 ))}
                 <div ref={chatEndRef} />
               </Stack>
@@ -584,14 +638,14 @@ export default function HomePage() {
           <Snackbar
             open={snackbar.open}
             anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-            sx={(theme) => {
-              const top = Number(theme.mixins.toolbar.minHeight) + 8;
+            sx={(snackbarTheme) => {
+              const top = Number(snackbarTheme.mixins.toolbar.minHeight) + 8;
               return { top: `${top}px !important` };
             }}
           >
             <Alert
               variant="filled"
-              onClose={() => hideSnackbar()}
+              onClose={() => hideSnackbarBound()}
               severity={snackbar.severity}
             >
               {snackbar.message}
@@ -670,7 +724,7 @@ export default function HomePage() {
               {/* Consolidated Attachment Menu - positioned on the far left */}
               <AttachmentMenu
                 disabled={isGenerating}
-                onImageGenerationClick={() => openImageGenerationDialog()}
+                onImageGenerationClick={() => openImageGenerationDialogBound()}
                 onRecordingStateChange={setIsRecording}
                 onTTSClick={() => setTtsDialogOpen(true)}
               />
@@ -686,8 +740,8 @@ export default function HomePage() {
                 slotProps={{ input: { sx: { fontSize: 22, py: 1 } } }}
                 value={messageText}
                 onChange={changeMessage}
-                onFocus={() => mainInputFocused(true)} // Trigger event on focus
-                onBlur={() => mainInputFocused(false)} // Trigger event on blur
+                onFocus={() => mainInputFocusedBound(true)} // Trigger event on focus
+                onBlur={() => mainInputFocusedBound(false)} // Trigger event on blur
               />
 
               {/* Send/Stop Button - positioned on the far right */}
@@ -695,7 +749,7 @@ export default function HomePage() {
                 {isGenerating ? (
                   <IconButton
                     aria-label="Stop Generation"
-                    onClick={() => stopGenerationClicked()} // Ensure event is called correctly
+                    onClick={() => stopGenerationClickedBound()} // Ensure event is called correctly
                     sx={{
                       mx: -0.5,
                       color: 'warning.main', // Keep warning color for stop
@@ -711,11 +765,10 @@ export default function HomePage() {
                       (m) => m.status === 'pending' && m.role === 'user',
                     );
                     const hasPendingImages = pendingImages.length > 0;
-                    const lastMessage =
-                      messages.length > 0
-                        ? messages[messages.length - 1]
-                        : null;
-                    const isLastMessageUser = lastMessage?.role === 'user';
+                    const currentLastMessage =
+                      messages.length > 0 ? messages.at(-1) : null;
+                    const isLastMessageUser =
+                      currentLastMessage?.role === 'user';
                     // Disable if (input is empty AND no pending images AND last message was NOT user) OR if recording
                     const isDisabled =
                       (isInputEmpty &&
@@ -769,7 +822,21 @@ export default function HomePage() {
         >
           <Box sx={{ overflow: 'auto' }}>
             {/* Make drawer content scrollable if needed */}
-            <ChatHistoryContent {...historyPanelProps} />
+            <ChatHistoryContent
+              searchTerm={historyPanelProps.searchTerm}
+              setSearchTerm={historyPanelProps.setSearchTerm}
+              isLoading={historyPanelProps.isLoading}
+              filteredHistory={historyPanelProps.filteredHistory}
+              editingId={historyPanelProps.editingId}
+              editedTitle={historyPanelProps.editedTitle}
+              currentChatId={historyPanelProps.currentChatId}
+              setEditedTitle={historyPanelProps.setEditedTitle}
+              handleStartEdit={historyPanelProps.handleStartEdit}
+              handleSaveEdit={historyPanelProps.handleSaveEdit}
+              handleCancelEdit={historyPanelProps.handleCancelEdit}
+              handleDeleteChat={historyPanelProps.handleDeleteChat}
+              handleSelectChat={historyPanelProps.handleSelectChat}
+            />
           </Box>
         </Drawer>
       )}

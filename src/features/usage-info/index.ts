@@ -1,10 +1,9 @@
 // Public API for the usage-info feature
 
 export {
+  $contextWindowPercent, // For context window percentage
   // Stores
   $usageStats,
-  $contextWindowPercent, // For context window percentage
-
   // Events
   refreshUsageInfo,
 } from './model';

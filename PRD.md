@@ -1,7 +1,7 @@
 ## Product Requirements Document: LLM Chat Interface
 
-**Version:** 2.0 **Date:** 2025-06-13 **Author:** doasync **Status:** Updated
-with Standalone Transcription Dialog
+**Version:** 2.2 **Date:** 2025-06-15 **Author:** doasync **Status:**
+Comprehensive Update with All Implemented Features
 
 ---
 
@@ -67,10 +67,12 @@ for this client-side App.
 #### 4.1. Main UI Layout & Core Components
 
 - Single-page App (SPA).
-- Built with Material UI components.
-- State managed via Effector, following best practices.
+- Built with Material UI v7 components.
+- State managed via Effector with patronum utilities, following best practices.
 - Async operations (API calls, model fetching) handled via Effector Effects and
   fetch API.
+- Component files use kebab-case naming convention (e.g., `message-item.tsx`).
+- Feature exports organized alphabetically in index files for consistency.
 - Responsive layout adapting fluidly to screen sizes.
 - Desktop/tablet: persistent sidebars for History and Settings; mobile: tabs
   within bottom drawer.
@@ -135,8 +137,13 @@ for this client-side App.
 #### 4.4. Message Input Area (Bottom)
 
 - **4.4.1. Text Input:** Multiline, resizes vertically.
-- **4.4.2. Attach File Button:** Provides access to file uploads and audio
-  tools.
+- **4.4.2. Attach File Button:** Provides access to comprehensive file
+  attachment menu:
+  - File uploads (images, documents, audio) with drag-and-drop support
+  - Voice recording functionality
+  - Standalone transcription dialog access
+  - Standalone text-to-speech dialog access
+  - Image generation dialog access
 - **4.4.3. Send Button:**
   - Sends on click or Enter.
   - **If input empty & last message is user, triggers Generate flow, which
@@ -206,20 +213,23 @@ for this client-side App.
 
 - **Lightweight, contextual chat interface embedded within the main UI,
   providing real-time streaming responses.**
-- **Accessible via contextual buttons (e.g., explain selection).**
+- **Accessible via contextual buttons and text selection.**
 - **Features:**
-  - Minimal toolbar and dialog.
-  - Dedicated Effector state model.
-  - Sends quick prompts without affecting main chat history.
-  - **Dedicated model selector independent of main chat.**
+  - **Floating Action Button (FAB):** Always-available overlay button
+  - **Text Selection Integration:** Right-click selected text to explain
+  - **Draggable Interface:** Repositionable dialog with drag handles
+  - **Compact/Expanded States:** Minimize and maximize functionality
+  - Dedicated Effector state model with independent chat history
+  - Sends quick prompts without affecting main chat history
+  - **Dedicated model selector independent of main chat**
   - **Streaming Responses:** Assistant messages appear in real-time as they are
-    generated.
+    generated
   - **Stop Generation:** Allows users to cancel an ongoing message stream within
-    the mini chat.
+    the mini chat
   - Option to **expand Mini Chat into a full persistent chat session** saved in
-    IndexedDB.
-  - Preserves input if expanded.
-  - Handles "Explain" flow immediately if already open.
+    IndexedDB
+  - Preserves input if expanded
+  - Handles "Explain" flow immediately if already open
 - **Improves workflow by enabling quick, contextual queries without cluttering
   main chat.**
 
@@ -239,14 +249,17 @@ for this client-side App.
     uploaded file.
   - **Model & Format Selection**: Allows users to choose a transcription model
     and a response format (`json`, `text`, `srt`, `vtt`), with options filtered
-    by model compatibility.
-  - **Context Prompt**: Users can provide text prompts to improve accuracy.
+    by model compatibility
+  - **Context Prompt**: Users can provide text prompts to improve accuracy
+  - **Advanced Audio Support**: Multiple formats (MP3, WAV, FLAC, M4A, etc.)
+    with client-side audio analysis
   - **Transcription History**: Displays a list of completed transcriptions with
     metadata (audio duration, text size) and provides actions to download, copy,
-    or paste the result.
+    or paste the result
+  - **Audio Preview**: Built-in audio player for file validation before
+    transcription
   - **Workflow**: Pasting a transcription into the chat input automatically
-    closes the dialog, allowing the user to review and send the message
-    manually.
+    closes the dialog, allowing the user to review and send the message manually
 
   #### 4.11. Standalone Text-to-Speech (TTS) Dialog (New)
 
@@ -259,26 +272,167 @@ for this client-side App.
       (up to 4000 characters).
     - **Dynamic Model & Voice Selection**: Allows users to choose a TTS model
       and then a corresponding voice. The list of available voices is
-      dynamically updated based on the selected model.
+      dynamically updated based on the selected model
     - **Format Selection**: A dropdown allows users to select the desired audio
       output format (e.g., `mp3`, `wav`), with options filtered by the selected
-      model's capabilities.
+      model's capabilities
     - **Model-Specific Options**: Includes a field for "Voice Instructions" that
-      is only enabled for specific models like `gpt-4o-mini-tts`.
+      is only enabled for specific models like `gpt-4o-mini-tts`
+    - **Voice Model Management**: Comprehensive voice database with favorites,
+      provider-specific voices (OpenAI, ElevenLabs), and per-model compatibility
+    - **Audio Preview**: Built-in audio player for generated audio validation
     - **Generation History**: Displays a list of previously generated audio
       files, with metadata (model, voice, format, size) and provides actions to
-      download or preview the audio.
+      download or preview the audio
+
+#### 4.12. Image Generation Dialog (New)
+
+- **Provides a dedicated interface for AI image generation using DALL-E and
+  compatible models.**
+- **Access:**
+  - Opened via the attachment menu (📎 → "Generate Image") or text commands in
+    chat.
+- **Features:**
+  - **Text Prompt Input**: Multi-line text area for image description prompts
+  - **Model Selection**: Support for image generation models (DALL-E 3, DALL-E
+    2, and other compatible models)
+  - **Quality & Style Settings**: Size selection (1024x1024, 1792x1024, etc.),
+    quality (standard/HD), and style options
+  - **Batch Generation**: Generate multiple images simultaneously with count
+    selection
+  - **Generation History**: Persistent storage of generated images with metadata
+    (prompt, model, settings, timestamp) in IndexedDB
+  - **Image Management**: Preview, download, delete, and send-to-chat
+    functionality
+  - **Chat Integration**: Direct insertion of generated images into current chat
+    conversation
+
+#### 4.13. Ephemeral Audio Features (New)
+
+- **Provides in-message audio capabilities separate from standalone dialogs.**
+- **Access:**
+  - Audio buttons on individual chat messages
+- **Features:**
+  - **Ephemeral TTS**: Convert any message text to speech (session-only, not
+    persisted)
+  - **Ephemeral STT**: Transcribe audio content in messages (session-only, not
+    persisted)
+  - **Per-Message Controls**: Individual audio/transcript toggle buttons on each
+    message
+  - **Separate Model Selection**: Dedicated in-chat model selectors for STT/TTS
+    independent of main chat model
+  - **Memory Management**: Automatic cleanup of audio data to prevent chat
+    pollution
+  - **Audio Player Integration**: Built-in controls for playback and transcript
+    display
+
+#### 4.14. Advanced Model Capability Detection (New)
+
+- **Provides intelligent model selection based on content type and
+  capabilities.**
+- **Functionality:**
+  - **Auto-Selection**: Automatic model switching when images/audio are attached
+  - **Capability Inference**: Dynamic detection of vision, audio, streaming, and
+    function calling support
+  - **Model Database**: Comprehensive capability matrix for 200+ models across
+    multiple providers
+  - **Smart Filtering**: Filter models by specific capabilities (vision-enabled,
+    audio-enabled, etc.)
+  - **Provider Support**: OpenAI, Anthropic, Google, xAI, Mistral, and custom
+    providers
+  - **Constraint Handling**: Model-specific limits (max image size, audio
+    duration, context length)
+
+#### 4.15. Provider URL Testing and Validation (New)
+
+- **Provides real-time API connection validation.**
+- **Access:**
+  - Provider URL test component in chat settings
+- **Features:**
+  - **Connection Testing**: Real-time validation of custom API endpoints
+  - **Status Indicators**: Visual feedback for connection success/failure
+  - **Error Diagnosis**: Detailed error messages for troubleshooting
+  - **Auto-Validation**: Automatic testing when URL is modified
+  - **Multiple Providers**: Support for testing various API providers and custom
+    endpoints
+
+#### 4.16. Auto-Title Generation (New)
+
+- **Provides AI-powered automatic chat title generation.**
+- **Functionality:**
+  - **Smart Title Creation**: Generate descriptive titles based on conversation
+    context
+  - **Model Selection**: Dedicated model choice for title generation
+  - **Manual Regeneration**: Option to regenerate titles for existing chats
+  - **Fallback Titles**: Automatic fallback to timestamp-based titles if
+    generation fails
+- **Access:**
+  - Automatic on chat creation, manual via chat history actions
+
+#### 4.17. Advanced Document Processing (Enhanced)
+
+- **Comprehensive document processing with multiple format support.**
+- **Enhanced Features:**
+  - **PDF Processing**: PDF.js-based extraction with metadata (author, title,
+    page count)
+  - **DOCX Processing**: Mammoth-based Word document conversion with formatting
+    preservation
+  - **HTML Processing**: Turndown-based markdown conversion
+  - **Text Files**: Direct processing for MD, TXT, and other text formats
+  - **Batch Processing**: Upload and process up to 10 files simultaneously
+  - **Document Preview**: Rich preview interface with metadata display
+  - **Extraction Progress**: Real-time progress tracking for large files
+  - **Text Chunking**: Intelligent splitting for large documents
+  - **Error Handling**: Graceful fallback for unsupported formats
+
+#### 4.18. Voice Model Management System (New)
+
+- **Comprehensive voice configuration and management system.**
+- **Features:**
+  - **Voice Database**: Extensive catalog of voices from multiple providers
+  - **Provider Support**: OpenAI, ElevenLabs, Google voices with metadata
+  - **Voice Preferences**: Favorites system and default voice selection
+  - **Compatibility Matrix**: Dynamic voice-to-model compatibility checking
+  - **Per-Model Settings**: Model-specific voice preferences and overrides
+  - **Voice Preview**: Audio samples and voice characteristic information
+
+#### 4.19. Advanced Chat History Management (Enhanced)
+
+- **Sophisticated chat persistence and management beyond basic requirements.**
+- **Enhanced Features:**
+  - **Chat Duplication**: Create copies of existing conversations with timestamp
+    suffixes
+  - **Advanced Search**: Full-text search across chat content and titles
+  - **Auto-Indexing**: Automatic organization and sorting of chat sessions
+  - **Draft Persistence**: Per-chat session draft saving with debounced updates
+  - **Recovery System**: Automatic chat restoration and error recovery
+  - **Metadata Management**: Rich metadata tracking (token counts, model
+    history, creation dates)
+
+#### 4.20. Usage Analytics and Resource Monitoring (Enhanced)
+
+- **Comprehensive resource usage tracking and analytics.**
+- **Enhanced Features:**
+  - **Token Tracking**: Real-time prompt and completion token counting
+  - **Cost Calculation**: Dynamic API cost estimation with provider-specific
+    pricing
+  - **Storage Analytics**: IndexedDB usage monitoring with quota tracking
+  - **Context Window Monitoring**: Real-time context usage with visual
+    indicators
+  - **Per-Chat Metrics**: Individual conversation analytics and history
+  - **Export Functionality**: Usage data export for external analysis
 
 ---
 
 ### 5. Non-Functional Requirements
 
-- **Technology Stack:** TypeScript, React, Next.js, MUI v5+, Effector, `idb`,
-  VoidAI API, `eventsource-parser`, `react-markdown`, `remark-gfm`,
-  `react-syntax-highlighter`, `remark-math`, `rehype-katex`, `katex`,
-  `@lightenna/react-mermaid-diagram`.
+- **Technology Stack:** TypeScript, React, Next.js 15, MUI v7, Effector with
+  patronum utilities, `idb`, VoidAI API, `eventsource-parser`, `react-markdown`,
+  `remark-gfm`, `remark-math`, `rehype-katex`, `katex`,
+  `@lightenna/react-mermaid-diagram`, `@tanstack/react-query`, `dompurify`,
+  `effector-storage`, `turndown`, `use-long-press`.
 - **Architecture:** Static Web Application, client-side only, feature-based
-  modular.
+  modular with kebab-case component naming and alphabetical export organization.
 - **Data Persistence:** IndexedDB (chats), LocalStorage (settings, API key, free
   toggle, mini chat model, drawer states).
 - **Responsiveness:** Desktop drawers persistent; mobile drawers as tabs. Smooth
@@ -286,6 +440,15 @@ for this client-side App.
 - **Performance:** Responsive UI, **real-time feedback via streaming
   responses,** smooth scrolling, efficient state updates, clear loading
   indicators for generation and streaming, optimized markdown rendering.
+- **Code Organization:** Feature-based architecture with kebab-case component
+  naming (e.g., `message-item.tsx`, `chat-settings-content.tsx`) and
+  alphabetical export organization in index files for consistency.
+- **Development Workflow:** Comprehensive quality assurance with `npm run qa`,
+  automatic formatting with `npm run fix`, TypeScript compilation checks, and
+  circular dependency detection.
+- **Build Configuration:** Static export only (`output: 'export'`), ESLint
+  disabled during build but enforced via manual checks, unoptimized images for
+  static export compatibility.
 - **Usability & Error Handling:** Intuitive icons with tooltips, clear feedback,
   accessible actions, user-facing errors via MUI Alerts.
 - **Resource Visibility:** Real-time usage info to aid user awareness of tokens,
@@ -320,5 +483,22 @@ for this client-side App.
 - Backend storage/security.
 - Client-side token estimation libraries.
 - Proactive management of IndexedDB storage limits.
+- Server-side rendering (app is static export only).
+
+### 8. Implementation Notes
+
+- **Version 2.2 Update:** Comprehensive documentation of all implemented
+  features including image generation, ephemeral audio, advanced model
+  capabilities, and sophisticated UI components.
+- **Recent Refactoring (v2.1):** The codebase has been refactored to use
+  consistent kebab-case naming for all component files and alphabetical export
+  organization.
+- **Quality Assurance:** Development workflow includes comprehensive QA tools
+  (`npm run qa`) for TypeScript compilation, linting, formatting, and circular
+  dependency checking.
+- **Static Export:** Application is configured for static export only with
+  unoptimized images and ESLint disabled during build.
+- **Advanced Architecture:** Feature-based modular architecture with Effector
+  state management, IndexedDB persistence, and sophisticated component patterns.
 
 ---

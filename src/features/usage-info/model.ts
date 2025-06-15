@@ -1,14 +1,9 @@
-import {
-  createStore,
-  createEvent,
-  createEffect,
-  sample,
-  combine,
-} from 'effector';
-import { $currentChatSession, ChatSession } from '@/features/chat-history';
+import { createEffect, createEvent, createStore, sample } from 'effector';
+
 import { $currentChatTokens } from '@/features/chat';
-import { navigatorStorageEstimate } from './utils';
-import { calculateApiCost } from './utils';
+import { $currentChatSession, ChatSession } from '@/features/chat-history';
+
+import { calculateApiCost, navigatorStorageEstimate } from './utils';
 
 interface UsageStatsParams {
   chatSession: ChatSession | null;
@@ -23,7 +18,7 @@ export const $usageStats = createStore({
   tokensSent: 0,
   tokensReceived: 0,
   contextTokensUsed: 0,
-  contextTokensMax: 1000000, // default to 1M
+  contextTokensMax: 1_000_000, // default to 1M
   apiCost: 0,
   chatSizeMB: 0,
   dbSizeMB: 0,
@@ -44,11 +39,11 @@ export const fetchStorageInfoFx = createEffect(async () => {
   const { quota, usage } = await navigatorStorageEstimate();
 
   // Placeholder: you will replace this with real IDB chat size calc
-  const dbSizeMB = usage / (1024 * 1024);
+  const databaseSizeMB = usage / (1024 * 1024);
 
   return {
     quotaMB: quota / (1024 * 1024),
-    dbSizeMB,
+    dbSizeMB: databaseSizeMB,
     totalUsageMB: usage / (1024 * 1024),
     chatSizeMB: 0, // will be updated separately
   };
@@ -61,7 +56,7 @@ export const calculateUsageStatsFx = createEffect(
     const tokensReceived = 0;
     const contextTokensUsed = totalTokens;
     const contextTokensMax =
-      chatSession?.settings?.model?.context_length ?? 1000000;
+      chatSession?.settings?.model?.context_length ?? 1_000_000;
     const pricing = chatSession?.settings?.model?.pricing;
     const apiCost = calculateApiCost(
       tokensSent,
@@ -70,11 +65,11 @@ export const calculateUsageStatsFx = createEffect(
         ? {
             prompt:
               typeof pricing.prompt === 'string'
-                ? parseFloat(pricing.prompt)
+                ? Number.parseFloat(pricing.prompt)
                 : pricing.prompt || 0,
             completion:
               typeof pricing.completion === 'string'
-                ? parseFloat(pricing.completion)
+                ? Number.parseFloat(pricing.completion)
                 : pricing.completion || 0,
           }
         : undefined,
@@ -104,10 +99,10 @@ sample({
     $currentChatSession.updates,
     $currentChatTokens.updates,
   ],
-  source: combine({
+  source: {
     chatSession: $currentChatSession,
     totalTokens: $currentChatTokens,
-  }),
+  },
   fn: ({ chatSession, totalTokens }): UsageStatsParams => ({
     chatSession,
     totalTokens,

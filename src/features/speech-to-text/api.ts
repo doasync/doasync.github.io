@@ -1,16 +1,14 @@
 import {
-  STTResponse,
-  TranscribeParams,
   ResponseFormatOption,
   STTModel,
+  STTResponse,
+  TranscribeParams,
 } from './types';
-import { $apiKey, $providerApiUrl } from '../chat-settings/model';
 
 export async function transcribeAudio(
-  params: TranscribeParams,
+  params: TranscribeParams & { apiKey: string; providerUrl: string },
 ): Promise<STTResponse> {
-  const apiKey = $apiKey.getState();
-  const providerUrl = $providerApiUrl.getState();
+  const { apiKey, providerUrl } = params;
 
   if (!apiKey) {
     throw new Error(
@@ -82,10 +80,8 @@ export async function transcribeAudio(
         duration: undefined,
         segments: undefined,
       };
-    } else if (
-      params.responseFormat === 'srt' ||
-      params.responseFormat === 'vtt'
-    ) {
+    }
+    if (params.responseFormat === 'srt' || params.responseFormat === 'vtt') {
       // SRT and VTT formats return subtitles as plain text
       const rawText = await response.text();
       return {
@@ -95,24 +91,23 @@ export async function transcribeAudio(
         duration: undefined,
         segments: undefined,
       };
-    } else {
-      // JSON and verbose_json formats
-      const rawText = await response.text();
-      const data = JSON.parse(rawText);
-
-      // Validate response has required text field
-      if (!data.text) {
-        throw new Error('No transcription text in response');
-      }
-
-      return {
-        text: data.text,
-        rawResponse: rawText, // Store the original JSON string
-        language: data.language,
-        duration: data.duration,
-        segments: data.segments,
-      };
     }
+    // JSON and verbose_json formats
+    const rawText = await response.text();
+    const data = JSON.parse(rawText);
+
+    // Validate response has required text field
+    if (!data.text) {
+      throw new Error('No transcription text in response');
+    }
+
+    return {
+      text: data.text,
+      rawResponse: rawText, // Store the original JSON string
+      language: data.language,
+      duration: data.duration,
+      segments: data.segments,
+    };
   } catch (error) {
     // Handle network-level errors (Failed to fetch, CORS, timeout, etc.)
     if (error instanceof TypeError && error.message.includes('fetch')) {
