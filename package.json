@@ -38,7 +38,7 @@
     "localforage": "^1.10.0",
     "mammoth": "^1.9.1",
     "mermaid": "^11.6.0",
-    "next": "15.2.4",
+    "next": "15.4.8",
     "patronum": "^2.3.0",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.3.31",
